@@ -11,6 +11,6 @@ namespace TankServer
         public int ID { get; set; }
         public DateTime Duration { get; set; }
         public string Winner { get; set; }
-        public List<string> Players { get; set; }
+        public int PlayersCount { get; set; }
     }
 }
