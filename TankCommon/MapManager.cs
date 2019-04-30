@@ -8,28 +8,34 @@ namespace TankCommon
 {
     public static class MapManager
     {
-        public const string MapDirectory = "maps";
-
-        public static List<string> GetMapList()
+        /// <summary>
+        /// Генерирует (пустую) квадратную карту по переданной длинне стороны
+        /// </summary>
+        /// <param name="mapSize"></param>
+        /// <returns>Массив, используя каждый элемент, как ширину карты</returns>
+        private static string[] GenerateMap(uint mapSize = 10)
         {
-            var d = new DirectoryInfo(MapDirectory);
-            var fs = d.GetFiles("map*.txt");
-            return fs.Select(f => f.Name).ToList();
+            var lineMap = "";
+            var generatedMap = new string[mapSize]; //Сгенерированная карта, для передачи из метода
+            for (var j = 0; j< mapSize; j++)
+            {
+                lineMap = lineMap + " "; //Наполняю строковую переменную пробелами для пустоты в карте
+            }
+            
+            for (int i = 0; i < mapSize ;i++)
+            {
+                generatedMap[i] = lineMap; // Пустые строки кладу в массив
+            }
+            return generatedMap; // возвращаю пустую карту
         }
 
-        public static Map LoadMap(string mapName)
+        public static Map LoadMap()
         {
-            var f = Path.Combine(MapDirectory, mapName);
-            if (!File.Exists(f))
-            {
-                throw new FileNotFoundException(f);
-            }
-
             var width = 0;
             var height = 0;
             var cells = new List<List<CellMapType>>();
-            var fileData = File.ReadAllLines(f);
-            foreach (var line in fileData)
+            string[] mapData = GenerateMap();
+            foreach (var line in mapData)
             {
                 height++;
                 if (0 == width)
