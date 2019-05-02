@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using TankCommon.Enum;
 using TankCommon.Objects;
 
@@ -12,29 +13,33 @@ namespace TankCommon
         /// Генерирует (пустую) квадратную карту по переданной длинне стороны
         /// </summary>
         /// <param name="mapSize"></param>
-        /// <returns>Массив, используя каждый элемент, как ширину карты</returns>
+        /// <returns>Массив, представляет каждый элемент, как ширину карты</returns>
         private static string[] GenerateMap(uint mapSize = 10)
         {
-            var lineMap = "";
-            var generatedMap = new string[mapSize]; //Сгенерированная карта, для передачи из метода
-            for (var j = 0; j< mapSize; j++)
+            var preMap = new char[mapSize, mapSize]; //создаю и заполняю массив (чаров для удобства генерации карты)
+            for (var x = 0; x < mapSize; x++)
             {
-                lineMap = lineMap + " "; //Наполняю строковую переменную пробелами для пустоты в карте
+                for (var y = 0; y < mapSize; y++)
+                {
+                    if (x == 0 || y == 0 || x == mapSize - 1 || y == mapSize - 1)
+                    {
+                        preMap[x, y] = 'с';
+                    }
+                    else
+                    {
+                        preMap[x, y] = ' ';
+                    }
+                }
             }
-            
-            for (int i = 0; i < mapSize ;i++)
-            {
-                generatedMap[i] = lineMap; // Пустые строки кладу в массив
-            }
-            return generatedMap; // возвращаю пустую карту
+            return GetStringedArray(preMap, mapSize); // возвращаю карту в виде массива стрингов
         }
 
         public static Map LoadMap()
         {
+            var mapData = GenerateMap();
             var width = 0;
             var height = 0;
             var cells = new List<List<CellMapType>>();
-            string[] mapData = GenerateMap();
             foreach (var line in mapData)
             {
                 height++;
@@ -126,6 +131,22 @@ namespace TankCommon
         public static BaseInteractObject GetIntersectedObject(Rectangle rectangle, IEnumerable<BaseInteractObject> interactObjects)
         {
             return interactObjects.FirstOrDefault(i => i.Rectangle.IsRectangleIntersected(rectangle));
+        }
+
+        private static string[] GetStringedArray(char[,] charMap, uint mapSize)
+        {
+            var stringedMap = new string[mapSize];
+            var sBuilder = new StringBuilder();
+            for (var x = 0; x < mapSize; x++)
+            {
+                for (var y = 0; y < mapSize; y++)
+                {
+                    sBuilder.Append(charMap[x,y]);
+                }
+                stringedMap[x] = sBuilder.ToString();
+                sBuilder.Remove(0, sBuilder.Length);
+            }
+            return stringedMap;
         }
     }
 }
