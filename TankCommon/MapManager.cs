@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -16,7 +17,13 @@ namespace TankCommon
         /// <returns>Массив, представляет каждый элемент, как ширину карты</returns>
         private static string[] GenerateMap(uint mapSize = 10)
         {
+            var Walls  = 'с';
+            var DestructiveWalls = '*';
+            var Water = 'в';
+            var Grass = 'т';
+            var Void = ' ';
             var preMap = new char[mapSize, mapSize]; //создаю и заполняю массив (чаров для удобства генерации карты)
+
             for (var x = 0; x < mapSize; x++)
             {
                 for (var y = 0; y < mapSize; y++)
@@ -31,7 +38,8 @@ namespace TankCommon
                     }
                 }
             }
-            return GetStringedArray(preMap, mapSize); // возвращаю карту в виде массива стрингов
+            preMap = GenerateMapObjects(preMap, DestructiveWalls);
+            return GetStringedArray(preMap); // возвращаю карту в виде массива стрингов
         }
 
         public static Map LoadMap()
@@ -133,13 +141,18 @@ namespace TankCommon
             return interactObjects.FirstOrDefault(i => i.Rectangle.IsRectangleIntersected(rectangle));
         }
 
-        private static string[] GetStringedArray(char[,] charMap, uint mapSize)
+        /// <summary>
+        /// Переводит карту из массива чаров в массив стрингов. 
+        /// </summary>
+        /// <param name="charMap"></param>
+        /// <returns></returns>
+        private static string[] GetStringedArray(char[,] charMap)
         {
-            var stringedMap = new string[mapSize];
+            var stringedMap = new string[charMap.GetLength(0)];
             var sBuilder = new StringBuilder();
-            for (var x = 0; x < mapSize; x++)
+            for (var x = 0; x < charMap.GetLength(0); x++)
             {
-                for (var y = 0; y < mapSize; y++)
+                for (var y = 0; y < charMap.GetLength(1); y++)
                 {
                     sBuilder.Append(charMap[x,y]);
                 }
@@ -148,5 +161,43 @@ namespace TankCommon
             }
             return stringedMap;
         }
+
+        /// <summary>
+        /// Генерирует объекты на переданной карте и возвращает её
+        /// </summary>
+        /// <param name="map">Пустая карта с краями</param>
+        /// <param name="primaryObject">Какого типа объектов должно быть больше всего</param>
+        /// <param name="percentOfPrimObj">Какой процент карты должны занимать объекты выбранного типа</param>
+        /// <returns></returns>
+        private static char[,] GenerateMapObjects(char[,] map, char primaryObject = 'т', int percentOfPrimObj = 25, int percentAnotherObj = 12)
+        {
+            var mapObjects = new char[] {'с', ' ', '*', 'т', 'в'}; 
+            var rnd = new Random();
+            int rndNum;
+
+            for(var x = 0; x < map.GetLength(0); x++)
+            {
+                for (var y = 0; y < map.GetLength(1); y++)
+                {
+                    if (map[x, y] == ' ')
+                    {
+                        rndNum = rnd.Next(0, 100); //Для каждого элемента карты беру рандомное число
+                        if (rndNum < percentOfPrimObj)
+                        {
+                            map[x, y] = primaryObject;
+                        }
+                        else
+                        {
+                            if (rndNum < (percentOfPrimObj + percentAnotherObj))
+                            {
+                                map[x, y] = mapObjects[rnd.Next(0, 4)];
+                            }
+                        }
+                    }
+                }
+            }
+            return map;
+        }
+
     }
 }
