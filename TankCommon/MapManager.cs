@@ -10,38 +10,6 @@ namespace TankCommon
 {
     public static class MapManager
     {
-        /// <summary>
-        /// Генерирует (пустую) квадратную карту по переданной длинне стороны
-        /// </summary>
-        /// <param name="mapSize"></param>
-        /// <returns>Массив, представляет каждый элемент, как ширину карты</returns>
-        private static string[] GenerateMap(uint mapSize = 10)
-        {
-            var Walls  = 'с';
-            var DestructiveWalls = '*';
-            var Water = 'в';
-            var Grass = 'т';
-            var Void = ' ';
-            var preMap = new char[mapSize, mapSize]; //создаю и заполняю массив (чаров для удобства генерации карты)
-
-            for (var x = 0; x < mapSize; x++)
-            {
-                for (var y = 0; y < mapSize; y++)
-                {
-                    if (x == 0 || y == 0 || x == mapSize - 1 || y == mapSize - 1)
-                    {
-                        preMap[x, y] = 'с';
-                    }
-                    else
-                    {
-                        preMap[x, y] = ' ';
-                    }
-                }
-            }
-            preMap = GenerateMapObjects(preMap, DestructiveWalls);
-            return GetStringedArray(preMap); // возвращаю карту в виде массива стрингов
-        }
-
         public static Map LoadMap()
         {
             var mapData = GenerateMap();
@@ -142,6 +110,38 @@ namespace TankCommon
         }
 
         /// <summary>
+        /// Генерирует квадратную карту по переданной длинне стороны
+        /// </summary>
+        /// <param name="mapSize"></param>
+        /// <returns>Массив, представляет каждый элемент, как ширину карты</returns>
+        private static string[] GenerateMap(uint mapSize = 12)
+        {
+            var Walls = 'с';
+            var DestructiveWalls = '*';
+            var Water = 'в';
+            var Grass = 'т';
+            var Void = ' ';
+            var preMap = new char[mapSize, mapSize]; //создаю и заполняю массив (чаров для удобства генерации карты)
+
+            for (var x = 0; x < mapSize; x++)
+            {
+                for (var y = 0; y < mapSize; y++)
+                {
+                    if (x == 0 || y == 0 || x == mapSize - 1 || y == mapSize - 1)
+                    {
+                        preMap[x, y] = 'с';
+                    }
+                    else
+                    {
+                        preMap[x, y] = ' ';
+                    }
+                }
+            }
+            preMap = GenerateMapObjects(preMap, Walls);
+            return GetStringedArray(preMap); // возвращаю карту в виде массива стрингов
+        }
+
+        /// <summary>
         /// Переводит карту из массива чаров в массив стрингов. 
         /// </summary>
         /// <param name="charMap"></param>
@@ -196,8 +196,30 @@ namespace TankCommon
                     }
                 }
             }
+            PassableCheck(map);
             return map;
         }
 
+        private static char[,] PassableCheck(char[,] map)
+        {
+            var mapLength = map.GetLength(0);
+            var passableElems = new char[mapLength, mapLength];
+            var elemsForNextCheck = new char[mapLength, mapLength];
+
+            for (var x = 0; x < mapLength; x++)
+            {
+                for (var y = 0; x < mapLength; y++)
+                {
+                    //if ()
+                    //{
+
+                    //}
+                }
+            }
+
+            return map;
+        }
+
+        
     }
 }
