@@ -5,14 +5,15 @@ using System.Linq;
 using System.Text;
 using TankCommon.Enum;
 using TankCommon.Objects;
+using System.Linq;
 
 namespace TankCommon
 {
     public static class MapManager
     {
-        public static Map LoadMap()
+        public static Map LoadMap(uint mapSize = 12, char primaryObject = 'т', int percentOfPrimObj = 25, int percentAnotherObj = 12)
         {
-            var mapData = GenerateMap();
+            var mapData = GenerateMap(mapSize, primaryObject, percentOfPrimObj, percentAnotherObj);
             var width = 0;
             var height = 0;
             var cells = new List<List<CellMapType>>();
@@ -114,14 +115,16 @@ namespace TankCommon
         /// </summary>
         /// <param name="mapSize"></param>
         /// <returns>Массив, представляет каждый элемент, как ширину карты</returns>
-        private static string[] GenerateMap(uint mapSize = 12)
+        private static string[] GenerateMap(uint mapSize, char primaryObject, int percentOfPrimObj, int percentAnotherObj)
         {
-            var Walls = 'с';
-            var DestructiveWalls = '*';
-            var Water = 'в';
-            var Grass = 'т';
-            var Void = ' ';
-            var preMap = new char[mapSize, mapSize]; //создаю и заполняю массив (чаров для удобства генерации карты)
+            //var Walls = 'с';
+            //var DestructiveWalls = '*';
+            //var Water = 'в';
+            //var Grass = 'т';
+            //var Void = ' ';
+
+            //создаю и заполняю массив (чаров для удобства генерации карты)
+            var preMap = new char[mapSize, mapSize];
 
             for (var x = 0; x < mapSize; x++)
             {
@@ -137,8 +140,98 @@ namespace TankCommon
                     }
                 }
             }
-            preMap = GenerateMapObjects(preMap, Walls);
-            return GetStringedArray(preMap); // возвращаю карту в виде массива стрингов
+            //preMap = GenerateRndMapObjects(preMap, primaryObject, percentOfPrimObj, percentAnotherObj);
+            preMap = GeneratePrimitiveOnMap(preMap, primaryObject, percentOfPrimObj, percentAnotherObj);
+            // возвращаю карту в виде массива стрингов
+            return GetStringedArray(preMap);
+        }
+
+        /// <summary>
+        /// Генерирует объекты на переданной карте и возвращает её
+        /// </summary>
+        /// <param name="map">Пустая карта с краями</param>
+        /// <param name="primaryObject">Какого типа объектов должно быть больше всего</param>
+        /// <param name="percentOfPrimObj">Какой процент карты должны занимать объекты выбранного типа</param>
+        /// <returns></returns>
+        private static char[,] GenerateRndMapObjects(char[,] map, char primaryObject, int percentOfPrimObj, int percentAnotherObj)
+        {
+            var mapObjects = new char[] { 'с', ' ', '*', 'т', 'в' };
+            var rnd = new Random();
+            int rndNum;
+
+            for (var x = 0; x < map.GetLength(0); x++)
+            {
+                for (var y = 0; y < map.GetLength(1); y++)
+                {
+                    if (map[x, y] == ' ')
+                    {
+                        //Для каждого элемента карты беру рандомное число
+                        rndNum = rnd.Next(0, 100); 
+                        if (rndNum < percentOfPrimObj)
+                        {
+                            map[x, y] = primaryObject;
+                        }
+                        else
+                        {
+                            if (rndNum < (percentOfPrimObj + percentAnotherObj))
+                            {
+                                map[x, y] = mapObjects[rnd.Next(0, 4)];
+                            }
+                        }
+                    }
+                }
+            }
+            //PassableCheck(map);
+            return map;
+        }
+
+        /// <summary>
+        /// Генерирует псевдорандомную карту состоящую из сплошных линий
+        /// </summary>
+        /// <param name="map"></param>
+        /// <param name="primaryObject"></param>
+        /// <param name="percentOfPrimObj"></param>
+        /// <param name="percentAnotherObj"></param>
+        /// <returns></returns>
+        private static char[,] GeneratePrimitiveOnMap(char [,] map, char primaryObject, int percentOfPrimObj,int percentAnotherObj)
+        {
+            int rndNum;
+            var rnd = new Random();
+            var arrSymbols = new char[] {' ','т','*'};
+            
+
+            for (var x = 1; x < map.GetLength(0) - 1; x++)
+            {
+                rndNum = rnd.Next(0, 100);
+                var rndForObj = rnd.Next(0,3);
+                for (var y = 1; y < map.GetLength(0) - 1; y++)
+                {
+                    if (rndNum < (percentOfPrimObj + percentAnotherObj))
+                    {
+                        map[y,x] = arrSymbols[rndForObj];
+                    }
+                }
+            }
+
+            return map;
+        }
+
+        private static char[,] drawHorizontals(char[,] map, char symbol, int percentOfPrimObj, Random rnd)
+        {
+            int rndNum;
+            for (var x = 1; x < map.GetLength(0) - 1; x++)
+            {
+                rndNum = rnd.Next(0, 100);
+                for (var y = 1; y < map.GetLength(0) - 1; y++)
+                {
+                    if (rndNum < percentOfPrimObj)
+                    {
+                        //создаю строку того типа, которого должно быть больше
+                        map[x, y] = symbol;
+                    }
+                }
+            }
+            return map;
         }
 
         /// <summary>
@@ -154,72 +247,13 @@ namespace TankCommon
             {
                 for (var y = 0; y < charMap.GetLength(1); y++)
                 {
-                    sBuilder.Append(charMap[x,y]);
+                    sBuilder.Append(charMap[x, y]);
                 }
                 stringedMap[x] = sBuilder.ToString();
                 sBuilder.Remove(0, sBuilder.Length);
             }
             return stringedMap;
         }
-
-        /// <summary>
-        /// Генерирует объекты на переданной карте и возвращает её
-        /// </summary>
-        /// <param name="map">Пустая карта с краями</param>
-        /// <param name="primaryObject">Какого типа объектов должно быть больше всего</param>
-        /// <param name="percentOfPrimObj">Какой процент карты должны занимать объекты выбранного типа</param>
-        /// <returns></returns>
-        private static char[,] GenerateMapObjects(char[,] map, char primaryObject = 'т', int percentOfPrimObj = 25, int percentAnotherObj = 12)
-        {
-            var mapObjects = new char[] {'с', ' ', '*', 'т', 'в'}; 
-            var rnd = new Random();
-            int rndNum;
-
-            for(var x = 0; x < map.GetLength(0); x++)
-            {
-                for (var y = 0; y < map.GetLength(1); y++)
-                {
-                    if (map[x, y] == ' ')
-                    {
-                        rndNum = rnd.Next(0, 100); //Для каждого элемента карты беру рандомное число
-                        if (rndNum < percentOfPrimObj)
-                        {
-                            map[x, y] = primaryObject;
-                        }
-                        else
-                        {
-                            if (rndNum < (percentOfPrimObj + percentAnotherObj))
-                            {
-                                map[x, y] = mapObjects[rnd.Next(0, 4)];
-                            }
-                        }
-                    }
-                }
-            }
-            PassableCheck(map);
-            return map;
-        }
-
-        private static char[,] PassableCheck(char[,] map)
-        {
-            var mapLength = map.GetLength(0);
-            var passableElems = new char[mapLength, mapLength];
-            var elemsForNextCheck = new char[mapLength, mapLength];
-
-            for (var x = 0; x < mapLength; x++)
-            {
-                for (var y = 0; x < mapLength; y++)
-                {
-                    //if ()
-                    //{
-
-                    //}
-                }
-            }
-
-            return map;
-        }
-
-        
+    
     }
 }
