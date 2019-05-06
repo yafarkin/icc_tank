@@ -607,6 +607,7 @@ namespace TankServer
                                                 if (isFrag)
                                                 {
                                                     sourceTank.Score += 50;
+                                                    _logger.Info($"{tankIntersectedObject.Nickname} was killed by {sourceTank.Nickname}");
                                                 }
                                             }
                                         }
