@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using TankCommon.Enum;
 using TankCommon.Objects;
-using System.Linq;
 
 namespace TankCommon
 {
@@ -181,7 +180,6 @@ namespace TankCommon
                     }
                 }
             }
-            //PassableCheck(map);
             return map;
         }
 
@@ -193,30 +191,23 @@ namespace TankCommon
         /// <param name="percentOfPrimObj"></param>
         /// <param name="percentAnotherObj"></param>
         /// <returns></returns>
-        private static char[,] GeneratePrimitiveOnMap(char [,] map, char primaryObject, int percentOfPrimObj,int percentAnotherObj)
+        private static char[,] GeneratePrimitiveOnMap(char [,] map, char primaryObject, int percentOfPrimObj, int percentAnotherObj)
         {
-            int rndNum;
             var rnd = new Random();
-            var arrSymbols = new char[] {' ','т','*'};
-            
-
-            for (var x = 1; x < map.GetLength(0) - 1; x++)
-            {
-                rndNum = rnd.Next(0, 100);
-                var rndForObj = rnd.Next(0,3);
-                for (var y = 1; y < map.GetLength(0) - 1; y++)
-                {
-                    if (rndNum < (percentOfPrimObj + percentAnotherObj))
-                    {
-                        map[y,x] = arrSymbols[rndForObj];
-                    }
-                }
-            }
-
+            map = DrawHorizontals(map, primaryObject, percentOfPrimObj, rnd);
+            map = DrawVerticals(map, percentOfPrimObj, percentAnotherObj, rnd);
             return map;
         }
 
-        private static char[,] drawHorizontals(char[,] map, char symbol, int percentOfPrimObj, Random rnd)
+        /// <summary>
+        /// Рисует горизонтальные линии на карте из тех объектов, которых должно быть больше
+        /// </summary>
+        /// <param name="map"></param>
+        /// <param name="symbol"></param>
+        /// <param name="percentOfPrimObj"></param>
+        /// <param name="rnd"></param>
+        /// <returns></returns>
+        private static char[,] DrawHorizontals(char[,] map, char symbol, int percentOfPrimObj, Random rnd)
         {
             int rndNum;
             for (var x = 1; x < map.GetLength(0) - 1; x++)
@@ -228,6 +219,50 @@ namespace TankCommon
                     {
                         //создаю строку того типа, которого должно быть больше
                         map[x, y] = symbol;
+                      
+                    }
+                }
+            }
+            return map;
+        }
+
+        /// <summary>
+        /// Рисует вертикальные линии на карте, проверяя не пересёкся ли он с непроходимой линией и устраняя непроходимость
+        /// </summary>
+        /// <param name="map"></param>
+        /// <param name="rnd"></param>
+        /// <param name="percentOfPrimObj">Для вычисления необходимого количества остальных объектов</param>
+        /// <param name="percentAnotherObj">Сколько процентов площади должны занимать не преобладающие на карте объекты</param>
+        /// <returns></returns>
+        private static char[,] DrawVerticals(char[,] map, int percentOfPrimObj, int percentAnotherObj, Random rnd)
+        {
+            int rndNum;
+            var arrSymbols = new char[] { ' ', 'т', '*', 'в'};
+            for (var x = 1; x < map.GetLength(0) - 1; x++)
+            {
+                rndNum = rnd.Next(0, 100);
+                var rndForObj = rnd.Next(0, 4);
+                for (var y = 1; y < map.GetLength(0) - 1; y++)
+                {
+                    if (rndNum < (percentOfPrimObj + percentAnotherObj))
+                    {
+                        //Проверяю пересечения
+                        if (map[y, x] != 'с' && map[y, x] != 'в' && map[y, x] != '*') {
+                            map[y, x] = arrSymbols[rndForObj];
+                        }
+                        else
+                        {
+                            //Удаляю 4 клетки возле пересечения, проверяя, что не удалю стену карты
+                            if (x + 1 != map.GetLength(0)-1 && y + 1 != map.GetLength(0)-1 && x-1 != 0 && y-1 != 0)
+                            {
+                                map[y, x] = ' ';
+                                map[y - 1, x] = ' ';
+                                map[y, x - 1] = ' ';
+                                map[y + 1, x] = ' ';
+                                x++;
+                                y++;
+                            }
+                        }
                     }
                 }
             }
