@@ -10,76 +10,98 @@ namespace TankCommon
 {
     public static class MapManager
     {
-        public static Map LoadMap(uint mapSize = 12, char primaryObject = 'т', int percentOfPrimObj = 25, int percentAnotherObj = 12)
+        public static Map LoadMap(uint mapSize = 12, CellMapType primaryObject = CellMapType.Grass, int percentOfPrimObj = 25, int percentAnotherObj = 12)
         {
             var mapData = GenerateMap(mapSize, primaryObject, percentOfPrimObj, percentAnotherObj);
             var width = 0;
-            var height = 0;
+            var height = mapSize;
             var cells = new List<List<CellMapType>>();
-            foreach (var line in mapData)
+            //foreach (var line in mapData)
+            //{
+                //Проверка на квадратность
+                //height++;
+                //    if (0 == width)
+                //    {
+                //        width = line.Length;
+                //    }
+                //    else if (line.Length != width)
+                //    {
+                //        throw new InvalidDataException("Карта содержит разное количество элементов в строках");
+                //    }
+
+                //    //Преобразование из массива стрингов в лист CellMapType
+                //    var cellLine = new List<CellMapType>();
+                //    foreach (var elem in line)
+                //    {
+                //        CellMapType cellMapType;
+                //        switch (elem)
+                //        {
+                //            case 'с':
+                //                cellMapType = CellMapType.Wall;
+                //                break;
+                //            case ' ':
+                //                cellMapType = CellMapType.Void;
+                //                break;
+                //            case 'в':
+                //                cellMapType = CellMapType.Water;
+                //                break;
+                //            case '*':
+                //                cellMapType = CellMapType.DestructiveWall;
+                //                break;
+                //            case 'т':
+                //                cellMapType = CellMapType.Grass;
+                //                break;
+                //            default:
+                //                throw new InvalidDataException("Неизвестный тип элемента карты");
+                //        }
+
+                //        for (var b = 0; b < Constants.CellWidth; b++)
+                //        {
+                //            cellLine.Add(cellMapType);
+                //        }
+                //    }
+
+                //    for (var a = 0; a < Constants.CellHeight; a++)
+                //    {
+                //        cells.Add(cellLine);
+                //    }
+            //}
+
+
+            if (mapData.GetLength(0) <= 3 || mapData.GetLength(1) <= 3)
             {
-                height++;
-                if (0 == width)
-                {
-                    width = line.Length;
-                }
-                else if (line.Length != width)
-                {
-                    throw new InvalidDataException("Карта содержит разное количество элементов в строках");
-                }
+                throw new InvalidDataException("Слишком маленькая карта");
+            }
 
-                var cellLine = new List<CellMapType>();
-                foreach (var c in line)
-                {
-                    CellMapType cellMapType;
-                    switch (c)
-                    {
-                        case 'с':
-                            cellMapType = CellMapType.Wall;
-                            break;
-                        case ' ':
-                            cellMapType = CellMapType.Void;
-                            break;
-                        case 'в':
-                            cellMapType = CellMapType.Water;
-                            break;
-                        case '*':
-                            cellMapType = CellMapType.DestructiveWall;
-                            break;
-                        case 'т':
-                            cellMapType = CellMapType.Grass;
-                            break;
-                        default:
-                            throw new InvalidDataException("Неизвестный тип элемента карты");
-                    }
+            if (mapData.GetLength(0) != mapData.GetLength(1))
+            {
+                throw new ArgumentNullException("Карта должа быть квадратной");
+            }
 
-                    for (var b = 0; b < Constants.CellWidth; b++)
-                    {
-                        cellLine.Add(cellMapType);
-                    }
-                }
+            //Преобразование в массив c увеличением ячеек
+            //var cellArr = new CellMapType[height * Constants.CellHeight, height * Constants.CellWidth];
+            //for (var i = 0; i < height-1 * Constants.CellHeight; i++)
+            //{
+            //    for (var j = 0; j < height-1 * Constants.CellWidth; j++)
+            //    {
+            //        cellArr[i * Constants.CellHeight, j * Constants.CellHeight] = mapData[i, j];
+            //    }
+            //}
 
-                for (var a = 0; a < Constants.CellHeight; a++)
+            var cellArr2 = new CellMapType[mapSize * Constants.CellHeight, mapSize * Constants.CellWidth];
+            var cellArrLen = cellArr2.GetLength(0);
+            for (var x = 0; x < ((mapSize -1) * (Constants.CellHeight - 1)); x++)
+            {
+                Console.Write('\n');
+                for (var y = 0; y < ((mapSize -1) *  Constants.CellWidth - 1); y++)
                 {
-                    cells.Add(cellLine);
+                    cellArr2[(x * (Constants.CellHeight - 1) ), y * (Constants.CellWidth - 1)] = mapData[(int)x/(Constants.CellHeight - 1), (int)y / (Constants.CellWidth - 1)];
+                    Console.Write(mapData[(int)x / (Constants.CellHeight - 1), (int)y / (Constants.CellWidth - 1)]);
                 }
             }
 
-            if (0 == width || 0 == height)
-            {
-                throw new InvalidDataException("Карта не может быть пустой");
-            }
-
-            var cellArr = new CellMapType[height * Constants.CellHeight, width * Constants.CellWidth];
-            for (var i = 0; i < height * Constants.CellHeight; i++)
-            {
-                for (var j = 0; j < width * Constants.CellWidth; j++)
-                {
-                    cellArr[i, j] = cells[i][j];
-                }
-            }
-
-            return new Map(cellArr);
+            
+            return new Map(cellArr2);
         }
 
         public static List<KeyValuePair<Point, CellMapType>> WhatOnMap(Rectangle rectangle, Map map)
@@ -114,35 +136,27 @@ namespace TankCommon
         /// </summary>
         /// <param name="mapSize"></param>
         /// <returns>Массив, представляет каждый элемент, как ширину карты</returns>
-        private static string[] GenerateMap(uint mapSize, char primaryObject, int percentOfPrimObj, int percentAnotherObj)
+        private static CellMapType[,] GenerateMap(uint mapSize, CellMapType primaryObject, int percentOfPrimObj, int percentAnotherObj)
         {
-            //var Walls = 'с';
-            //var DestructiveWalls = '*';
-            //var Water = 'в';
-            //var Grass = 'т';
-            //var Void = ' ';
-
-            //создаю и заполняю массив (чаров для удобства генерации карты)
-            var preMap = new char[mapSize, mapSize];
-
+            //создаю и заполняю массив
+            var preMap1 = new CellMapType[mapSize,mapSize];
             for (var x = 0; x < mapSize; x++)
             {
                 for (var y = 0; y < mapSize; y++)
                 {
                     if (x == 0 || y == 0 || x == mapSize - 1 || y == mapSize - 1)
                     {
-                        preMap[x, y] = 'с';
+                        preMap1[x, y] = CellMapType.Wall;
                     }
                     else
                     {
-                        preMap[x, y] = ' ';
+                        preMap1[x, y] = CellMapType.Void;
                     }
                 }
             }
-            //preMap = GenerateRndMapObjects(preMap, primaryObject, percentOfPrimObj, percentAnotherObj);
-            preMap = GeneratePrimitiveOnMap(preMap, primaryObject, percentOfPrimObj, percentAnotherObj);
-            // возвращаю карту в виде массива стрингов
-            return GetStringedArray(preMap);
+
+            preMap1 = GeneratePrimitiveOnMap(preMap1, primaryObject, percentOfPrimObj, percentAnotherObj);
+            return preMap1;
         }
 
         /// <summary>
@@ -201,6 +215,23 @@ namespace TankCommon
         }
 
         /// <summary>
+        /// Генерирует псевдорандомную карту состоящую из сплошных линий
+        /// </summary>
+        /// <param name="map"></param>
+        /// <param name="primaryObject"></param>
+        /// <param name="percentOfPrimObj"></param>
+        /// <param name="percentAnotherObj"></param>
+        /// <returns></returns>
+        private static CellMapType[,] GeneratePrimitiveOnMap(CellMapType[,] map, CellMapType primaryObject, int percentOfPrimObj, int percentAnotherObj)
+        {
+            var rnd = new Random();
+            map = DrawHorizontals(map, primaryObject, percentOfPrimObj, rnd);
+            map = DrawVerticals(map, percentOfPrimObj, percentAnotherObj, rnd);
+            //map = CheckLineOnPass(map);
+            return map;
+        }
+
+        /// <summary>
         /// Рисует горизонтальные линии на карте из тех объектов, которых должно быть больше
         /// </summary>
         /// <param name="map"></param>
@@ -221,6 +252,34 @@ namespace TankCommon
                         //создаю строку того типа, которого должно быть больше
                         map[x, y] = symbol;
                       
+                    }
+                }
+            }
+            return map;
+        }
+
+        /// <summary>
+        /// Рисует горизонтальные линии на карте из тех объектов, которых должно быть больше
+        /// </summary>
+        /// <param name="map"></param>
+        /// <param name="symbol"></param>
+        /// <param name="percentOfPrimObj"></param>
+        /// <param name="rnd"></param>
+        /// <returns></returns>
+        private static CellMapType[,] DrawHorizontals(CellMapType[,] map, CellMapType symbol, int percentOfPrimObj, Random rnd)
+        {
+            int rndNum;
+            var mapLength = map.GetLength(0);
+            for (var x = 1; x < mapLength - 1; x++)
+            {
+                rndNum = rnd.Next(0, 100);
+                for (var y = 1; y < mapLength - 1; y++)
+                {
+                    if (rndNum < percentOfPrimObj)
+                    {
+                        //создаю строку того типа, которого должно быть больше
+                        map[x, y] = symbol;
+
                     }
                 }
             }
@@ -263,6 +322,62 @@ namespace TankCommon
                                 map[y - 1, x] = ' ';
                                 map[y, x - 1] = ' ';
                                 map[y + 1, x] = ' ';
+                                x++;
+                                y++;
+                            }
+                        }
+                    }
+                }
+            }
+            return map;
+        }
+
+        /// <summary>
+        /// Рисует вертикальные линии на карте, проверяя не пересёкся ли он с непроходимой линией и устраняя непроходимость
+        /// </summary>
+        /// <param name="map"></param>
+        /// <param name="rnd"></param>
+        /// <param name="percentOfPrimObj">Для вычисления необходимого количества остальных объектов</param>
+        /// <param name="percentAnotherObj">Сколько процентов площади должны занимать не преобладающие на карте объекты</param>
+        /// <returns></returns>
+        private static CellMapType[,] DrawVerticals(CellMapType[,] map, int percentOfPrimObj, int percentAnotherObj, Random rnd)
+        {
+            var wall = CellMapType.Wall;
+            var water = CellMapType.Water;
+            var dWall = CellMapType.DestructiveWall;
+            var field = CellMapType.Void;
+            var grass = CellMapType.Grass;
+
+            int rndNum;
+            var mapLength = map.GetLength(0);
+            var arrSymbols = new CellMapType[] { wall, water, wall, wall, wall, };
+            var a = (int)CellMapType.Grass;
+            for (var x = 1; x < mapLength - 1; x++)
+            {
+                rndNum = rnd.Next(0, 100);
+                var rndForObj = rnd.Next(0, 4);
+                for (var y = 1; y < mapLength - 1; y++)
+                {
+                    if (rndNum < (percentOfPrimObj + percentAnotherObj) && rndNum > percentOfPrimObj)
+                    {
+                        //Проверяю пересечения с линиями, а так же проверяю нет перекроет ли линия уже имеющийся проход
+                        if (map[y, x] != wall && map[y, x] != water && map[y, x] != dWall &&
+                            map[y + 1, x] != wall && map[y + 1, x] != water && map[y + 1, x] != dWall &&
+                            map[y, x + 1] != wall && map[y, x + 1] != water && map[y, x + 1] != dWall &&
+                            map[y - 1, x] != wall && map[y - 1, x] != water && map[y - 1, x] != dWall &&
+                            map[y, x - 1] != wall && map[y, x - 1] != water && map[y, x - 1] != dWall)
+                        {
+                            map[y, x] = arrSymbols[rndForObj];
+                        }
+                        else
+                        {
+                            //Удаляю 4 клетки возле пересечения, проверяя, что не удалю стену карты
+                            if (x + 1 != mapLength - 1 && y + 1 != mapLength - 1 && x - 1 != 0 && y - 1 != 0)
+                            {
+                                map[y, x] = field;
+                                map[y - 1, x] = field;
+                                map[y, x - 1] = field;
+                                map[y + 1, x] = field;
                                 x++;
                                 y++;
                             }
