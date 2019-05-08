@@ -196,6 +196,7 @@ namespace TankCommon
             var rnd = new Random();
             map = DrawHorizontals(map, primaryObject, percentOfPrimObj, rnd);
             map = DrawVerticals(map, percentOfPrimObj, percentAnotherObj, rnd);
+            map = CheckLineOnPass(map);
             return map;
         }
 
@@ -244,10 +245,13 @@ namespace TankCommon
                 var rndForObj = rnd.Next(0, 4);
                 for (var y = 1; y < map.GetLength(0) - 1; y++)
                 {
-                    if (rndNum < (percentOfPrimObj + percentAnotherObj))
+                    if (rndNum < (percentOfPrimObj + percentAnotherObj) && rndNum > percentOfPrimObj)
                     {
-                        //Проверяю пересечения
-                        if (map[y, x] != 'с' && map[y, x] != 'в' && map[y, x] != '*') {
+                        //Проверяю пересечения с линиями, а так же проверяю нет перекроет ли линия уже имеющийся проход
+                        if (map[y, x] != 'с' && map[y, x] != 'в' && map[y, x] != '*' &&
+                            map[y + 1, x] != 'с' && map[y + 1, x] != 'в' && map[y + 1, x] != '*' &&
+                            map[y, x + 1] != 'с' && map[y, x + 1] != 'в' && map[y, x + 1] != '*')
+                        {
                             map[y, x] = arrSymbols[rndForObj];
                         }
                         else
@@ -264,6 +268,48 @@ namespace TankCommon
                             }
                         }
                     }
+                }
+            }
+            return map;
+        }
+
+        /// <summary>
+        /// Проверяет не сплошная ли линия и стерает предпоследний в строке элемент, если сплошная
+        /// </summary>
+        /// <param name="map"></param>
+        /// <returns></returns>
+        private static char[,] CheckLineOnPass( char[,] map)
+        {
+            var mapLength = map.GetLength(0);
+            for (var y = 1; y < mapLength - 1; y++)
+            {
+                var counInLine = 0;
+                for (var x = 1; x < mapLength - 1; x++)
+                {
+                    if (map[x,y] == 'с' || map[x, y] == 'в' || map[x, y] == '*' )
+                    {
+                        counInLine++;
+                    }
+                }
+                if(counInLine >= mapLength - 2)
+                {
+                    map[mapLength - 2, y] = ' ';
+                }
+            }
+
+            for (var y = 1; y < mapLength - 1; y++)
+            {
+                var counInLine = 0;
+                for (var x = 1; x < mapLength - 1; x++)
+                {
+                    if (map[y, x] == 'с' || map[x, y] == 'в' || map[x, y] == '*')
+                    {
+                        counInLine++;
+                    }
+                }
+                if (counInLine >= mapLength - 2)
+                {
+                    map[y, mapLength - 2] = ' ';
                 }
             }
             return map;
