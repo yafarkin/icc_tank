@@ -10,68 +10,105 @@ namespace TankClient
         protected readonly Random _random = new Random();
         protected Rectangle rectangle;
         protected Map _map;
-
-        protected ClientCommandType SwitchDirection()
-        {
-            var rndNum = _random.Next(4);
-            switch (rndNum)
-            {
-                case 0:
-                    return ClientCommandType.TurnLeft;
-                case 1:
-                    return ClientCommandType.TurnRight;
-                case 2:
-                    return ClientCommandType.TurnUp;
-                default:
-                    return ClientCommandType.TurnDown;
-            }
-        }
+        private int upgradeX;
 
         public ServerResponse Client(int msgCount, ServerRequest request)
         {
+            //Если карта существует присвоить локальной карте карту
             if (request.Map.Cells != null)
             {
                 _map = request.Map;
             }
+            //Если в карте ничего нет, то просить обновления карты
             else if (null == _map)
             {
                 return new ServerResponse { ClientCommand = ClientCommandType.UpdateMap };
             }
 
+            //записать в карту все интерактивные объекты
             _map.InteractObjects = request.Map.InteractObjects;
 
-            var tank = request.Tank;
-            if (null == tank)
+            var myTank = request.Tank;
+            if (null == myTank)
             {
-                return new ServerResponse {ClientCommand = ClientCommandType.None};
+                return new ServerResponse { ClientCommand = ClientCommandType.None };
             }
 
-            if (!tank.IsMoving)
-            {
-                return new ServerResponse {ClientCommand = ClientCommandType.Go};
-            }
-
+            //если размер танка не известен, то узнать
             if (null == rectangle)
             {
-                rectangle = tank.Rectangle;
-                return new ServerResponse {ClientCommand = SwitchDirection()};
+                rectangle = myTank.Rectangle;
             }
 
-            if (rectangle.LeftCorner.Equals(tank.Rectangle.LeftCorner))
+            rectangle = myTank.Rectangle;
+
+            //если есть интерактивные объекты
+            if (_map.InteractObjects != null)
             {
-                return new ServerResponse {ClientCommand = SwitchDirection()};
+                foreach (var elem in _map.InteractObjects)
+                {
+                    //если элемент это улучшение, то присвоить  upgradeX его координату по Х
+                    if (elem is UpgradeInteractObject upgradeInteractObject)
+                    {
+                        upgradeX = upgradeInteractObject.Rectangle.LeftCorner.LeftInt;
+                    }
+                }
             }
 
-            rectangle = tank.Rectangle;
+            return FindUpdateAndGoTo(_map, myTank, upgradeX);
+            
+            //return new ServerResponse { ClientCommand = ClientCommandType.None };
+        }
 
-            var rndNum = _random.NextDouble();
-
-            if (rndNum > 0.9)
+        private static ServerResponse FindUpdateAndGoTo(Map map, TankObject myTank, int upgradeX)
+        {
+            if (map.InteractObjects != null)
             {
-                return new ServerResponse {ClientCommand = SwitchDirection()};
+                //Если левый угол моего танка по Х меньше, чем левый угол улучшающего объекта и я не повёрнут направо
+                if (myTank.Rectangle.LeftCorner.LeftInt < upgradeX && myTank.Direction != DirectionType.Right)     //Тут нашёл ошибку. Всегда направо отправляет
+                {
+                    //повернуть направо
+                    return new ServerResponse { ClientCommand = ClientCommandType.TurnRight };
+                }
+                else
+                {
+                    //Если мой левый угол меньше, чем левый угол  апгрейда
+                    if (myTank.Rectangle.LeftCorner.Left < upgradeX)
+                    {
+                        //Ехать
+                        return new ServerResponse { ClientCommand = ClientCommandType.Go };
+                    }
+                    //else
+                    //{
+                    //    return new ServerResponse { ClientCommand = ClientCommandType.Stop };
+                    //}
+                }
             }
 
-            return new ServerResponse {ClientCommand = ClientCommandType.Fire};
+            if (map.InteractObjects != null)
+            {
+                //Если левый угол моего танка по Х меньше, чем левый угол улучшающего объекта и я не повёрнут направо
+                if (myTank.Rectangle.LeftCorner.LeftInt > upgradeX && myTank.Direction != DirectionType.Left)     //Тут нашёл ошибку. Всегда направо отправляет
+                {
+                    //повернуть направо
+                    return new ServerResponse { ClientCommand = ClientCommandType.TurnLeft };
+                }
+                else
+                {
+                    //Если мой левый угол меньше, чем левый угол  апгрейда
+                    if (myTank.Rectangle.LeftCorner.Left > upgradeX)
+                    {
+                        //Ехать
+                        return new ServerResponse { ClientCommand = ClientCommandType.Go };
+                    }
+                    else
+                    {
+                        return new ServerResponse { ClientCommand = ClientCommandType.Stop };
+                    }
+                }
+            }
+
+            return new ServerResponse { ClientCommand = ClientCommandType.None };
         }
     }
 }
