@@ -11,6 +11,7 @@ namespace TankClient
         protected Rectangle rectangle;
         protected Map _map;
         private int upgradeX;
+        private int upgradeY;
 
         public ServerResponse Client(int msgCount, ServerRequest request)
         {
@@ -51,21 +52,22 @@ namespace TankClient
                     if (elem is UpgradeInteractObject upgradeInteractObject)
                     {
                         upgradeX = upgradeInteractObject.Rectangle.LeftCorner.LeftInt;
+                        upgradeY = upgradeInteractObject.Rectangle.LeftCorner.TopInt;
                     }
                 }
             }
 
-            return FindUpdateAndGoTo(_map, myTank, upgradeX);
+            return FindUpdateAndGoTo(_map, myTank, upgradeX, upgradeY);
             
             //return new ServerResponse { ClientCommand = ClientCommandType.None };
         }
 
-        private static ServerResponse FindUpdateAndGoTo(Map map, TankObject myTank, int upgradeX)
+        private static ServerResponse FindUpdateAndGoTo(Map map, TankObject myTank, int upgradeX, int upgradeY)
         {
             if (map.InteractObjects != null)
             {
                 //Если левый угол моего танка по Х меньше, чем левый угол улучшающего объекта и я не повёрнут направо
-                if (myTank.Rectangle.LeftCorner.LeftInt < upgradeX && myTank.Direction != DirectionType.Right)     //Тут нашёл ошибку. Всегда направо отправляет
+                if (myTank.Rectangle.LeftCorner.LeftInt < upgradeX && myTank.Direction != DirectionType.Right)
                 {
                     //повернуть направо
                     return new ServerResponse { ClientCommand = ClientCommandType.TurnRight };
@@ -78,17 +80,10 @@ namespace TankClient
                         //Ехать
                         return new ServerResponse { ClientCommand = ClientCommandType.Go };
                     }
-                    //else
-                    //{
-                    //    return new ServerResponse { ClientCommand = ClientCommandType.Stop };
-                    //}
                 }
-            }
-
-            if (map.InteractObjects != null)
-            {
-                //Если левый угол моего танка по Х меньше, чем левый угол улучшающего объекта и я не повёрнут направо
-                if (myTank.Rectangle.LeftCorner.LeftInt > upgradeX && myTank.Direction != DirectionType.Left)     //Тут нашёл ошибку. Всегда направо отправляет
+            
+                //Если левый угол моего танка по Х меньше, чем левый угол улучшающего объекта и я не повёрнут на
+                if (myTank.Rectangle.LeftCorner.LeftInt > upgradeX && myTank.Direction != DirectionType.Left)     
                 {
                     //повернуть направо
                     return new ServerResponse { ClientCommand = ClientCommandType.TurnLeft };
@@ -97,6 +92,38 @@ namespace TankClient
                 {
                     //Если мой левый угол меньше, чем левый угол  апгрейда
                     if (myTank.Rectangle.LeftCorner.Left > upgradeX)
+                    {
+                        //Ехать
+                        return new ServerResponse { ClientCommand = ClientCommandType.Go };
+                    }
+                }
+
+                //Если левый угол моего танка по Y меньше, чем левый угол улучшающего объекта и я не повёрнут вниз
+                if (myTank.Rectangle.LeftCorner.TopInt > upgradeY && myTank.Direction != DirectionType.Down)     
+                {
+                    //повернуть вниз
+                    return new ServerResponse { ClientCommand = ClientCommandType.TurnDown };
+                }
+                else
+                {
+                    //Если мой левый угол меньше по Y, чем левый угол  апгрейда
+                    if (myTank.Rectangle.LeftCorner.TopInt < upgradeY)
+                    {
+                        //Ехать
+                        return new ServerResponse { ClientCommand = ClientCommandType.Go };
+                    }
+                }
+
+                //Если левый угол моего танка по Х меньше, чем левый угол улучшающего объекта и я не повёрнут на
+                if (myTank.Rectangle.LeftCorner.TopInt > upgradeY && myTank.Direction != DirectionType.Up)     
+                {
+                    //повернуть направо
+                    return new ServerResponse { ClientCommand = ClientCommandType.TurnUp };
+                }
+                else
+                {
+                    //Если мой левый угол меньше, чем левый угол  апгрейда
+                    if (myTank.Rectangle.LeftCorner.TopInt > upgradeY)
                     {
                         //Ехать
                         return new ServerResponse { ClientCommand = ClientCommandType.Go };
