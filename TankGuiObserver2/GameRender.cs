@@ -570,7 +570,7 @@
             _tankRightBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\tank\tankRight.png");
             _waterBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\water.jpg");
             _grassBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\grass.png");
-            _destructiveWallBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\brick2.png");
+            _destructiveWallBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\brick4k.png");
 
             _bitmaps = new Bitmap[] {
                 _wallBitmap, _waterBitmap, _grassBitmap,

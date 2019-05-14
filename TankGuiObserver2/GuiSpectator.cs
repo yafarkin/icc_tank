@@ -6,8 +6,38 @@ using TankCommon.Objects;
 using System.Threading.Tasks;
 using System.Threading;
 
+using WebSocket4Net;
+
 namespace TankGuiObserver2
 {
+    public class Connector
+    {
+        Uri _serverUri;
+        public Connector()
+        {
+            _serverUri = new Uri("ws://127.0.0.1:2000");
+        }
+
+        public bool IsServerRunnig()
+        {
+            using (var wc = new WebSocketProxy(_serverUri))
+            {
+                try
+                {
+                    wc.Open();
+                    Task.Delay(1000);
+                    return (wc.State == WebSocketState.Open);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"TankGuiSpectator2.Connector.IsServerRunning {DateTime.Now:T} Исключение во время выполнения: {e}");
+                }
+            }
+
+            return false;
+        }
+    }
+
     class GuiSpectator : IClientBot
     {
         public Map Map { get; set; }

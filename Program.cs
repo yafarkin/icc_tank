@@ -4,6 +4,7 @@ using System.Net;
 using System.Threading;
 using TankCommon;
 using TankServer;
+using TankCommon.Enum;
 
 namespace ICC_Tank
 {
@@ -28,7 +29,8 @@ namespace ICC_Tank
 
         static void Main(string[] args)
         {
-            var map = MapManager.LoadMap(20,'с', 25, 50);
+            // 50 на 50 ... Идеальный баланс... эталон гармонии
+            var map = MapManager.LoadMap(20, CellMapType.Wall, 25, 75);
             Console.WriteLine($"Сгенерирована карта");
 
             var port = ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["port"], 2000);

@@ -10,7 +10,7 @@
     using AlphaMode = SharpDX.Direct2D1.AlphaMode;
     using Device = SharpDX.Direct3D11.Device;
     using Factory = SharpDX.DXGI.Factory;
-
+    
     class Game : System.IDisposable
     {
         RenderForm RenderForm;
@@ -20,10 +20,12 @@
         SwapChain SwapChain;
         Device Device;
 
+        bool isThreadRunning;
         GuiSpectator _spectatorClass;
         System.Threading.CancellationTokenSource tokenSource;
         TankClient.ClientCore clientCore;
         System.Threading.Thread _clientThread;
+        Connector _connector;
 
         bool _isEnterPressed;
         bool _isTabPressed;
@@ -79,10 +81,14 @@
                                  new PixelFormat(Format.Unknown, AlphaMode.Premultiplied)));
 
             //WEB_SOCKET
-            Connect();
-            _spectatorClass = new GuiSpectator();
-
-            System.Threading.Tasks.Task.Delay(1000);
+            clientCore = new TankClient.ClientCore("ws://127.0.0.1:2000", string.Empty);
+            tokenSource = new System.Threading.CancellationTokenSource();
+            _spectatorClass = new GuiSpectator(tokenSource.Token);
+            _clientThread = new System.Threading.Thread(() => {
+                clientCore.Run(false, _spectatorClass.Client, tokenSource.Token);
+            });
+            _connector = new Connector();
+            _clientThread.Start();
 
             _gameRender = new GameRender(RenderForm, Factory2D, RenderTarget2D);
 
@@ -90,10 +96,6 @@
             _keyboard = new Keyboard(_directInput);
             _keyboard.Properties.BufferSize = 128;
             _keyboard.Acquire();
-
-            //Loadng resources
-            LoadResources();
-
         }
 
         public void RunGame()
@@ -145,10 +147,21 @@
             }
             else
             {
-                _gameRender.DrawLogo();
-                _gameRender.DrawWaitingLogo();
+                if (_spectatorClass.Map != null)
+                {
+                    _gameRender.DrawLogo();
+                }
+                else
+                {
+                    _gameRender.DrawWaitingLogo();
+                    if (_connector.IsServerRunnig() && !isThreadRunning)
+                    {
+                        isThreadRunning = true;
+                        
+                    }
+                }
             }
-            
+
             if (_isFPressed)
             {
                 _gameRender.DrawFPS();
@@ -164,31 +177,7 @@
 
             SwapChain.Present(0, PresentFlags.None);
         }
-
-        public void Connect()
-        {
-            var tokenSource = new System.Threading.CancellationTokenSource();
-            var clientCore = new TankClient.ClientCore("ws://127.0.0.1:2000", string.Empty);
-            _spectatorClass = new GuiSpectator(tokenSource.Token);
-
-            _clientThread = new System.Threading.Thread(() => {
-                clientCore.Run(false, _spectatorClass.Client, tokenSource.Token);
-            });
-            _clientThread.Start();
-        }
-
-        public void LoadResources()
-        {
-            //System.IO.File.WriteAllText("FILE_FILE.txt", "SOME TEXT");
-
-            _destinationRectangle = new
-                SharpDX.Mathematics.Interop.RawRectangleF(0, 0, 100, 100);
-            _bitmapOpacity = 1.0f;
-            _interpolationMode = BitmapInterpolationMode.Linear;
-            _bitmap = LoadFromFile(RenderTarget2D, @"..\..\img\tank.png");
-            
-        }
-
+        
         public static Bitmap LoadFromFile(RenderTarget renderTarget, string file)
         {
             // Loads from file using System.Drawing.Image
