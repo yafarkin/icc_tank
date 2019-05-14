@@ -198,6 +198,12 @@
         Bitmap _destructiveWallBitmap;
         Bitmap _wallBitmap;
 
+        Bitmap _bulletSpeedUpgradeBitmap;
+        Bitmap _damageUpgradeBitmap;
+        Bitmap _healthUpgradeBitmap;
+        Bitmap _maxHpUpgradeBitmap;
+        Bitmap _speedUpgradeBitmap;
+
         Bitmap[] _bitmaps;
 
         public GameRender(
@@ -476,7 +482,7 @@
                                 rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
                                 rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
                                 rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
-                                FillBlock(rawRectangleTemp, _mapObjectsColors[5]);
+                                RenderTarget2D.DrawBitmap(_bulletSpeedUpgradeBitmap, rawRectangleTemp, opacity, interpolationMode);
                             }
                             break;
                         case UpgradeType.Damage:
@@ -485,7 +491,7 @@
                                 rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
                                 rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
                                 rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
-                                FillBlock(rawRectangleTemp, _mapObjectsColors[6]);
+                                RenderTarget2D.DrawBitmap(_damageUpgradeBitmap, rawRectangleTemp, opacity, interpolationMode);
                             }
                             break;
                         case UpgradeType.Health:
@@ -494,7 +500,7 @@
                                 rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
                                 rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
                                 rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
-                                FillBlock(rawRectangleTemp, _mapObjectsColors[7]);
+                                RenderTarget2D.DrawBitmap(_healthUpgradeBitmap, rawRectangleTemp, opacity, interpolationMode);
                             }
                             break;
                         case UpgradeType.MaxHp:
@@ -503,7 +509,7 @@
                                 rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
                                 rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
                                 rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
-                                FillBlock(rawRectangleTemp, _mapObjectsColors[8]);
+                                RenderTarget2D.DrawBitmap(_maxHpUpgradeBitmap, rawRectangleTemp, opacity, interpolationMode);
                             }
                             break;
                         case UpgradeType.Speed:
@@ -512,7 +518,7 @@
                                 rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
                                 rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
                                 rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
-                                FillBlock(rawRectangleTemp, _mapObjectsColors[9]);
+                                RenderTarget2D.DrawBitmap(_speedUpgradeBitmap, rawRectangleTemp, opacity, interpolationMode);
                             }
                             break;
                     }
@@ -571,6 +577,12 @@
             _waterBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\water2.png");
             _grassBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\grass2.png");
             _destructiveWallBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\brick4k.png");
+
+            _bulletSpeedUpgradeBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\upgrade\BulletSpeed.png");
+            _damageUpgradeBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\upgrade\Damage.png");
+            _healthUpgradeBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\upgrade\Health.png");
+            _maxHpUpgradeBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\upgrade\MaxHp.png");
+            _speedUpgradeBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\upgrade\Speed.png");
 
             _bitmaps = new Bitmap[] {
                 _wallBitmap, _waterBitmap, _grassBitmap,
