@@ -10,31 +10,50 @@ using WebSocket4Net;
 
 namespace TankGuiObserver2
 {
-    public class Connector
+    public class Connector : System.IDisposable
     {
+        object syncObject = new object();
         Uri _serverUri;
+        public bool ServerRunning { get; private set; }
+        WebSocketProxy webSocketProxy;
+
         public Connector()
         {
-            _serverUri = new Uri("ws://127.0.0.1:2000");
+            string server = System.Configuration.ConfigurationManager.AppSettings["server"];
+            _serverUri = new Uri(server);
+            webSocketProxy = new WebSocketProxy(_serverUri);
         }
 
-        public bool IsServerRunnig()
+        public bool IsServerRunning()
         {
-            using (var wc = new WebSocketProxy(_serverUri))
+            using (var webSocketProxy = new WebSocketProxy(_serverUri))
             {
-                try
+                if (!ServerRunning)
                 {
-                    wc.Open();
-                    Task.Delay(1000);
-                    return (wc.State == WebSocketState.Open);
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"TankGuiSpectator2.Connector.IsServerRunning {DateTime.Now:T} Исключение во время выполнения: {e}");
+                    try
+                    {
+                        webSocketProxy.Open();
+                        //Task.Delay(1000);
+                        ServerRunning = (webSocketProxy.State == WebSocketState.Open);
+                        if (ServerRunning)
+                        {
+                            webSocketProxy.Close();
+                        }
+                        return ServerRunning;
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"TankGuiSpectator2.Connector.IsServerRunning {DateTime.Now:T} Исключение во время выполнения: {e}");
+                    }
                 }
             }
 
-            return false;
+            return ServerRunning;
+        }
+
+        public void Dispose()
+        {
+            webSocketProxy.Dispose();
         }
     }
 

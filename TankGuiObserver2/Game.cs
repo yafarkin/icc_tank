@@ -20,7 +20,6 @@
         SwapChain SwapChain;
         Device Device;
 
-        bool isThreadRunning;
         GuiSpectator _spectatorClass;
         System.Threading.CancellationTokenSource tokenSource;
         TankClient.ClientCore clientCore;
@@ -81,7 +80,8 @@
                                  new PixelFormat(Format.Unknown, AlphaMode.Premultiplied)));
 
             //WEB_SOCKET
-            clientCore = new TankClient.ClientCore("ws://127.0.0.1:2000", string.Empty);
+            string server = System.Configuration.ConfigurationManager.AppSettings["server"];
+            clientCore = new TankClient.ClientCore(server, string.Empty);
             tokenSource = new System.Threading.CancellationTokenSource();
             _spectatorClass = new GuiSpectator(tokenSource.Token);
             _clientThread = new System.Threading.Thread(() => {
@@ -154,16 +154,9 @@
                 else
                 {
                     _gameRender.DrawWaitingLogo();
-                    isThreadRunning = _clientThread.IsAlive ? isThreadRunning : false;
-                    if (_connector.IsServerRunnig() && !isThreadRunning)
-                    {
-                        isThreadRunning = true;
-                        //_clientThread = new System.Threading.Thread(() =>
-                        //{
-                        //    clientCore.Run(false, _spectatorClass.Client, tokenSource.Token);
-                        //});
-                        //_clientThread.Start();
-                    }
+                    //if (_connector.IsServerRunning() && _clientThread == null)
+                    //{
+                    //}
                 }
             }
 
@@ -236,6 +229,7 @@
             Device.ImmediateContext.ClearState();
             Device.ImmediateContext.Flush();
             Device.Dispose();
+            _connector.Dispose();
             _gameRender.Dispose();
         }
 
