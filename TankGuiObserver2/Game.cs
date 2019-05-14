@@ -87,8 +87,8 @@
             _clientThread = new System.Threading.Thread(() => {
                 clientCore.Run(false, _spectatorClass.Client, tokenSource.Token);
             });
-            _connector = new Connector();
             _clientThread.Start();
+            _connector = new Connector();
 
             _gameRender = new GameRender(RenderForm, Factory2D, RenderTarget2D);
 
@@ -154,10 +154,15 @@
                 else
                 {
                     _gameRender.DrawWaitingLogo();
+                    isThreadRunning = _clientThread.IsAlive ? isThreadRunning : false;
                     if (_connector.IsServerRunnig() && !isThreadRunning)
                     {
                         isThreadRunning = true;
-                        
+                        //_clientThread = new System.Threading.Thread(() =>
+                        //{
+                        //    clientCore.Run(false, _spectatorClass.Client, tokenSource.Token);
+                        //});
+                        //_clientThread.Start();
                     }
                 }
             }
