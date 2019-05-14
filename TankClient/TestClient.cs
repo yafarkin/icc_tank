@@ -5,9 +5,8 @@ using TankCommon.Objects;
 
 namespace TankClient
 {
-    public class TestClient : IClientBot
+    public class Bot1 : IClientBot
     {
-        protected readonly Random _random = new Random();
         protected Rectangle rectangle;
         protected Map _map;
         private delegate ServerResponse Script();
@@ -20,6 +19,7 @@ namespace TankClient
             if (request.Map.Cells != null)
             {
                 _map = request.Map;
+                var translMap = TranslMapForPassfind(_map);
             }
             //Если в карте ничего нет, то просить обновления карты
             else if (null == _map)
@@ -44,35 +44,26 @@ namespace TankClient
 
             rectangle = myTank.Rectangle;
 
-            //если есть интерактивные объекты
-            if (_map.InteractObjects != null)
-            {
-                foreach (var elem in _map.InteractObjects)
-                {
-                    //если элемент это улучшение, то присвоить  upgradeX его координату по Х
-                    if (elem is UpgradeInteractObject upgradeInteractObject)
-                    {
-                        //upgradeX = upgradeInteractObject.Rectangle.LeftCorner.LeftInt;
-                        //upgradeY = upgradeInteractObject.Rectangle.LeftCorner.TopInt;
-                    }
-                }
-            }
-
-            return GoToPoint(_map, myTank);
+            return GoToPoint(_map, myTank, 53, 7);
             
-            //return new ServerResponse { ClientCommand = ClientCommandType.None };
         }
 
-        private static ServerResponse GoToPoint(Map map, TankObject myTank)
+        /// <summary>
+        /// Двигает танк к указаной точке
+        /// </summary>
+        /// <param name="map"></param>
+        /// <param name="myTank"></param>
+        /// <param name="destinationX"></param>
+        /// <param name="destinationY"></param>
+        /// <returns></returns>
+        private static ServerResponse GoToPoint(Map map, TankObject myTank, int destinationX, int destinationY)
         {
+            BaseInteractObject nearestObj = FindNearestObj(map, myTank);
+            destinationX = nearestObj.Rectangle.LeftCorner.LeftInt;
+            destinationY = nearestObj.Rectangle.LeftCorner.TopInt;
+
             if (map.InteractObjects != null)
             {
-                int destinationX;
-                int destinationY;
-                var nearestObj = FindNearestObj(map, myTank);
-                destinationX = nearestObj.Rectangle.WidthInt;
-                destinationY = nearestObj.Rectangle.HeightInt;
-
                 if ( Math.Abs(destinationX - GetMyX(myTank)) > Math.Abs(destinationY - GetMyY(myTank)) )
                 {
                     //Если левый угол моего танка по Х меньше, чем левый угол достигаемого объекта и я не повёрнут направо
@@ -153,7 +144,8 @@ namespace TankClient
         private static BaseInteractObject FindNearestObj(Map map, TankObject myTank)
         {
             int shortestDistToElem = map.MapHeight;
-            BaseInteractObject nearestObject = map.InteractObjects[0];
+            var lastIndex = map.InteractObjects.Count - 1;
+            BaseInteractObject nearestObject = map.InteractObjects[lastIndex];
 
             //Если есть интерактивные объекты
             if (map.InteractObjects != null)
@@ -227,6 +219,10 @@ namespace TankClient
             {
                 delegateScript = TurnLeft;
                 stepsBeforeOver = 2;
+            }
+            if (stepsBeforeOver == 1)
+            {
+                delegateScript = Go;
             }
             if (stepsBeforeOver > 0)
             {
