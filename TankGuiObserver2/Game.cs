@@ -10,20 +10,21 @@
     using AlphaMode = SharpDX.Direct2D1.AlphaMode;
     using Device = SharpDX.Direct3D11.Device;
     using Factory = SharpDX.DXGI.Factory;
-    
+
     class Game : System.IDisposable
     {
-        RenderForm RenderForm;
-        RenderTarget RenderTarget2D;
-        SharpDX.Direct2D1.Factory Factory2D;
-        Surface Surface;
-        SwapChain SwapChain;
-        Device Device;
+        RenderForm _renderForm;
+        RenderTarget _renderTarget2D;
+        SharpDX.Direct2D1.Factory _factory2D;
+        Surface _surface;
+        SwapChain _swapChain;
+        Device _device;
 
-        GuiSpectator _spectatorClass;
-        System.Threading.CancellationTokenSource tokenSource;
-        TankClient.ClientCore clientCore;
+        bool _isClientThreadRunning;
         System.Threading.Thread _clientThread;
+        GuiSpectator _spectatorClass;
+        System.Threading.CancellationTokenSource _tokenSource;
+        GuiObserverCore _guiObserverCore;
         Connector _connector;
 
         bool _isEnterPressed;
@@ -42,22 +43,22 @@
             int windowWidth, int windowHeight,
             bool isWindowed = true)
         {
-            RenderForm = new RenderForm(windowName);
-            RenderForm.Width = windowWidth;
-            RenderForm.Height = windowHeight;
-            RenderForm.AllowUserResizing = false;
+            _renderForm = new RenderForm(windowName);
+            _renderForm.Width = windowWidth;
+            _renderForm.Height = windowHeight;
+            _renderForm.AllowUserResizing = false;
 
             var desc = new SwapChainDescription()
             {
                 BufferCount = 1,
                 ModeDescription =
                     new ModeDescription(
-                        (int)(RenderForm.Width),
-                        (int)(RenderForm.Height),
+                        (int)(_renderForm.Width),
+                        (int)(_renderForm.Height),
                         new Rational(60, 1),
                         Format.R8G8B8A8_UNorm),
                 IsWindowed = isWindowed,
-                OutputHandle = RenderForm.Handle,
+                OutputHandle = _renderForm.Handle,
                 SampleDescription = new SampleDescription(1, 0),
                 SwapEffect = SwapEffect.Discard,
                 Usage = Usage.RenderTargetOutput
@@ -66,31 +67,27 @@
             Device.CreateWithSwapChain(DriverType.Hardware,
                 DeviceCreationFlags.BgraSupport,
                 new SharpDX.Direct3D.FeatureLevel[] { SharpDX.Direct3D.FeatureLevel.Level_10_0 },
-                desc, out Device, out SwapChain);
+                desc, out _device, out _swapChain);
 
-            Factory2D = new SharpDX.Direct2D1.Factory();
-            Factory factory = SwapChain.GetParent<Factory>();
-            factory.MakeWindowAssociation(RenderForm.Handle,
+            _factory2D = new SharpDX.Direct2D1.Factory();
+            Factory factory = _swapChain.GetParent<Factory>();
+            factory.MakeWindowAssociation(_renderForm.Handle,
                     WindowAssociationFlags.IgnoreAll);
 
-            Texture2D backBuffer = Texture2D.FromSwapChain<Texture2D>(SwapChain, 0);
-            Surface = backBuffer.QueryInterface<Surface>();
+            Texture2D backBuffer = Texture2D.FromSwapChain<Texture2D>(_swapChain, 0);
+            _surface = backBuffer.QueryInterface<Surface>();
 
-            RenderTarget2D = new RenderTarget(Factory2D, Surface, new RenderTargetProperties(
+            _renderTarget2D = new RenderTarget(_factory2D, _surface, new RenderTargetProperties(
                                  new PixelFormat(Format.Unknown, AlphaMode.Premultiplied)));
 
             //WEB_SOCKET
             string server = System.Configuration.ConfigurationManager.AppSettings["server"];
-            clientCore = new TankClient.ClientCore(server, string.Empty);
-            tokenSource = new System.Threading.CancellationTokenSource();
-            _spectatorClass = new GuiSpectator(tokenSource.Token);
-            _clientThread = new System.Threading.Thread(() => {
-                clientCore.Run(false, _spectatorClass.Client, tokenSource.Token);
-            });
-            _clientThread.Start();
+            _guiObserverCore = new GuiObserverCore(server, string.Empty);
+            _tokenSource = new System.Threading.CancellationTokenSource();
+            _spectatorClass = new GuiSpectator(_tokenSource.Token);
             _connector = new Connector();
 
-            _gameRender = new GameRender(RenderForm, Factory2D, RenderTarget2D);
+            _gameRender = new GameRender(_renderForm, _factory2D, _renderTarget2D);
 
             _directInput = new DirectInput();
             _keyboard = new Keyboard(_directInput);
@@ -100,12 +97,12 @@
 
         public void RunGame()
         {
-            RenderLoop.Run(RenderForm, Draw);
+            RenderLoop.Run(_renderForm, Draw);
         }
 
         public void Draw()
         {
-            RenderTarget2D.BeginDraw();
+            _renderTarget2D.BeginDraw();
             KeyboardState kbs = _keyboard.GetCurrentState();//_keyboard.Poll();
             foreach (var key in kbs.PressedKeys)
             {
@@ -134,7 +131,7 @@
                 }
                 else if (key == Key.Escape)
                 {
-                    RenderForm.Close();
+                    _renderForm.Close();
                 }
             }
 
@@ -154,9 +151,18 @@
                 else
                 {
                     _gameRender.DrawWaitingLogo();
-                    //if (_connector.IsServerRunning() && _clientThread == null)
-                    //{
-                    //}
+                    if (!_connector.ServerRunning)
+                    {
+                        _connector.IsServerRunning();
+                    }
+                    else if (!_isClientThreadRunning)
+                    {
+                        _isClientThreadRunning = true;
+                        _clientThread = new System.Threading.Thread(() => {
+                            _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
+                        });
+                        _clientThread.Start();
+                    }
                 }
             }
 
@@ -167,15 +173,15 @@
 
             try
             {
-                RenderTarget2D.EndDraw();
+                _renderTarget2D.EndDraw();
             }
-            catch 
+            catch
             {
             }
 
-            SwapChain.Present(0, PresentFlags.None);
+            _swapChain.Present(0, PresentFlags.None);
         }
-        
+
         public static Bitmap LoadFromFile(RenderTarget renderTarget, string file)
         {
             // Loads from file using System.Drawing.Image
@@ -221,14 +227,14 @@
 
         public void Dispose()
         {
-            RenderForm.Dispose();
-            RenderTarget2D.Dispose();
-            Factory2D.Dispose();
-            Surface.Dispose();
-            SwapChain.Dispose();
-            Device.ImmediateContext.ClearState();
-            Device.ImmediateContext.Flush();
-            Device.Dispose();
+            _renderForm.Dispose();
+            _renderTarget2D.Dispose();
+            _factory2D.Dispose();
+            _surface.Dispose();
+            _swapChain.Dispose();
+            _device.ImmediateContext.ClearState();
+            _device.ImmediateContext.Flush();
+            _device.Dispose();
             _connector.Dispose();
             _gameRender.Dispose();
         }

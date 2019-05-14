@@ -160,7 +160,7 @@
         private List<ImmutableObject> _immutableMapObjects;
         private List<DestuctiveWalls> _destuctiveWallsObjects;
         //methode: DrawClientInfo() use it
-        private List<TankObject> _clientInfoTanks; 
+        private List<TankObject> _clientInfoTanks;
         private RawVector2 _clientInfoLeftPoint;
         private RawVector2 _clientInfoRightPoint;
         private RawColor4 _blackScreen;
@@ -541,7 +541,7 @@
 
             string nicknameFormatted = "Nickname            ";//20
             RenderTarget2D.DrawText(
-                    $"Id "+ nicknameFormatted+" Score Hp",
+                    $"Id " + nicknameFormatted + " Score Hp",
                     _statusTextFormat, heightIncriment, _mapObjectsColors[12]);
             heightIncriment.Y += _clientInfoListRect.Height / 4;
             int diffLen;
@@ -549,7 +549,7 @@
             {
                 diffLen = Math.Abs(nicknameFormatted.Length - tank.Nickname.Length);
                 RenderTarget2D.DrawText(
-                    $"{index}. {tank.Nickname}{new string(' ', diffLen)} "+
+                    $"{index}. {tank.Nickname}{new string(' ', diffLen)} " +
                     $"{(int)tank.Score} {(int)tank.Hp}",
                     _statusTextFormat, heightIncriment, _mapObjectsColors[12]);
                 heightIncriment.Y += _clientInfoListRect.Height / 4;
