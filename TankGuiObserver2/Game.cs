@@ -21,6 +21,8 @@
         Device Device;
 
         GuiSpectator _spectatorClass;
+        System.Threading.CancellationTokenSource tokenSource;
+        TankClient.ClientCore clientCore;
         System.Threading.Thread _clientThread;
 
         bool _isEnterPressed;
@@ -78,6 +80,8 @@
 
             //WEB_SOCKET
             Connect();
+            _spectatorClass = new GuiSpectator();
+
             System.Threading.Tasks.Task.Delay(1000);
 
             _gameRender = new GameRender(RenderForm, Factory2D, RenderTarget2D);
@@ -122,7 +126,7 @@
                 {
                     _isTabPressed = true;
                 }
-                else if (key == Key.Return)
+                else if (key == Key.Return && _spectatorClass.Map != null)
                 {
                     _isEnterPressed = true;
                 }
@@ -139,14 +143,9 @@
                 _gameRender.DrawInteractiveObjects(_spectatorClass.Map.InteractObjects);
                 _gameRender.DrawClientInfo();
             }
-
-            if (_spectatorClass.Map != null && !_isEnterPressed)
+            else
             {
                 _gameRender.DrawLogo();
-            }
-            
-            if (_spectatorClass.Map == null)
-            {
                 _gameRender.DrawWaitingLogo();
             }
             
@@ -161,8 +160,8 @@
             }
             catch 
             {
-
             }
+
             SwapChain.Present(0, PresentFlags.None);
         }
 
