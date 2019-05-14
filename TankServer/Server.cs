@@ -7,6 +7,7 @@ using Fleck;
 using TankCommon;
 using TankCommon.Enum;
 using TankCommon.Objects;
+using NLog;
 
 namespace TankServer
 {
@@ -26,6 +27,8 @@ namespace TankServer
         public readonly Map Map;
         public Dictionary<IWebSocketConnection, ClientInfo> Clients;
 
+        public readonly Logger _logger;
+
         public Server(Map map, uint port, uint maxBotsCount, uint coreUpdateMs, uint spectatorUpdateMs, uint botUpdateMs)
         {
             Map = map;
@@ -37,7 +40,7 @@ namespace TankServer
             _botUpdateMs = botUpdateMs;
 
             _random = new Random();
-
+            _logger = LogManager.GetCurrentClassLogger();
             //FleckLog.Level = LogLevel.Debug;
 
             _socketServer = new WebSocketServer($"ws://0.0.0.0:{port}");
@@ -48,6 +51,7 @@ namespace TankServer
                     lock (_syncObject)
                     {
                         Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
+                        _logger.Info($"[КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
                         Clients.Add(socket, new ClientInfo());
                     }
                 };
@@ -56,6 +60,7 @@ namespace TankServer
                     lock (_syncObject)
                     {
                         Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [КЛИЕНТ-]: {socket.ConnectionInfo.ClientIpAddress}");
+                        _logger.Info($"[КЛИЕНТ-]: {socket.ConnectionInfo.ClientIpAddress}");
                         if (Clients.ContainsKey(socket))
                         {
                             Clients[socket].NeedRemove = true;
@@ -105,6 +110,7 @@ namespace TankServer
                                 }
 
                                 Console.WriteLine($"{DateTime.Now.ToShortTimeString()} Вход на сервер: {(string.IsNullOrWhiteSpace(response.CommandParameter) ? "наблюдатель" : response.CommandParameter)}");
+                                _logger.Info($"Вход на сервер: {(string.IsNullOrWhiteSpace(response.CommandParameter) ? "наблюдатель" : response.CommandParameter)}");
 
                                 clientInfo.IsLogined = true;
                                 clientInfo.NeedUpdateMap = true;
@@ -145,6 +151,7 @@ namespace TankServer
                         if (response.ClientCommand != ClientCommandType.None)
                         {
                             Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [КЛИЕНТ]: ответ от {socket.ConnectionInfo.ClientIpAddress} = {response.ClientCommand}");
+                            _logger.Info($"[КЛИЕНТ]: ответ от {socket.ConnectionInfo.ClientIpAddress} = {response.ClientCommand}");
                         }
                     }
                 };
@@ -600,6 +607,7 @@ namespace TankServer
                                                 if (isFrag)
                                                 {
                                                     sourceTank.Score += 50;
+                                                    _logger.Info($"{tankIntersectedObject.Nickname} was killed by {sourceTank.Nickname}");
                                                 }
                                             }
                                         }
