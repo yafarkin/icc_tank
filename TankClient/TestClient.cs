@@ -267,7 +267,7 @@ namespace TankClient
                     if (Math.Abs(myX - bullX) < (Constants.CellHeight * 2) && Math.Abs(myY - bullY) < (Constants.CellWidth * 2))
                     {
                         //Попадёт ли она?
-                        if (IsThisBulletHitTank(map, myTank, bullX, bullY, myX, myY))
+                        if ( IsThisBulletHitTank(map, myTank, bullX, bullY, myX, myY, (elem as BulletObject).Direction) )
                         {
                             //Уклониться в зависимости от направления пули
                         }
@@ -278,11 +278,34 @@ namespace TankClient
             return false;
         }
 
-        private static bool IsThisBulletHitTank(Map map, TankObject myTank, int bullX, int bullY , int myX, int myY)
+        private static bool IsThisBulletHitTank(Map map, TankObject myTank, int bullX, int bullY , int myX, int myY, DirectionType bullDirec)
         {
-            if (bullX >= myX && bullX <= myX + Constants.CellWidth)
+            //Если совпала по Х
+            if ( bullX >= myX && bullX <= myX + (Constants.CellWidth - 1) )
             {
-                return true;
+                //Если выше(меньше) по Y и направлена вниз
+                if (bullY < myY && bullDirec == DirectionType.Down)
+                {
+                    return true;
+                }
+                //Если ниже(больше) по Y и направлена вверх
+                if (bullY > myY && bullDirec == DirectionType.Up)
+                {
+                    return true;
+                }
+            }
+            if (bullY >= myY && bullY <= myY + (Constants.CellHeight - 1))
+            {
+                //Если левее(меньше) по X и направлена вправо
+                if (bullX < myX && bullDirec == DirectionType.Right)
+                {
+                    return true;
+                }
+                //Если правее(больше) по Х и направлена влево
+                if (bullX > myX && bullDirec == DirectionType.Left)
+                {
+                    return true;
+                }
             }
             return false;
         }
