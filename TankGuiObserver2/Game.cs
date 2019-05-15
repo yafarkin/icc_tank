@@ -81,11 +81,21 @@
                                  new PixelFormat(Format.Unknown, AlphaMode.Premultiplied)));
 
             //WEB_SOCKET
-            string serverString = 
-                System.IO.File.ReadAllText(@"config/config.txt")
-                .Split(new char[] { '\n' })[0]
-                .Split(new char[] { '-' })[1];
-            
+            string serverString = string.Empty;
+            if (!System.IO.Directory.Exists("config"))
+            {
+                System.IO.Directory.CreateDirectory("config");
+            }
+            if (!System.IO.File.Exists(@"config/config.txt"))
+            {
+                System.IO.File.WriteAllText(@"config/config.txt", @"server-ws://127.0.0.1:2000");
+            }
+
+            serverString =
+                    System.IO.File.ReadAllText(@"config/config.txt")
+                    .Split(new char[] { '\n' })[0]
+                    .Split(new char[] { '-' })[1];
+
             _guiObserverCore = new GuiObserverCore(serverString, string.Empty);
             _tokenSource = new System.Threading.CancellationTokenSource();
             _spectatorClass = new GuiSpectator(_tokenSource.Token);
