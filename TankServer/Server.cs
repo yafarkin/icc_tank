@@ -8,6 +8,7 @@ using TankCommon;
 using TankCommon.Enum;
 using TankCommon.Objects;
 using NLog;
+using System.IO;
 
 namespace TankServer
 {
@@ -23,6 +24,8 @@ namespace TankServer
         protected readonly uint _coreUpdateMs;
         protected readonly uint _spectatorUpdateMs;
         protected readonly uint _botUpdateMs;
+
+        public static TankSettings _tankSettings = new TankSettings(); 
 
         public readonly Map Map;
         public Dictionary<IWebSocketConnection, ClientInfo> Clients;
@@ -112,6 +115,8 @@ namespace TankServer
                                 Console.WriteLine($"{DateTime.Now.ToShortTimeString()} Вход на сервер: {(string.IsNullOrWhiteSpace(response.CommandParameter) ? "наблюдатель" : response.CommandParameter)}");
                                 _logger.Info($"Вход на сервер: {(string.IsNullOrWhiteSpace(response.CommandParameter) ? "наблюдатель" : response.CommandParameter)}");
 
+                                CheckSettings();
+
                                 clientInfo.IsLogined = true;
                                 clientInfo.NeedUpdateMap = true;
 
@@ -158,6 +163,66 @@ namespace TankServer
             });
         }
 
+        public void CheckSettings(){
+            var Path = Directory.GetCurrentDirectory() + "/Config/TankConfig.txt";
+            var SR = new StreamReader(Path);
+            var FileEntry = SR.ReadToEnd().Split('\n');
+            SR.Close();
+
+            var isCorrectSession = DateTime.TryParse(FileEntry[2], out var _sessionTime);
+            var isCorrectGameSpeed = decimal.TryParse(FileEntry[3], out var _gameSpeed);
+            var isCorrectTankSpeed = decimal.TryParse(FileEntry[4], out var _tankSpeed);
+            var isCorrectBulletSpeed = decimal.TryParse(FileEntry[5], out var _bulletSpeed);
+            var isCorrectTankDamage = decimal.TryParse(FileEntry[6], out var _tankDamage);
+
+            var _fileSettings = new TankSettings();
+
+            try
+            {
+                if (isCorrectSession && isCorrectGameSpeed && isCorrectTankSpeed && isCorrectBulletSpeed && isCorrectTankDamage)
+                {
+                    _fileSettings = new TankSettings
+                    {
+                        ServerName = FileEntry[0],
+                        ServerType = (ServerType)Enum.Parse(typeof(ServerType), FileEntry[1]),
+                        SessionTime = _sessionTime,
+                        GameSpeed = _gameSpeed,
+                        TankSpeed = _tankSpeed,
+                        BulletSpeed = _bulletSpeed,
+                        TankDamage = _tankDamage
+                    };
+                }
+                else
+                {
+                    throw new Exception("Один или несколько параметров отсутствуют");
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [СЕРВЕР]: Ошибка в файле конфигурации: \"{e.Message}\"");
+            }
+
+            if (isSettingsChanged(_tankSettings, _fileSettings))
+            {
+                _fileSettings = _tankSettings;
+
+                var SW = new StreamWriter(Path);
+
+                var Fields = _tankSettings;
+                typeof(TankSettings)
+                    .GetProperties()
+                    .Select(x => x.GetValue(Fields, null))
+                    .ToList()
+                    .ForEach(x => SW.WriteLine(x));
+                SW.Close();
+            }
+        }
+
+        public bool isSettingsChanged(TankSettings _tankSettings, TankSettings _fileSettings)
+        {
+            return _tankSettings.Equals(_fileSettings) ? false : true;
+        }
+
         public void Dispose()
         {
             foreach (var kv in Clients)
@@ -201,7 +266,7 @@ namespace TankServer
                 break;
             }
 
-            var tank = new TankObject(Guid.NewGuid(), rectangle, 2, false, 100, 100, nickname, tag);
+            var tank = new TankObject(Guid.NewGuid(), rectangle, _tankSettings.TankSpeed, false, 100, 100, nickname, tag, _tankSettings.TankDamage);
             Map.InteractObjects.Add(tank);
 
             return tank;
@@ -235,7 +300,7 @@ namespace TankServer
                     break;
             }
 
-            var bullet = new BulletObject(Guid.NewGuid(), new Rectangle(location, 1, 1), clientTank.BulletSpeed, 
+            var bullet = new BulletObject(Guid.NewGuid(), new Rectangle(location, 1, 1), _tankSettings.BulletSpeed, 
                 true, clientTank.Direction, clientTank.Id, clientTank.Damage);
 
             Map.InteractObjects.Add(bullet);
