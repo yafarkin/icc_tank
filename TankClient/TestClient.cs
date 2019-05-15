@@ -56,9 +56,15 @@ namespace TankClient
         private ServerResponse BeAliveFirtStep(Map map, TankObject myTank)
         {
             //Если на танковую клетку от меня есть пуля и летит в меня => Уклониться
-            GetaweyFromNearBullet(map, myTank);
+            ServerResponse serverResponse = GetaweyFromNearBullet(map, myTank);
+
+            //Если жизнь вне опасности выполнять другие функции
+            if (serverResponse.ClientCommand == ClientCommandType.None)
+            {
+                //
+            }
             
-            return new ServerResponse { ClientCommand = ClientCommandType.None };
+            return serverResponse;
         }
 
         /// <summary>
@@ -251,9 +257,9 @@ namespace TankClient
         /// <param name="map"></param>
         /// <param name="myTank"></param>
         /// <returns></returns>
-        private static bool GetaweyFromNearBullet(Map map, TankObject myTank)
+        private static ServerResponse GetaweyFromNearBullet(Map map, TankObject myTank)
         {
-            //var newCells = new CellMapType[Constants.CellWidth * 3, Constants.CellHeight * 3];
+            var servResp = new ServerResponse { ClientCommand = ClientCommandType.None };
             var myX = myTank.Rectangle.LeftCorner.LeftInt;
             var myY = myTank.Rectangle.LeftCorner.TopInt;
 
@@ -267,18 +273,30 @@ namespace TankClient
                     if (Math.Abs(myX - bullX) < (Constants.CellHeight * 2) && Math.Abs(myY - bullY) < (Constants.CellWidth * 2))
                     {
                         //Попадёт ли она?
-                        if ( IsThisBulletHitTank(map, myTank, bullX, bullY, myX, myY, (elem as BulletObject).Direction) )
+                        if ( IsThisBulletHitTank(bullX, bullY, myX, myY, (elem as BulletObject).Direction) )
                         {
                             //Уклониться в зависимости от направления пули
+                            servResp = GoOutFromBulletWay(map, myTank,(elem as BulletObject), (elem as BulletObject).Direction);
                         }
                     }
                 }
             }
 
-            return false;
+            return servResp;
         }
 
-        private static bool IsThisBulletHitTank(Map map, TankObject myTank, int bullX, int bullY , int myX, int myY, DirectionType bullDirec)
+        /// <summary>
+        /// Проверяет попадёт ли пуля в мой танк
+        /// </summary>
+        /// <param name="map"></param>
+        /// <param name="myTank"></param>
+        /// <param name="bullX"></param>
+        /// <param name="bullY"></param>
+        /// <param name="myX"></param>
+        /// <param name="myY"></param>
+        /// <param name="bullDirec">Направление пули, которая проверяется на попадение в танк</param>
+        /// <returns></returns>
+        private static bool IsThisBulletHitTank(int bullX, int bullY , int myX, int myY, DirectionType bullDirec)
         {
             //Если совпала по Х
             if ( bullX >= myX && bullX <= myX + (Constants.CellWidth - 1) )
@@ -308,6 +326,12 @@ namespace TankClient
                 }
             }
             return false;
+        }
+
+
+        private static ServerResponse GoOutFromBulletWay(Map map, TankObject myTank, BulletObject bullet, DirectionType direction)
+        {
+            
         }
 
         private static ServerResponse TurnRight()
