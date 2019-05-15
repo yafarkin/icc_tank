@@ -44,8 +44,21 @@ namespace TankClient
 
             rectangle = myTank.Rectangle;
 
-            return GoToPoint(_map, myTank, 53, 7);
+            return BeAliveFirtStep(_map, myTank);
             
+        }
+
+
+        /// <summary>
+        /// Выполняет простую методологию по выживанию
+        /// </summary>
+        /// <returns></returns>
+        private ServerResponse BeAliveFirtStep(Map map, TankObject myTank)
+        {
+            //Если на танковую клетку от меня есть пуля и летит в меня => Уклониться
+            GetaweyFromNearBullet(map, myTank);
+            
+            return new ServerResponse { ClientCommand = ClientCommandType.None };
         }
 
         /// <summary>
@@ -58,9 +71,9 @@ namespace TankClient
         /// <returns></returns>
         private static ServerResponse GoToPoint(Map map, TankObject myTank, int destinationX, int destinationY)
         {
-            BaseInteractObject nearestObj = FindNearestObj(map, myTank);
-            destinationX = nearestObj.Rectangle.LeftCorner.LeftInt;
-            destinationY = nearestObj.Rectangle.LeftCorner.TopInt;
+            //BaseInteractObject nearestObj = FindNearestObj(map, myTank);
+            //destinationX = nearestObj.Rectangle.LeftCorner.LeftInt;
+            //destinationY = nearestObj.Rectangle.LeftCorner.TopInt;
 
             if (map.InteractObjects != null)
             {
@@ -192,7 +205,7 @@ namespace TankClient
             }
 
             return transArr;
-        }
+        } //надо переделать учитывая проходимость танка
 
         /// <summary>
         /// Принимает направление и передвигает туда танк
@@ -230,6 +243,48 @@ namespace TankClient
             }
 
             return delegateScript();
+        }
+
+        /// <summary>
+        /// Проверяет есть ли пуля на расстоянии одной Танковой клетки вокруг танка  и если есть, то уклоняется
+        /// </summary>
+        /// <param name="map"></param>
+        /// <param name="myTank"></param>
+        /// <returns></returns>
+        private static bool GetaweyFromNearBullet(Map map, TankObject myTank)
+        {
+            //var newCells = new CellMapType[Constants.CellWidth * 3, Constants.CellHeight * 3];
+            var myX = myTank.Rectangle.LeftCorner.LeftInt;
+            var myY = myTank.Rectangle.LeftCorner.TopInt;
+
+            foreach(var elem in map.InteractObjects)
+            {
+                if (elem is BulletObject)
+                {
+                    var bullX = elem.Rectangle.LeftCorner.LeftInt;
+                    var bullY = elem.Rectangle.LeftCorner.TopInt;
+                    //Если пуля близко
+                    if (Math.Abs(myX - bullX) < (Constants.CellHeight * 2) && Math.Abs(myY - bullY) < (Constants.CellWidth * 2))
+                    {
+                        //Попадёт ли она?
+                        if (IsThisBulletHitTank(map, myTank, bullX, bullY, myX, myY))
+                        {
+                            //Уклониться в зависимости от направления пули
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsThisBulletHitTank(Map map, TankObject myTank, int bullX, int bullY , int myX, int myY)
+        {
+            if (bullX >= myX && bullX <= myX + Constants.CellWidth)
+            {
+                return true;
+            }
+            return false;
         }
 
         private static ServerResponse TurnRight()
