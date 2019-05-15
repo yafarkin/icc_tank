@@ -16,9 +16,8 @@ namespace TankGuiObserver2
         public bool ServerRunning { get; private set; }
         WebSocketProxy _webSocketProxy;
 
-        public Connector()
+        public Connector(string server)
         {
-            string server = System.Configuration.ConfigurationManager.AppSettings["server"];
             _serverUri = new Uri(server);
             _webSocketProxy = new WebSocketProxy(_serverUri);
         }

@@ -81,11 +81,15 @@
                                  new PixelFormat(Format.Unknown, AlphaMode.Premultiplied)));
 
             //WEB_SOCKET
-            string server = System.Configuration.ConfigurationManager.AppSettings["server"];
-            _guiObserverCore = new GuiObserverCore(server, string.Empty);
+            string serverString = 
+                System.IO.File.ReadAllText(@"config/config.txt")
+                .Split(new char[] { '\n' })[0]
+                .Split(new char[] { '-' })[1];
+            
+            _guiObserverCore = new GuiObserverCore(serverString, string.Empty);
             _tokenSource = new System.Threading.CancellationTokenSource();
             _spectatorClass = new GuiSpectator(_tokenSource.Token);
-            _connector = new Connector();
+            _connector = new Connector(serverString);
 
             _gameRender = new GameRender(_renderForm, _factory2D, _renderTarget2D);
 
