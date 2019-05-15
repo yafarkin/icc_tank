@@ -328,10 +328,35 @@ namespace TankClient
             return false;
         }
 
-
-        private static ServerResponse GoOutFromBulletWay(Map map, TankObject myTank, BulletObject bullet, DirectionType direction)
+        /// <summary>
+        /// Проверяетможет ли танк улониться и в какую сторонуи уклоняет танк
+        /// </summary>
+        /// <param name="map"></param>
+        /// <param name="myTank"></param>
+        /// <param name="bullet"></param>
+        /// <param name="direction">Направление пули</param>
+        /// <returns></returns>
+        private static ServerResponse GoOutFromBulletWay(Map map, TankObject myTank, BulletObject bullet, DirectionType bullDirec)
         {
-            
+            var bullX = bullet.Rectangle.LeftCorner.LeftInt;
+            var bullY = bullet.Rectangle.LeftCorner.TopInt;
+            var myX = myTank.Rectangle.LeftCorner.LeftInt;
+            var myY = myTank.Rectangle.LeftCorner.TopInt;
+
+            //Если совпала по Х
+            if (bullX >= myX && bullX <= myX + (Constants.CellWidth - 1))
+            {
+                //Если выше(меньше) по Y и направлена вниз
+                if (bullY < myY && bullDirec == DirectionType.Down)
+                {
+                    return true;
+                }
+                //Если ниже(больше) по Y и направлена вверх
+                if (bullY > myY && bullDirec == DirectionType.Up)
+                {
+                    return true;
+                }
+            }
         }
 
         private static ServerResponse TurnRight()
