@@ -270,7 +270,7 @@ namespace TankClient
                     var bullX = elem.Rectangle.LeftCorner.LeftInt;
                     var bullY = elem.Rectangle.LeftCorner.TopInt;
                     //Если пуля близко
-                    if (Math.Abs(myX - bullX) < (Constants.CellHeight * 2) && Math.Abs(myY - bullY) < (Constants.CellWidth * 2))
+                    if (Math.Abs(myX - bullX) < (Constants.CellHeight * 3) && Math.Abs(myY - bullY) < (Constants.CellWidth * 3))
                     {
                         //Попадёт ли она?
                         if ( IsThisBulletHitTank(bullX, bullY, myX, myY, (elem as BulletObject).Direction) )
@@ -329,7 +329,7 @@ namespace TankClient
         }
 
         /// <summary>
-        /// Проверяетможет ли танк улониться и в какую сторонуи уклоняет танк
+        /// Проверяетможет ли танк улониться и в какую сторону и уклоняет танк
         /// </summary>
         /// <param name="map"></param>
         /// <param name="myTank"></param>
@@ -349,14 +349,43 @@ namespace TankClient
                 //Если выше(меньше) по Y и направлена вниз
                 if (bullY < myY && bullDirec == DirectionType.Down)
                 {
-                    return true;
+                    //Если направо можно ходить направо, то увернуться направо
+                    if(map.Cells[myX + Constants.CellWidth,myY] == CellMapType.Void || map.Cells[myX, myY] == CellMapType.Grass)
+                    {
+                        if (myTank.Direction != DirectionType.Right)
+                        {
+                            return new ServerResponse { ClientCommand = ClientCommandType.TurnRight };
+                        }
+                        else
+                        {
+                            return new ServerResponse { ClientCommand = ClientCommandType.Go };
+                        }
+                    }
+                    else
+                    {
+                        //Если можно ходить налево, то увернуться налево
+                        if (map.Cells[myX - Constants.CellWidth, myY] == CellMapType.Void || map.Cells[myX, myY] == CellMapType.Grass)
+                        {
+                            if (myTank.Direction != DirectionType.Left)
+                            {
+                                return new ServerResponse { ClientCommand = ClientCommandType.TurnLeft };
+                            }
+                            else
+                            {
+                                return new ServerResponse { ClientCommand = ClientCommandType.Go };
+                            }
+                        }
+                        //Иначе стрелять в снаряд
+                    }
                 }
                 //Если ниже(больше) по Y и направлена вверх
                 if (bullY > myY && bullDirec == DirectionType.Up)
                 {
-                    return true;
+                    
                 }
             }
+
+            return new ServerResponse { ClientCommand = ClientCommandType.None };
         }
 
         private static ServerResponse TurnRight()
