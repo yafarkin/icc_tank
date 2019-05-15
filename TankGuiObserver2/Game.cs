@@ -138,9 +138,10 @@
             //Drawing a gama
             if (_isEnterPressed)
             {
-                _gameRender.DrawMap(_spectatorClass.Map);
-                _gameRender.DrawInteractiveObjects(_spectatorClass.Map.InteractObjects);
+                _gameRender.Map = _spectatorClass.Map;
                 _gameRender.DrawClientInfo();
+                _gameRender.DrawMap();
+                _gameRender.DrawInteractiveObjects(_spectatorClass.Map.InteractObjects);
             }
             else
             {

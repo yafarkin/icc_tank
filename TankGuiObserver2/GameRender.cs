@@ -157,6 +157,7 @@
         private float _zoomWidth;
         private float _zoomHeight;
         private Map _map;
+        public Map Map { set { _map = value; }  }
         private List<ImmutableObject> _immutableMapObjects;
         private List<DestuctiveWalls> _destuctiveWallsObjects;
         //methode: DrawClientInfo() use it
@@ -320,16 +321,14 @@
         }
 
         [System.Runtime.CompilerServices.MethodImpl(256)]
-        public void DrawMap(Map map)
+        public void DrawMap()
         {
-            RenderTarget2D.Clear(_blackScreen);
-            _map = map;
             // рисуем всю карту
             if (!_isMapSet)
             {
                 _isMapSet = true;
-                _mapWidth = map.MapWidth;
-                _mapHeight = map.MapHeight;
+                _mapWidth = _map.MapWidth;
+                _mapHeight = _map.MapHeight;
 
                 _zoomWidth = 1080 / _mapWidth;
                 _zoomHeight = RenderTarget2D.Size.Height / _mapHeight;
@@ -359,15 +358,15 @@
                         {
                             for (j = (5 * c); j < (5 * c + 5); j++)
                             {
-                                if (map[i, j] == CellMapType.Wall)
+                                if (_map[i, j] == CellMapType.Wall)
                                 {
                                     walls.Add(new SharpDX.Point(i, j));
                                 }
-                                else if (map[i, j] == CellMapType.Water)
+                                else if (_map[i, j] == CellMapType.Water)
                                 {
                                     water.Add(new SharpDX.Point(i, j));
                                 }
-                                if (map[i, j] == CellMapType.Grass)
+                                if (_map[i, j] == CellMapType.Grass)
                                 {
                                     grass.Add(new SharpDX.Point(i, j));
                                 }
@@ -418,7 +417,7 @@
                 {
                     for (var j = 5; j < (_mapWidth - 5); j++)
                     {
-                        var c = map[i, j];
+                        var c = _map[i, j];
                         if (c == CellMapType.DestructiveWall)
                         {
                             rawRectangleTemp.Left = j * _zoomWidth;
@@ -435,7 +434,7 @@
             {
                 foreach (var obj in _destuctiveWallsObjects)
                 {
-                    if (map[obj.RowIndex, obj.ColumnIndex] == CellMapType.DestructiveWall)
+                    if (_map[obj.RowIndex, obj.ColumnIndex] == CellMapType.DestructiveWall)
                     {
                         RenderTarget2D.DrawBitmap(_bitmaps[3], obj.Rectangle, 1.0f, BitmapInterpolationMode.Linear);
                     }
@@ -537,6 +536,7 @@
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawClientInfo()
         {
+            RenderTarget2D.Clear(_blackScreen);
             RenderTarget2D.FillRectangle(_clientInfoRect, _mapObjectsColors[13]);
             RenderTarget2D.DrawLine(_clientInfoLeftPoint, _clientInfoRightPoint, _mapObjectsColors[12], 10);
             RenderTarget2D.DrawText("Client info", _statusTextFormat, _clientInfoTextRect, _mapObjectsColors[12]);
