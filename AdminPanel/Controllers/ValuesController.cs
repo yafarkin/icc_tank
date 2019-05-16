@@ -28,11 +28,15 @@ namespace AdminPanel.Controllers
             };
 
             var newPort = Convert.ToUInt32(port);
-            for (int i = 0; i < Test.servers.Count; i++)
+            while (true)
             {
-                if (Test.servers[i].Port == newPort)
+                if (Test.servers.Any(x => x.Port == newPort))
                 {
                     newPort += 10;
+                }
+                else
+                {
+                    break;
                 }
             }
 
