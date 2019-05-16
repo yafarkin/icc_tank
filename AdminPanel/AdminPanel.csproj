@@ -14,4 +14,12 @@
     <PackageReference Include="React.AspNet" Version="4.1.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\ICC_Tank.csproj" />
+    <ProjectReference Include="..\TankClient\TankClient.csproj" />
+    <ProjectReference Include="..\TankCommon\TankCommon.csproj" />
+    <ProjectReference Include="..\TankGuiObserver\TankGuiObserver.csproj" />
+    <ProjectReference Include="..\TankServer\TankServer.csproj" />
+  </ItemGroup>
+
 </Project>

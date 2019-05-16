@@ -55,7 +55,7 @@ namespace ICC_Tank
             var tokenSource = new CancellationTokenSource();
             var server = new Server(map, port, maxBotsCount, coreUpdateMs, spectatorUpdateMs, botUpdateMs);
             var serverTask = server.Run(tokenSource.Token);
-
+            
             try
             {
                 while (!serverTask.IsCompleted)

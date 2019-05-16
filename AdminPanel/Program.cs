@@ -12,8 +12,6 @@ namespace AdminPanel
 {
     public class Program
     {
-        public static List<Entity.Server> servers = new List<Entity.Server>();
-
         public static void Main(string[] args)
         {
             CreateWebHostBuilder(args).Build().Run();
