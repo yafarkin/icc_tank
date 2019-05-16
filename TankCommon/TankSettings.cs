@@ -18,8 +18,8 @@
             Version++;
             ServerName = null;
             ServerType = ServerType.BattleCity;
-            SessionTime = DateTime.Now.AddMinutes(2) - DateTime.Now;  
-            GameSpeed = 2;
+            SessionTime = DateTime.Now.AddMinutes(2).AddSeconds(1) - DateTime.Now;  
+            GameSpeed = 1;
             TankSpeed = 2;
             BulletSpeed = 4;
             TankDamage = 40;
@@ -32,13 +32,6 @@
             ServerType = (ServerType)System.Enum.Parse(typeof(ServerType), _serverType);
             SessionTime = TimeSpan.Parse(_sessionTime);
             GameSpeed = _gameSpeed;
-            TankSpeed = _tankSpeed;
-            BulletSpeed = _bulletSpeed;
-            TankDamage = _tankDamage;
-        }
-
-        public void Update(decimal _tankSpeed, decimal _bulletSpeed, decimal _tankDamage)
-        {
             TankSpeed = _tankSpeed;
             BulletSpeed = _bulletSpeed;
             TankDamage = _tankDamage;
