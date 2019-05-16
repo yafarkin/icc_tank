@@ -25,7 +25,8 @@ namespace TankServer
         protected readonly uint _spectatorUpdateMs;
         protected readonly uint _botUpdateMs;
 
-        public static TankSettings _tankSettings = new TankSettings(); 
+        public static TankSettings _tankSettings = new TankSettings();
+        public string ConfigPath;
 
         public readonly Map Map;
         public Dictionary<IWebSocketConnection, ClientInfo> Clients;
@@ -45,6 +46,9 @@ namespace TankServer
             _random = new Random();
             _logger = LogManager.GetCurrentClassLogger();
             //FleckLog.Level = LogLevel.Debug;
+
+            CreateConfigResourcesIfNotExist();
+            WriteConfig();
 
             _socketServer = new WebSocketServer($"ws://0.0.0.0:{port}");
             _socketServer.Start(socket =>
@@ -115,7 +119,15 @@ namespace TankServer
                                 Console.WriteLine($"{DateTime.Now.ToShortTimeString()} Вход на сервер: {(string.IsNullOrWhiteSpace(response.CommandParameter) ? "наблюдатель" : response.CommandParameter)}");
                                 _logger.Info($"Вход на сервер: {(string.IsNullOrWhiteSpace(response.CommandParameter) ? "наблюдатель" : response.CommandParameter)}");
 
-                                CheckSettings();
+                                var _fileSettings = GetSettings();
+                                if (isSettingsChanged(_fileSettings))
+                                {
+                                    WriteConfig();
+                                }
+
+                                //Проверка на изменения при установке новых настроек
+                                //_tankSettings.Update("BattleCity", "BattleCity", "00:30:00", 10, 1000, 5000, 500); //2
+                                //_tankSettings.Update("BattleCity", "BattleCity","00:15:00", 10, 8, 10, 50);  //3
 
                                 clientInfo.IsLogined = true;
                                 clientInfo.NeedUpdateMap = true;
@@ -163,64 +175,88 @@ namespace TankServer
             });
         }
 
-        public void CheckSettings(){
-            var Path = Directory.GetCurrentDirectory() + "/Config/TankConfig.txt";
-            var SR = new StreamReader(Path);
-            var FileEntry = SR.ReadToEnd().Split('\n');
-            SR.Close();
+        public void CreateConfigResourcesIfNotExist()
+        {
+            ConfigPath = $"{Directory.GetCurrentDirectory()}/config";
 
-            var isCorrectSession = DateTime.TryParse(FileEntry[2], out var _sessionTime);
-            var isCorrectGameSpeed = decimal.TryParse(FileEntry[3], out var _gameSpeed);
-            var isCorrectTankSpeed = decimal.TryParse(FileEntry[4], out var _tankSpeed);
-            var isCorrectBulletSpeed = decimal.TryParse(FileEntry[5], out var _bulletSpeed);
-            var isCorrectTankDamage = decimal.TryParse(FileEntry[6], out var _tankDamage);
+            if (!Directory.Exists(ConfigPath))
+            {
+                Directory.CreateDirectory(ConfigPath);
+            }
 
-            var _fileSettings = new TankSettings();
+            ConfigPath += "/TankConfig.txt";
 
+            if (!File.Exists(ConfigPath))
+            {
+                File.Create(ConfigPath);
+            }
+        }
+
+        public void WriteConfig()
+        {
             try
             {
+                var SW = new StreamWriter(ConfigPath, false, System.Text.Encoding.Default);
+                typeof(TankSettings)
+                    .GetProperties()
+                    .Select(x => x.GetValue(_tankSettings, null))
+                    .ToList()
+                    .ForEach(x => SW.WriteLine(x));
+
+                SW.Close();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [СЕРВЕР]: {e.Message}");
+            }
+        }
+
+        public TankSettings GetSettings()
+        {
+            var _fileSettings = new TankSettings();
+            
+            try
+            {
+                var SR = new StreamReader(ConfigPath);
+
+                var FileEntry = new List<string>();
+                FileEntry.AddRange(SR.ReadToEnd().Split('\n'));
+
+                SR.Close();
+
+                var isCorrectSession = TimeSpan.TryParse(FileEntry[3], out var _sessionTime);
+                var isCorrectGameSpeed = decimal.TryParse(FileEntry[4], out var _gameSpeed);
+                var isCorrectTankSpeed = decimal.TryParse(FileEntry[5], out var _tankSpeed);
+                var isCorrectBulletSpeed = decimal.TryParse(FileEntry[6], out var _bulletSpeed);
+                var isCorrectTankDamage = decimal.TryParse(FileEntry[7], out var _tankDamage);
+
                 if (isCorrectSession && isCorrectGameSpeed && isCorrectTankSpeed && isCorrectBulletSpeed && isCorrectTankDamage)
                 {
-                    _fileSettings = new TankSettings
-                    {
-                        ServerName = FileEntry[0],
-                        ServerType = (ServerType)Enum.Parse(typeof(ServerType), FileEntry[1]),
-                        SessionTime = _sessionTime,
-                        GameSpeed = _gameSpeed,
-                        TankSpeed = _tankSpeed,
-                        BulletSpeed = _bulletSpeed,
-                        TankDamage = _tankDamage
-                    };
-                }
-                else
-                {
-                    throw new Exception("Один или несколько параметров отсутствуют");
+                    _fileSettings.UpdateAll(FileEntry[1], FileEntry[2], FileEntry[3], _gameSpeed, _tankSpeed, _bulletSpeed, _tankDamage);
                 }
             }
             catch (Exception e)
             {
-                Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [СЕРВЕР]: Ошибка в файле конфигурации: \"{e.Message}\"");
+                Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [СЕРВЕР]: {e.Message}");
             }
 
-            if (isSettingsChanged(_tankSettings, _fileSettings))
-            {
-                _fileSettings = _tankSettings;
-
-                var SW = new StreamWriter(Path);
-
-                var Fields = _tankSettings;
-                typeof(TankSettings)
-                    .GetProperties()
-                    .Select(x => x.GetValue(Fields, null))
-                    .ToList()
-                    .ForEach(x => SW.WriteLine(x));
-                SW.Close();
-            }
+            return _fileSettings;
         }
 
-        public bool isSettingsChanged(TankSettings _tankSettings, TankSettings _fileSettings)
+        public bool isSettingsChanged(TankSettings _fileSettings)
         {
-            return _tankSettings.Equals(_fileSettings) ? false : true;
+            if (_fileSettings != null)
+            {
+                return (_tankSettings.ServerName == _fileSettings.ServerName &&
+                _tankSettings.ServerType == _fileSettings.ServerType &&
+                _tankSettings.SessionTime - _fileSettings.SessionTime < new TimeSpan(10) &&
+                _tankSettings.GameSpeed == _fileSettings.GameSpeed &&
+                _tankSettings.TankSpeed == _fileSettings.TankSpeed &&
+                _tankSettings.TankDamage == _fileSettings.TankDamage &&
+                _tankSettings.BulletSpeed == _fileSettings.BulletSpeed) ? false : true;
+            }
+
+            return true;
         }
 
         public void Dispose()
@@ -300,7 +336,9 @@ namespace TankServer
                     break;
             }
 
-            var bullet = new BulletObject(Guid.NewGuid(), new Rectangle(location, 1, 1), _tankSettings.BulletSpeed, 
+            clientTank.BulletSpeed = _tankSettings.BulletSpeed;
+
+            var bullet = new BulletObject(Guid.NewGuid(), new Rectangle(location, 1, 1), clientTank.BulletSpeed, 
                 true, clientTank.Direction, clientTank.Id, clientTank.Damage);
 
             Map.InteractObjects.Add(bullet);

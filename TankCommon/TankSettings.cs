@@ -4,9 +4,10 @@
     using TankCommon.Enum;
     public class TankSettings : ISettings
     {
+        public int Version { get; set; }
         public string ServerName { get; set; }
         public ServerType ServerType { get; set; }
-        public DateTime SessionTime { get; set; }
+        public TimeSpan SessionTime { get; set; }
         public decimal GameSpeed { get; set; }
         public decimal TankSpeed { get; set; }
         public decimal BulletSpeed { get; set; }
@@ -14,17 +15,33 @@
 
         public TankSettings()
         {
+            Version++;
             ServerName = null;
-            ServerType = (int)ServerType.BattleCity;
-            //kostyl' ne rabotaet
-            var StartGame = DateTime.Now;
-            var FinishGame = DateTime.Now.AddMinutes(2);
-            //SessionTime = DateTime.Parse((FinishGame - StartGame).ToString("HH:mm:ss"));  
-            SessionTime = DateTime.Parse(FinishGame.Subtract(StartGame).ToString("HH:mm:ss"));
+            ServerType = ServerType.BattleCity;
+            SessionTime = DateTime.Now.AddMinutes(2) - DateTime.Now;  
             GameSpeed = 2;
             TankSpeed = 2;
             BulletSpeed = 4;
             TankDamage = 40;
+        }
+
+        public void UpdateAll(string _serverName, string _serverType, string _sessionTime, decimal _gameSpeed, decimal _tankSpeed, decimal _bulletSpeed, decimal _tankDamage)
+        {
+            Version++;
+            ServerName = _serverName;
+            ServerType = (ServerType)System.Enum.Parse(typeof(ServerType), _serverType);
+            SessionTime = TimeSpan.Parse(_sessionTime);
+            GameSpeed = _gameSpeed;
+            TankSpeed = _tankSpeed;
+            BulletSpeed = _bulletSpeed;
+            TankDamage = _tankDamage;
+        }
+
+        public void Update(decimal _tankSpeed, decimal _bulletSpeed, decimal _tankDamage)
+        {
+            TankSpeed = _tankSpeed;
+            BulletSpeed = _bulletSpeed;
+            TankDamage = _tankDamage;
         }
     }
 }
