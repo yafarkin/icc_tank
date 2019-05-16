@@ -7,10 +7,10 @@ namespace AdminPanel.Entity
 {
     public class Game
     {
-        string name { get; set; }        
-        uint maxBotsCount { get; set; }
-        uint coreUpdateMs { get; set; }
-        uint spectatorUpdateMs { get; set; }
-        uint botUpdateMs { get; set; }
+        public string Name { get; set; }
+        public int MaxBotsCount { get; set; }
+        public int CoreUpdateMs { get; set; }
+        public int SpectatorUpdateMs { get; set; }
+        public int BotUpdateMs { get; set; }
     }
 }
