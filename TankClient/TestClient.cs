@@ -12,6 +12,7 @@ namespace TankClient
         private delegate ServerResponse Script();
         private static int stepsBeforeOver = 0;
         private static  Script delegateScript = Stop;
+        private static Rectangle lastRectangle;
 
         public ServerResponse Client(int msgCount, ServerRequest request)
         {
@@ -61,7 +62,7 @@ namespace TankClient
             //Если жизнь вне опасности выполнять другие функции
             if (serverResponse.ClientCommand == ClientCommandType.None)
             {
-                //
+                return GoToPointAndFire(map, myTank, 6, 6);
             }
             
             return serverResponse;
@@ -75,11 +76,11 @@ namespace TankClient
         /// <param name="destinationX"></param>
         /// <param name="destinationY"></param>
         /// <returns></returns>
-        private static ServerResponse GoToPoint(Map map, TankObject myTank, int destinationX, int destinationY)
+        private static ServerResponse GoToPointAndFire(Map map, TankObject myTank, int destinationX, int destinationY)
         {
-            //BaseInteractObject nearestObj = FindNearestObj(map, myTank);
-            //destinationX = nearestObj.Rectangle.LeftCorner.LeftInt;
-            //destinationY = nearestObj.Rectangle.LeftCorner.TopInt;
+            BaseInteractObject nearestObj = FindNearestTankWithoutWalls(map, myTank);
+            destinationX = nearestObj.Rectangle.LeftCorner.LeftInt;
+            destinationY = nearestObj.Rectangle.LeftCorner.TopInt;
 
             if (map.InteractObjects != null)
             {
@@ -97,7 +98,15 @@ namespace TankClient
                         if (GetMyX(myTank) < destinationX)
                         {
                             //Ехать
-                            return Go();
+                            if (lastRectangle is null || (lastRectangle.LeftCorner.Left != myTank.Rectangle.LeftCorner.Left && lastRectangle.LeftCorner.Top != myTank.Rectangle.LeftCorner.Top))
+                            {
+                                lastRectangle = myTank.Rectangle;
+                                return Go();
+                            }
+                            else
+                            {
+                                return Fire();
+                            }
                         }
                     }
 
@@ -113,7 +122,15 @@ namespace TankClient
                         if (GetMyX(myTank) > destinationX)
                         {
                             //Ехать
-                            return Go();
+                            if (lastRectangle is null || (lastRectangle.LeftCorner.Left != myTank.Rectangle.LeftCorner.Left && lastRectangle.LeftCorner.Top != myTank.Rectangle.LeftCorner.Top))
+                            {
+                                lastRectangle = myTank.Rectangle;
+                                return Go();
+                            }
+                            else
+                            {
+                                return Fire();
+                            }
                         }
                     }
                 }
@@ -131,7 +148,16 @@ namespace TankClient
                         if (GetMyY(myTank) < destinationY)
                         {
                             //Ехать
-                            return Go();
+                            if (lastRectangle is null || (lastRectangle.LeftCorner.Left != myTank.Rectangle.LeftCorner.Left && lastRectangle.LeftCorner.Top != myTank.Rectangle.LeftCorner.Top))
+                            {
+                                lastRectangle = myTank.Rectangle;
+                                return Go();
+                                
+                            }
+                            else
+                            {
+                                return Fire();
+                            }
                         }
                     }
                     
@@ -143,15 +169,23 @@ namespace TankClient
                     }
                     else
                     {
-                        //Если мой левый угол меньше, чем левый угол  апгрейда
+                        //Если мой левый угол меньше, чем левый угол объекта
                         if (GetMyY(myTank) > destinationY)
                         {
                             //Ехать
-                            return Go();
+                            if (lastRectangle is null || (lastRectangle.LeftCorner.Left != myTank.Rectangle.LeftCorner.Left && lastRectangle.LeftCorner.Top != myTank.Rectangle.LeftCorner.Top))
+                            {
+                                lastRectangle = myTank.Rectangle;
+                                return Go();
+                            }
+                            else
+                            {
+                                return Fire();
+                            }
                         }
                         else
                         {
-                            return Stop();
+                            return Fire();
                         }
                     }
                 }
@@ -160,7 +194,13 @@ namespace TankClient
             return new ServerResponse { ClientCommand = ClientCommandType.None };
         }
 
-        private static BaseInteractObject FindNearestObj(Map map, TankObject myTank)
+        /// <summary>
+        /// Находит ближайший объект (без стен)
+        /// </summary>
+        /// <param name="map"></param>
+        /// <param name="myTank"></param>
+        /// <returns></returns>
+        private static BaseInteractObject FindNearestTankWithoutWalls(Map map, TankObject myTank)
         {
             int shortestDistToElem = map.MapHeight;
             var lastIndex = map.InteractObjects.Count - 1;
@@ -171,8 +211,8 @@ namespace TankClient
             {
                 foreach (var elem in map.InteractObjects)
                 {
-                    //Если этот элемент это upgrade
-                    if (elem is UpgradeInteractObject)
+                    //Если этот элемент это 
+                    if ( elem is TankObject && !Equals(elem.Id, myTank.Id) )
                     {
                         var distToElem = (Math.Abs(elem.Rectangle.LeftCorner.LeftInt - GetMyX(myTank)) + Math.Abs(elem.Rectangle.LeftCorner.TopInt - GetMyY(myTank)));
                         if (distToElem < shortestDistToElem)
@@ -199,7 +239,7 @@ namespace TankClient
             for (var x = 0; x < arrXLen; x++)
             {
                 for (var y = 0; y < arrYLen; y++) {
-                    if (map.Cells[x,y].Equals(CellMapType.Grass) || map.Cells[x, y].Equals(CellMapType.Void))
+                    if (map.Cells[x,y].Equals(CellMapType.Grass) || map.Cells[x, y].Equals(CellMapType.Void)) //Исправить. брать в учёт размер танка
                     {
                         transArr[x, y] = 0;
                     }
@@ -350,7 +390,7 @@ namespace TankClient
                 if (bullY < myY && bullDirec == DirectionType.Down)
                 {
                     //Если направо можно ходить направо, то увернуться направо
-                    if(map.Cells[myX + Constants.CellWidth,myY] == CellMapType.Void || map.Cells[myX, myY] == CellMapType.Grass)
+                    if(map.Cells[myX + ((Constants.CellWidth * 2) - 1),myY] == CellMapType.Void || map.Cells[myX, myY] == CellMapType.Grass)
                     {
                         if (myTank.Direction != DirectionType.Right)
                         {
@@ -386,6 +426,11 @@ namespace TankClient
             }
 
             return new ServerResponse { ClientCommand = ClientCommandType.None };
+        }
+
+        private static ServerResponse Fire()
+        {
+            return new ServerResponse { ClientCommand = ClientCommandType.Fire };
         }
 
         private static ServerResponse TurnRight()
