@@ -13,7 +13,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TankCommon", "TankCommon\Ta
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TankGuiObserver", "TankGuiObserver\TankGuiObserver.csproj", "{570481BA-52E3-4A52-8825-9B046A741F3E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdminPanel", "AdminPanel\AdminPanel.csproj", "{7999FA90-8D97-4CD9-A577-826D7A520367}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AdminPanel", "AdminPanel\AdminPanel.csproj", "{7999FA90-8D97-4CD9-A577-826D7A520367}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
