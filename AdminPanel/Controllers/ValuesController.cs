@@ -28,6 +28,14 @@ namespace AdminPanel.Controllers
             };
 
             var newPort = Convert.ToUInt32(port);
+            for (int i = 0; i < Test.servers.Count; i++)
+            {
+                if (Test.servers[i].Port == newPort)
+                {
+                    newPort += 10;
+                }
+            }
+
             TankCommon.Objects.Map map = TankCommon.MapManager.LoadMap(20, TankCommon.Enum.CellMapType.Wall, 50, 60);
             var server = new Server(map, newPort, Convert.ToUInt32(maxBotsCount), Convert.ToUInt32(coreUpdateMs), Convert.ToUInt32(spectatorUpdateMs), Convert.ToUInt32(botUpdateMs));
             var cancellationToken = new CancellationTokenSource();
