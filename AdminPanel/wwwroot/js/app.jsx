@@ -29,6 +29,7 @@
         this.onCoreUpdateMsCharnge = this.onCoreUpdateMsCharnge.bind(this);
         //
         this.handleSubmit = this.handleSubmit.bind(this);
+        
         }
 
         //проверить что порт больше нуля
@@ -88,8 +89,11 @@
 
         doTestStart()
         {
-            axios.post(`api/values`, { 2000, "Game1", 2 , 10, 10 ,10 })
-           // fetch('api/values', { method: 'post' })
+            fetch("values/StartServer",
+                {
+                    method: "POST",
+                    body: { "port" : 2000, "nameGame": this.nameGame, "maxBotsCount": 2, "coreUpdateMs": 10, "spectatorUpdateMs": 10, "botUpdateMs": 10 }
+                })
         }
 
         //запросить подтвердить введённые данные
@@ -98,8 +102,9 @@
             e.preventDefault();
             if (this.state.nameGameIsValid === true && this.state.portValid === true && this.state.maxBotsCountIsValid)
             {
-                //alert("Имя сервера: " + this.state.nameGame + " Порт: " + this.state.port + " Максимальное количество ботов: " + this.state.maxBotsCount);
-                doTestStart(this.state.nameGame, this.state.port, this.state.maxBotsCount, this.state.coreUpdatesMs, 100, 100);
+                alert("Имя сервера: " + this.state.nameGame + " Порт: " + this.state.port + " Максимальное количество ботов: " + this.state.maxBotsCount);
+                //console.log(this.doTestStart);
+
             }
         }
 

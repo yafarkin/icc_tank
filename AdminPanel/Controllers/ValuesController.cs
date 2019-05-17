@@ -10,13 +10,13 @@ using TankServer;
 
 namespace AdminPanel.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]/[action]")]
     [ApiController]
     public class ValuesController : ControllerBase
     {
         [HttpPost]
-        public void StartServer([FromBody] int port, [FromBody] string nameGame, [FromBody] int maxBotsCount, 
-            [FromBody] int coreUpdateMs, [FromBody] int spectatorUpdateMs, [FromBody] int botUpdateMs)
+        public void StartServer([FromForm]int port, [FromForm] string nameGame, [FromForm] int maxBotsCount,
+            [FromForm]int coreUpdateMs, [FromForm] int spectatorUpdateMs, [FromForm] int botUpdateMs)
         {
             var gameType = new Game()
             {
@@ -28,7 +28,7 @@ namespace AdminPanel.Controllers
             };
 
             var newPort = Convert.ToUInt32(port);
-            TankCommon.Objects.Map map = TankCommon.MapManager.LoadMap(20, TankCommon.Enum.CellMapType.Wall, 50, 60);
+            TankCommon.Objects.Map map = TankCommon.MapManager.LoadMap(20, TankCommon.Enum.CellMapType.Wall, 50, 50);
             var server = new Server(map, newPort, Convert.ToUInt32(maxBotsCount), Convert.ToUInt32(coreUpdateMs), Convert.ToUInt32(spectatorUpdateMs), Convert.ToUInt32(botUpdateMs));
             var cancellationToken = new CancellationTokenSource();
 
