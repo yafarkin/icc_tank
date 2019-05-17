@@ -1,4 +1,4 @@
-﻿import axios from 'axios'
+﻿
     class UserForm extends React.Component {
     constructor(props) {
         super(props);
@@ -88,8 +88,8 @@
 
         doTestStart()
         {
-            axi
-            fetch('api/values', { method: 'post' })
+            axios.post(`api/values`, { 2000, "Game1", 2 , 10, 10 ,10 })
+           // fetch('api/values', { method: 'post' })
         }
 
         //запросить подтвердить введённые данные
