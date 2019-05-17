@@ -606,11 +606,6 @@ namespace TankServer
                     _lastCoreUpdate = DateTime.Now;
                     var delta = Convert.ToDecimal(tsDelta.TotalSeconds);
 
-                    if (isSettingsChanged(GetSettings()))
-                    {
-                        WriteConfig();
-                    }
-
                     lock (_syncObject)
                     {
                         AddUpgrades();
@@ -655,9 +650,10 @@ namespace TankServer
 
                                     if (movingObject is BulletObject bulletObject)
                                     {
-                                        if (movingObject.Speed != _tankSettings.BulletSpeed)
+                                        if (_tankSettings.GameSpeed != GetSettings().GameSpeed || _tankSettings.BulletSpeed != GetSettings().BulletSpeed || movingObject.Speed != _tankSettings.BulletSpeed)
                                         {
                                             movingObject.Speed = _tankSettings.BulletSpeed;
+                                            movingObject.Speed *= _tankSettings.GameSpeed;
                                         }
 
                                         if (cells.Any(c => c.Value == CellMapType.Wall))
@@ -731,16 +727,17 @@ namespace TankServer
                                             canMove = false;
                                         }
 
-                                        if (movingObject.Speed != _tankSettings.TankSpeed)
+                                        if (_tankSettings.GameSpeed != GetSettings().GameSpeed || _tankSettings.TankSpeed != GetSettings().TankSpeed || movingObject.Speed != _tankSettings.TankSpeed)
                                         {
                                             movingObject.Speed = _tankSettings.TankSpeed;
+                                            movingObject.Speed *= _tankSettings.GameSpeed;
                                         }
 
                                         if (intersectedObject is UpgradeInteractObject upgradeObject)
                                         {
                                             var tank = movingObject as TankObject;
 
-                                            if (tank.Damage != _tankSettings.TankDamage)
+                                            if (_tankSettings.TankDamage != tank.Damage)
                                             {
                                                 tank.Damage = _tankSettings.TankDamage;
                                             }
@@ -831,6 +828,11 @@ namespace TankServer
                                 Map.InteractObjects.Remove(objToRemove);
                             }
                         }
+                    }
+
+                    if (isSettingsChanged(GetSettings()))
+                    {
+                        WriteConfig();
                     }
                 }
                 catch (Exception e)
