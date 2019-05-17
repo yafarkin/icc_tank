@@ -10,27 +10,27 @@ using TankServer;
 
 namespace AdminPanel.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]/[action]")]
     [ApiController]
-    public class ValuesController : ControllerBase
+    public class AdminController : ControllerBase
     {
         [HttpPost]
-        public void CreateServer([FromBody] int port, [FromBody] string nameGame, [FromBody] int maxBotsCount, 
-            [FromBody] int coreUpdateMs, [FromBody] int spectatorUpdateMs, [FromBody] int botUpdateMs)
+        public void CreateServer([FromForm] string nameGame, [FromForm] int maxBotsCount, [FromForm] int botUpdateMs, [FromForm] int coreUpdateMs, [FromForm] int spectatorUpdateMs, [FromForm] int port)
         {
-            var gameType = new Game()
+            var gameType = new GameEntity()
             {
                 Name = nameGame,
                 MaxBotsCount = maxBotsCount,
                 BotUpdateMs = botUpdateMs,
                 CoreUpdateMs = coreUpdateMs,
                 SpectatorUpdateMs = spectatorUpdateMs
+                
             };
 
             var newPort = Convert.ToUInt32(port);
             while (true)
             {
-                if (Test.servers.Any(x => x.Port == newPort))
+                if (AdminPanel.Test.servers.Any(x => x.Port == newPort))
                 {
                     newPort += 10;
                 }
@@ -44,9 +44,9 @@ namespace AdminPanel.Controllers
             var server = new Server(map, newPort, Convert.ToUInt32(maxBotsCount), Convert.ToUInt32(coreUpdateMs), Convert.ToUInt32(spectatorUpdateMs), Convert.ToUInt32(botUpdateMs));
             var cancellationToken = new CancellationTokenSource();
 
-            Test.servers.Add(new ServerEntity()
+            AdminPanel.Test.servers.Add(new ServerEntity()
             {
-                Id = Test.servers.Count == 0 ? 1 : Test.servers[Test.servers.Count - 1].Id + 1,
+                Id = AdminPanel.Test.servers.Count == 0 ? 1 : AdminPanel.Test.servers[AdminPanel.Test.servers.Count - 1].Id + 1,
                 CancellationToken = cancellationToken,
                 GameType = gameType,
                 Port = newPort,
@@ -54,11 +54,11 @@ namespace AdminPanel.Controllers
                 Task = server.Run(cancellationToken.Token)
             });                        
         }
-
+        
         [HttpPost]
         public void StartServer()
         {
-            // TODO TBD технической возможности запускать игру в ручную
+            // TODO TBD технической возможности запуска
         }
 
         [HttpPost]
@@ -70,14 +70,14 @@ namespace AdminPanel.Controllers
         [HttpPost]
         public void StopServer([FromBody] int id)
         {
-            if (id - 1 < Test.servers.Count)
+            if (id - 1 < AdminPanel.Test.servers.Count)
             {
-                var server = Test.servers[id - 1];
+                var server = AdminPanel.Test.servers[id - 1];
                 if (server.Task.IsCompleted)
                 {
                     server.CancellationToken.Cancel();
                 }
-                Test.servers.Remove(server);
+                AdminPanel.Test.servers.Remove(server);
             }
         }
     }
