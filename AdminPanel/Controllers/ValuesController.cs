@@ -15,7 +15,7 @@ namespace AdminPanel.Controllers
     public class ValuesController : ControllerBase
     {
         [HttpPost]
-        public void StartServer([FromBody] int port, [FromBody] string nameGame, [FromBody] int maxBotsCount, 
+        public void CreateServer([FromBody] int port, [FromBody] string nameGame, [FromBody] int maxBotsCount, 
             [FromBody] int coreUpdateMs, [FromBody] int spectatorUpdateMs, [FromBody] int botUpdateMs)
         {
             var gameType = new Game()
@@ -53,6 +53,18 @@ namespace AdminPanel.Controllers
                 Server = server,
                 Task = server.Run(cancellationToken.Token)
             });                        
+        }
+
+        [HttpPost]
+        public void StartServer()
+        {
+            // TODO TBD технической возможности запускать игру в ручную
+        }
+
+        [HttpPost]
+        public void ChangeServerSettings([FromBody] int id)
+        {
+
         }
 
         [HttpPost]
