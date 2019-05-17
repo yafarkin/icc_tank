@@ -30,7 +30,7 @@ namespace AdminPanel.Controllers
             var newPort = Convert.ToUInt32(port);
             while (true)
             {
-                if (AdminPanel.Test.servers.Any(x => x.Port == newPort))
+                if (Program.servers.Any(x => x.Port == newPort))
                 {
                     newPort += 10;
                 }
@@ -40,13 +40,13 @@ namespace AdminPanel.Controllers
                 }
             }
 
-            TankCommon.Objects.Map map = TankCommon.MapManager.LoadMap(20, TankCommon.Enum.CellMapType.Wall, 50, 60);
+            TankCommon.Objects.Map map = TankCommon.MapManager.LoadMap(20, TankCommon.Enum.CellMapType.Wall, 50, 50);
             var server = new Server(map, newPort, Convert.ToUInt32(maxBotsCount), Convert.ToUInt32(coreUpdateMs), Convert.ToUInt32(spectatorUpdateMs), Convert.ToUInt32(botUpdateMs));
             var cancellationToken = new CancellationTokenSource();
 
-            AdminPanel.Test.servers.Add(new ServerEntity()
+            Program.servers.Add(new ServerEntity()
             {
-                Id = AdminPanel.Test.servers.Count == 0 ? 1 : AdminPanel.Test.servers[AdminPanel.Test.servers.Count - 1].Id + 1,
+                Id = Program.servers.Count == 0 ? 1 : Program.servers[Program.servers.Count - 1].Id + 1,
                 CancellationToken = cancellationToken,
                 GameType = gameType,
                 Port = newPort,
@@ -70,14 +70,14 @@ namespace AdminPanel.Controllers
         [HttpPost]
         public void StopServer([FromBody] int id)
         {
-            if (id - 1 < AdminPanel.Test.servers.Count)
+            if (id - 1 < Program.servers.Count)
             {
-                var server = AdminPanel.Test.servers[id - 1];
+                var server = Program.servers[id - 1];
                 if (server.Task.IsCompleted)
                 {
                     server.CancellationToken.Cancel();
                 }
-                AdminPanel.Test.servers.Remove(server);
+                Program.servers.Remove(server);
             }
         }
     }
