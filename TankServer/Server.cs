@@ -8,6 +8,7 @@ using TankCommon;
 using TankCommon.Enum;
 using TankCommon.Objects;
 using NLog;
+using System.IO;
 
 namespace TankServer
 {
@@ -23,6 +24,9 @@ namespace TankServer
         protected readonly uint _coreUpdateMs;
         protected readonly uint _spectatorUpdateMs;
         protected readonly uint _botUpdateMs;
+
+        public TankSettings _tankSettings = new TankSettings();
+        public string ConfigPath;
 
         public readonly Map Map;
         public Dictionary<IWebSocketConnection, ClientInfo> Clients;
@@ -43,6 +47,9 @@ namespace TankServer
             _logger = LogManager.GetCurrentClassLogger();
             //FleckLog.Level = LogLevel.Debug;
 
+            CreateConfigResourcesIfNotExist();
+            WriteConfig();
+
             _socketServer = new WebSocketServer($"ws://0.0.0.0:{port}");
             _socketServer.Start(socket =>
             {
@@ -53,6 +60,9 @@ namespace TankServer
                         Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
                         _logger.Info($"[КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
                         Clients.Add(socket, new ClientInfo());
+
+                        //Проверка на изменения при установке новых настроек. Да, не самое удачное место для неё, для наглядности пойдёт
+                        //_tankSettings.UpdateAll("BattleCity", "BattleCity", "00:15:00", (decimal)2, 4, 2, 50);  //v2
                     }
                 };
                 socket.OnClose = () =>
@@ -158,6 +168,88 @@ namespace TankServer
             });
         }
 
+        public void CreateConfigResourcesIfNotExist()
+        {
+            ConfigPath = $"{Directory.GetCurrentDirectory()}/config";
+
+            if (!Directory.Exists(ConfigPath))
+            {
+                Directory.CreateDirectory(ConfigPath);
+            }
+
+            if (!File.Exists(ConfigPath += "/TankConfig.txt"))
+            {
+                File.Create(ConfigPath);
+            }
+        }
+
+        public void WriteConfig()
+        {
+            try
+            {
+                var SW = new StreamWriter(ConfigPath, false, System.Text.Encoding.Default);
+                typeof(TankSettings)
+                    .GetProperties()
+                    .Select(x => x.GetValue(_tankSettings, null))
+                    .ToList()
+                    .ForEach(x => SW.WriteLine(x));
+
+                SW.Close();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [СЕРВЕР]: {e.Message}");
+            }
+        }
+
+        public TankSettings GetSettings()
+        {
+            var _fileSettings = new TankSettings();
+            
+            try
+            {
+                var SR = new StreamReader(ConfigPath);
+
+                var FileEntry = new List<string>();
+                FileEntry.AddRange(SR.ReadToEnd().Split('\n'));
+
+                SR.Close();
+
+                var isCorrectSession = TimeSpan.TryParse(FileEntry[3], out var _sessionTime);
+                var isCorrectGameSpeed = decimal.TryParse(FileEntry[4], out var _gameSpeed);
+                var isCorrectTankSpeed = decimal.TryParse(FileEntry[5], out var _tankSpeed);
+                var isCorrectBulletSpeed = decimal.TryParse(FileEntry[6], out var _bulletSpeed);
+                var isCorrectTankDamage = decimal.TryParse(FileEntry[7], out var _tankDamage);
+
+                if (isCorrectSession && isCorrectGameSpeed && isCorrectTankSpeed && isCorrectBulletSpeed && isCorrectTankDamage)
+                {
+                    _fileSettings.UpdateAll(FileEntry[1], FileEntry[2], FileEntry[3], _gameSpeed, _tankSpeed, _bulletSpeed, _tankDamage);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [СЕРВЕР]: {e.Message}");
+            }
+
+            return _fileSettings;
+        }
+
+        public bool isSettingsChanged(TankSettings _fileSettings)
+        {
+            if (_fileSettings != null)
+            {
+                return (_tankSettings.ServerName == _fileSettings.ServerName &&
+                _tankSettings.ServerType == _fileSettings.ServerType &&
+                _tankSettings.SessionTime - _fileSettings.SessionTime < new TimeSpan(10) &&
+                _tankSettings.GameSpeed == _fileSettings.GameSpeed &&
+                _tankSettings.TankSpeed == _fileSettings.TankSpeed &&
+                _tankSettings.TankDamage == _fileSettings.TankDamage &&
+                _tankSettings.BulletSpeed == _fileSettings.BulletSpeed) ? false : true;
+            }
+
+            return true;
+        }
+
         public void Dispose()
         {
             foreach (var kv in Clients)
@@ -201,7 +293,7 @@ namespace TankServer
                 break;
             }
 
-            var tank = new TankObject(Guid.NewGuid(), rectangle, 2, false, 100, 100, nickname, tag);
+            var tank = new TankObject(Guid.NewGuid(), rectangle, 2, false, 100, 100, nickname, tag, 40);
             Map.InteractObjects.Add(tank);
 
             return tank;
@@ -514,6 +606,11 @@ namespace TankServer
                     _lastCoreUpdate = DateTime.Now;
                     var delta = Convert.ToDecimal(tsDelta.TotalSeconds);
 
+                    if (isSettingsChanged(GetSettings()))
+                    {
+                        WriteConfig();
+                    }
+
                     lock (_syncObject)
                     {
                         AddUpgrades();
@@ -558,6 +655,11 @@ namespace TankServer
 
                                     if (movingObject is BulletObject bulletObject)
                                     {
+                                        if (movingObject.Speed != _tankSettings.BulletSpeed)
+                                        {
+                                            movingObject.Speed = _tankSettings.BulletSpeed;
+                                        }
+
                                         if (cells.Any(c => c.Value == CellMapType.Wall))
                                         {
                                             objsToRemove.Add(bulletObject);
@@ -629,9 +731,20 @@ namespace TankServer
                                             canMove = false;
                                         }
 
+                                        if (movingObject.Speed != _tankSettings.TankSpeed)
+                                        {
+                                            movingObject.Speed = _tankSettings.TankSpeed;
+                                        }
+
                                         if (intersectedObject is UpgradeInteractObject upgradeObject)
                                         {
                                             var tank = movingObject as TankObject;
+
+                                            if (tank.Damage != _tankSettings.TankDamage)
+                                            {
+                                                tank.Damage = _tankSettings.TankDamage;
+                                            }
+
                                             switch (upgradeObject.Type)
                                             {
                                                 case UpgradeType.BulletSpeed:
