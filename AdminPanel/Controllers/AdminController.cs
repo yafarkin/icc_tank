@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using AdminPanel.Entity;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using TankServer;
 
@@ -14,19 +11,10 @@ namespace AdminPanel.Controllers
     [ApiController]
     public class AdminController : ControllerBase
     {
+        // TODO вернуть параметры созданного сервера реакту
         [HttpPost]
-        public void CreateServer([FromForm] string nameGame, [FromForm] int maxBotsCount, [FromForm] int botUpdateMs, [FromForm] int coreUpdateMs, [FromForm] int spectatorUpdateMs, [FromForm] int port)
+        public void CreateServer([FromForm] int maxBotsCount, [FromForm] int botUpdateMs, [FromForm] int coreUpdateMs, [FromForm] int spectatorUpdateMs, [FromForm] int port)
         {
-            var gameType = new GameEntity()
-            {
-                Name = nameGame,
-                MaxBotsCount = maxBotsCount,
-                BotUpdateMs = botUpdateMs,
-                CoreUpdateMs = coreUpdateMs,
-                SpectatorUpdateMs = spectatorUpdateMs
-                
-            };
-
             var newPort = Convert.ToUInt32(port);
             while (true)
             {
@@ -48,7 +36,6 @@ namespace AdminPanel.Controllers
             {
                 Id = Program.servers.Count == 0 ? 1 : Program.servers[Program.servers.Count - 1].Id + 1,
                 CancellationToken = cancellationToken,
-                GameType = gameType,
                 Port = newPort,
                 Server = server,
                 Task = server.Run(cancellationToken.Token)
@@ -62,23 +49,36 @@ namespace AdminPanel.Controllers
         }
 
         [HttpPost]
-        public void ChangeServerSettings([FromBody] int id)
+        public void ChangeServerSettings([FromForm] int id, [FromForm] decimal? GameSpeed, [FromForm] decimal? TankSpeed, [FromForm] decimal? BulletSpeed,
+            [FromForm] decimal? TankDamage, [FromForm] string ServerName, [FromForm] string ServerType, [FromForm] string SessionTime)
         {
+            if (Program.ServerStatusIsRun(id))
+            {
+                var server = Program.servers[id - 1].Server;
+                if (GameSpeed != null) server._tankSettings.GameSpeed = (decimal)GameSpeed;
+                if (TankSpeed != null) server._tankSettings.TankSpeed = (decimal)TankSpeed;
+                if (BulletSpeed != null) server._tankSettings.BulletSpeed = (decimal)BulletSpeed;
+                if (TankDamage != null) server._tankSettings.TankDamage = (decimal)TankDamage;
+                if (ServerName != null) server._tankSettings.ServerName = ServerName;
+                if (ServerType != null) server._tankSettings.ServerType = (TankCommon.Enum.ServerType)Enum.Parse(typeof(TankCommon.Enum.ServerType), ServerType);
+                if (SessionTime != null) server._tankSettings.SessionTime = DateTime.Now.AddMinutes(int.Parse(SessionTime)) - DateTime.Now;
+                server._tankSettings.Version++;
+            }          
 
         }
 
         [HttpPost]
-        public void StopServer([FromBody] int id)
+        public void StopServer([FromForm] int id)
         {
-            if (id - 1 < Program.servers.Count)
+            var status = Program.ServerStatusIsRun(id);
+                
+            if (status)
             {
                 var server = Program.servers[id - 1];
-                if (server.Task.IsCompleted)
-                {
-                    server.CancellationToken.Cancel();
-                }
+                server.CancellationToken.Cancel();
                 Program.servers.Remove(server);
             }
+                
         }
     }
 }

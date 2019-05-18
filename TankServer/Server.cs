@@ -25,7 +25,7 @@ namespace TankServer
         protected readonly uint _spectatorUpdateMs;
         protected readonly uint _botUpdateMs;
 
-        public static TankSettings _tankSettings = new TankSettings();
+        public TankSettings _tankSettings = new TankSettings();
         public string ConfigPath;
 
         public readonly Map Map;

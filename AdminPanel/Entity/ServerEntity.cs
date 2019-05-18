@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,7 +8,6 @@ namespace AdminPanel.Entity
     {
         public int Id { get; set; }
         public string ServerName { get; set; }
-        public GameEntity GameType { get; set; }
         public uint Port { get; set; }
         public CancellationTokenSource CancellationToken { get; set; }
         public Task Task { get; set; }
