@@ -11,7 +11,14 @@ namespace AdminPanel.Controllers
     [ApiController]
     public class AdminController : ControllerBase
     {
-        // TODO вернуть параметры созданного сервера реакту
+        /// <summary>
+        /// Создание сервера
+        /// </summary>
+        /// <param name="maxBotsCount">Колличество одновременно играющих на сервере</param>
+        /// <param name="botUpdateMs">Частота обновления клиентов</param>
+        /// <param name="coreUpdateMs">Время простоя сервера до его обновления</param>
+        /// <param name="spectatorUpdateMs">Частота обновления наблюдателей</param>
+        /// <param name="port">Порт по которому будет работать сервер</param>
         [HttpPost]
         public void CreateServer([FromForm] int maxBotsCount, [FromForm] int botUpdateMs, [FromForm] int coreUpdateMs, [FromForm] int spectatorUpdateMs, [FromForm] int port)
         {
@@ -41,13 +48,27 @@ namespace AdminPanel.Controllers
                 Task = server.Run(cancellationToken.Token)
             });                        
         }
-        
+
+        /// <summary>
+        /// Запуск сервера(снятие режима пауза)
+        /// </summary>
         [HttpPost]
         public void StartServer()
         {
             // TODO TBD технической возможности запуска
         }
 
+        /// <summary>
+        /// Изменение настроек сервера
+        /// </summary>
+        /// <param name="id">Номер сервера</param>
+        /// <param name="GameSpeed">Скорость игры</param>
+        /// <param name="TankSpeed">Скорость танка</param>
+        /// <param name="BulletSpeed">Скорость Пули</param>
+        /// <param name="TankDamage">Урон танков</param>
+        /// <param name="ServerName">Имя сервера</param>
+        /// <param name="ServerType">Игровой тип сервера</param>
+        /// <param name="SessionTime">Время игрового матча</param>
         [HttpPost]
         public void ChangeServerSettings([FromForm] int id, [FromForm] decimal? GameSpeed, [FromForm] decimal? TankSpeed, [FromForm] decimal? BulletSpeed,
             [FromForm] decimal? TankDamage, [FromForm] string ServerName, [FromForm] string ServerType, [FromForm] string SessionTime)
@@ -66,6 +87,10 @@ namespace AdminPanel.Controllers
             }
         }
         
+        /// <summary>
+        /// Останавливает сервер
+        /// </summary>
+        /// <param name="id">Номер сервера</param>
         [HttpPost]
         public void StopServer([FromForm] int id)
         {
