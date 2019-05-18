@@ -63,10 +63,9 @@ namespace AdminPanel.Controllers
                 if (ServerType != null) server._tankSettings.ServerType = (TankCommon.Enum.ServerType)Enum.Parse(typeof(TankCommon.Enum.ServerType), ServerType);
                 if (SessionTime != null) server._tankSettings.SessionTime = DateTime.Now.AddMinutes(int.Parse(SessionTime)) - DateTime.Now;
                 server._tankSettings.Version++;
-            }          
-
+            }
         }
-
+        
         [HttpPost]
         public void StopServer([FromForm] int id)
         {
