@@ -89,11 +89,12 @@
 
         doTestStart()
         {
-            fetch("values/StartServer",
-                {
-                    method: "POST",
-                    body: { "port" : 2000, "nameGame": this.nameGame, "maxBotsCount": 2, "coreUpdateMs": 10, "spectatorUpdateMs": 10, "botUpdateMs": 10 }
-                })
+            var data = { maxBotsCount: 4, botUpdateMs: 100, coreUpdateMs: 100, spectatorUpdateMs: 100, port: 2000 };
+            var newData = new FormData();
+            newData.append("json", JSON.stringify(data));
+            var fetchPost = { method: "POST", body: JSON.stringify(data)};
+            fetch("admin/CreateServer/", fetchPost);
+            /*[FromForm] int maxBotsCount, [FromForm] int botUpdateMs, [FromForm] int coreUpdateMs, [FromForm] int spectatorUpdateMs, [FromForm] int port*/
         }
 
         //запросить подтвердить введённые данные
@@ -103,7 +104,7 @@
             if (this.state.nameGameIsValid === true && this.state.portValid === true && this.state.maxBotsCountIsValid)
             {
                 alert("Имя сервера: " + this.state.nameGame + " Порт: " + this.state.port + " Максимальное количество ботов: " + this.state.maxBotsCount);
-                //console.log(this.doTestStart);
+                this.doTestStart();
 
             }
         }

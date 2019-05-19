@@ -22,6 +22,7 @@ namespace AdminPanel.Controllers
         [HttpPost]
         public void CreateServer([FromForm] int maxBotsCount, [FromForm] int botUpdateMs, [FromForm] int coreUpdateMs, [FromForm] int spectatorUpdateMs, [FromForm] int port)
         {
+            
             var newPort = Convert.ToUInt32(port);
             while (true)
             {
