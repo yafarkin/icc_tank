@@ -54,7 +54,7 @@ namespace TankServer
                     {
                         Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
                         _logger.Info($"[КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
-                        Clients.Add(socket, new ClientInfo());
+                        Clients.Add(socket, new ClientInfo() { Request = new ServerRequest { Settings = Settings, IsSettingsChanged = true } });
                     }
                 };
                 socket.OnClose = () =>
@@ -117,6 +117,10 @@ namespace TankServer
                                 clientInfo.IsLogined = true;
                                 clientInfo.NeedUpdateMap = true;
 
+                                clientInfo.Request = isSettingsChanged(GetSettings())
+                                    ? new ServerRequest { IsSettingsChanged = true, Settings = Settings }
+                                    : new ServerRequest { IsSettingsChanged = false };
+
                                 if (string.IsNullOrWhiteSpace(response.CommandParameter))
                                 {
                                     var spectator = AddSpectator();
@@ -156,6 +160,8 @@ namespace TankServer
                             _logger.Info($"[КЛИЕНТ]: ответ от {socket.ConnectionInfo.ClientIpAddress} = {response.ClientCommand}");
                         }
                     }
+
+                    Settings.UpdateAll("s1", "BattleCity", "00:04:00", 4, 4, 6, 50);
                 };
             });
         }
@@ -203,7 +209,7 @@ namespace TankServer
                 var SR = new StreamReader(ConfigPath);
 
                 var FileEntry = new List<string>();
-                FileEntry.AddRange(SR.ReadToEnd().Split('\n'));
+                FileEntry.AddRange(SR.ReadToEnd().Replace("\r", "").Split('\n'));
 
                 SR.Close();
 
@@ -228,18 +234,18 @@ namespace TankServer
 
         public bool isSettingsChanged(TankSettings _fileSettings)
         {
-            if (_fileSettings != null)
+            if (_fileSettings == null)
             {
-                return (Settings.ServerName == _fileSettings.ServerName &&
-                Settings.ServerType == _fileSettings.ServerType &&
-                Settings.SessionTime - _fileSettings.SessionTime < new TimeSpan(10) &&
-                Settings.GameSpeed == _fileSettings.GameSpeed &&
-                Settings.TankSpeed == _fileSettings.TankSpeed &&
-                Settings.TankDamage == _fileSettings.TankDamage &&
-                Settings.BulletSpeed == _fileSettings.BulletSpeed) ? false : true;
+                return true;
             }
 
-            return true;
+            return (Settings.ServerName != _fileSettings.ServerName ||
+                Settings.ServerType != _fileSettings.ServerType ||
+                Settings.SessionTime != _fileSettings.SessionTime ||
+                Settings.GameSpeed != _fileSettings.GameSpeed ||
+                Settings.TankSpeed != _fileSettings.TankSpeed ||
+                Settings.TankDamage != _fileSettings.TankDamage ||
+                Settings.BulletSpeed != _fileSettings.BulletSpeed) ? true : false;
         }
 
         public void Dispose()
@@ -285,7 +291,7 @@ namespace TankServer
                 break;
             }
 
-            var tank = new TankObject(Guid.NewGuid(), rectangle, 2, false, 100, 100, nickname, tag, 40);
+            var tank = new TankObject(Guid.NewGuid(), rectangle, Settings.TankSpeed, false, 100, 100, nickname, tag, Settings.TankDamage);
             Map.InteractObjects.Add(tank);
 
             return tank;
@@ -319,6 +325,7 @@ namespace TankServer
                     break;
             }
 
+            clientTank.BulletSpeed = Settings.BulletSpeed;
             var bullet = new BulletObject(Guid.NewGuid(), new Rectangle(location, 1, 1), clientTank.BulletSpeed, 
                 true, clientTank.Direction, clientTank.Id, clientTank.Damage);
 
@@ -555,11 +562,11 @@ namespace TankServer
                             clientMap = new Map(Map, visibleObjects);
                         }
                     }
-                    var request = new ServerRequest
-                    {
-                        Map = clientMap,
-                        Tank = client.Value.InteractObject as TankObject
-                    };
+
+                    var request = isSettingsChanged(GetSettings())
+                    ? new ServerRequest { Map = clientMap, Tank = client.Value.InteractObject as TankObject, IsSettingsChanged = true, Settings = Settings }
+                    : new ServerRequest { Map = clientMap, Tank = client.Value.InteractObject as TankObject, IsSettingsChanged = false };
+
                     json = request.ToJson();
                 }
 
