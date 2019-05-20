@@ -10,9 +10,18 @@ namespace TankCommon
 {
     public static class MapManager
     {
-        public static Map LoadMap(uint mapSize = 20, CellMapType primaryObject = CellMapType.Grass, int percentOfPrimObj = 50, int percentAnotherObj = 50)
+        /// <summary>
+        /// Создаёт карту по переданным параметрам
+        /// </summary>
+        /// <param name="mapHeight">Высота создаваемой карты</param>
+        /// <param name="mapWidth">Ширина создаваемой карты</param>
+        /// <param name="primaryObject">Объекты, которых должно быть больше всего на карте</param>
+        /// <param name="percentOfPrimObj">Процент объектов преобладающих на карте</param>
+        /// <param name="percentAnotherObj">Процент присутствия на карте второстепенных объектов</param>
+        /// <returns>Объект типа карта</returns>
+        public static Map LoadMap(int mapHeight = 20, int mapWidth = 20, CellMapType primaryObject = CellMapType.Grass, int percentOfPrimObj = 50, int percentAnotherObj = 50)
         {
-            var mapData = GenerateMap(mapSize, primaryObject, percentOfPrimObj, percentAnotherObj);
+            var mapData = GenerateMap(mapHeight, mapWidth, primaryObject, percentOfPrimObj, percentAnotherObj);
             var cells = new List<List<CellMapType>>();
 
             if (percentOfPrimObj + percentAnotherObj > 100)
@@ -30,8 +39,9 @@ namespace TankCommon
                 throw new ArgumentNullException("Карта должа быть квадратной");
             }
 
-            var cellArr = new CellMapType[mapSize * Constants.CellHeight, mapSize * Constants.CellWidth];
+            var cellArr = new CellMapType[mapHeight * Constants.CellHeight, mapWidth * Constants.CellWidth];
             var cellArrLen = cellArr.GetLength(0);
+            //
             for (var x = 0; x < cellArrLen; x++)
             {
                 for (var y = 0; y < cellArrLen; y++)
@@ -74,19 +84,23 @@ namespace TankCommon
         }
 
         /// <summary>
-        /// Генерирует квадратную карту по переданной длинне стороны
+        ///Генерирует квадратную карту по переданным высоте и ширине
         /// </summary>
-        /// <param name="mapSize"></param>
-        /// <returns>Массив, представляет каждый элемент, как ширину карты</returns>
-        private static CellMapType[,] GenerateMap(uint mapSize, CellMapType primaryObject, int percentOfPrimObj, int percentAnotherObj)
+        /// <param name="mapHeight"></param>
+        /// <param name="mapWidth"></param>
+        /// <param name="primaryObject"></param>
+        /// <param name="percentOfPrimObj"></param>
+        /// <param name="percentAnotherObj"></param>
+        /// <returns>Двумерный массив сосотоящий из CellMapType</returns>
+        private static CellMapType[,] GenerateMap(int mapHeight, int mapWidth, CellMapType primaryObject, int percentOfPrimObj, int percentAnotherObj)
         {
             //создаю и заполняю массив
-            var preMap = new CellMapType[mapSize,mapSize];
-            for (var x = 0; x < mapSize; x++)
+            var preMap = new CellMapType[mapHeight,mapWidth];
+            for (var x = 0; x < mapHeight; x++)
             {
-                for (var y = 0; y < mapSize; y++)
+                for (var y = 0; y < mapWidth; y++)
                 {
-                    if (x == 0 || y == 0 || x == mapSize - 1 || y == mapSize - 1)
+                    if (x == 0 || y == 0 || x == mapWidth - 1 || y == mapHeight - 1)
                     {
                         preMap[x, y] = CellMapType.Wall;
                     }
