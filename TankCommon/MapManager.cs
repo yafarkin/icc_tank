@@ -29,7 +29,7 @@ namespace TankCommon
                 throw new InvalidDataException("Это сочетание работоспособно, но нет смысла ставить процентов больше 100");
             }
 
-            if (mapData.GetLength(0) <= 3 || mapData.GetLength(1) <= 3)
+            if (mapData.GetLength(0) <= 5 || mapData.GetLength(1) <= 5)
             {
                 throw new InvalidDataException("Слишком маленькая карта");
             }
@@ -180,42 +180,20 @@ namespace TankCommon
             int rndNum;
             var mapHeight = map.GetLength(0);
             var mapWidth = map.GetLength(1);
-            var arrSymbols = new CellMapType[] { wall, water, grass, dWall};
-            for (var x = 1; x < mapWidth - 1; x++)
+            var arrSymbols = new CellMapType[] { wall, water, grass, dWall, field};
+            for (var x = 2; x < mapWidth - 1; x++)
             {
                 rndNum = rnd.Next(0, 100);
-                var rndForObj = rnd.Next(0, 4);
-                for (var y = 1; y < mapHeight - 1; y++)
+                var rndForObj = rnd.Next(0, 5);
+                for (var y = 2; y < mapHeight - 1; y++)
                 {
                     if (rndNum < (percentOfPrimObj + percentAnotherObj) && rndNum > percentOfPrimObj)
                     {
-                        //Проверяю пересечения с линиями, а так же проверяю нет перекроет ли линия уже имеющийся проход
-                        if (//В месте постановки нет стен и воды
-                            map[y, x] != wall && map[y, x] != water && map[y, x] != dWall &&
-                            //Снизу от места постановки нет стен и воды
-                            map[y + 1, x] != wall && map[y + 1, x] != water && map[y + 1, x] != dWall &&
-                            //справа от места постановки нет стен и воды
-                            map[y, x + 1] != wall && map[y, x + 1] != water && map[y, x + 1] != dWall &&
-                            //сверху от постановки нет стен и воды
-                            map[y - 1, x] != wall && map[y - 1, x] != water && map[y - 1, x] != dWall &&
-                            //слева от места постановки нет стен и воды
-                            map[y, x - 1] != wall && map[y, x - 1] != water && map[y, x - 1] != dWall)
+                        map[y, x] = arrSymbols[rndForObj];
+
+                        if (y % 5 == 0)
                         {
-                            map[y, x] = arrSymbols[rndForObj];
-                        }
-                        else
-                        {
-                            //Удаляю 4 клетки возле пересечения, проверяя, что не удалю стену карты
-                            if (x + 1 != mapWidth - 1 && y + 1 != mapHeight - 1 && x - 1 != 0 && y - 1 != 0)
-                            {
-                                map[y, x] = arrSymbols[rndForObj];
-                                //map[y - 1, x] = field;
-                                map[y, x - 1] = field;
-                                map[y + 1, x] = field;
-                                
-                                //x++;
-                                //y++;
-                            }
+                            map[y, x] = field;
                         }
                     }
                 }
