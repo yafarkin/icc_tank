@@ -649,6 +649,7 @@ namespace TankServer
 
                                         movingObject.Speed *= Settings.GameSpeed;
 
+                                        //если пуля попала в стену
                                         if (cells.Any(c => c.Value == CellMapType.Wall))
                                         {
                                             objsToRemove.Add(bulletObject);
@@ -832,6 +833,7 @@ namespace TankServer
 
                         foreach (var objToRemove in objsToRemove)
                         {
+                            //если ссылка на удаляемый объект не ссылается на нулевой объект и айди объекта == айди удаляемого объекта
                             var client = Clients.FirstOrDefault(c => c.Value.InteractObject != null && c.Value.InteractObject.Id == objToRemove.Id);
                             if (client.Key != null)
                             {
@@ -839,6 +841,7 @@ namespace TankServer
                             }
                             else
                             {
+                                //Удаляем объект
                                 Map.InteractObjects.Remove(objToRemove);
                             }
                         }
