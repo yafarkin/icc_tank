@@ -147,5 +147,46 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="img\brick.jpg" />
+    <Content Include="img\brick2.png" />
+    <Content Include="img\brick3.png" />
+    <Content Include="img\brick4k.png" />
+    <Content Include="img\brickRed.png" />
+    <Content Include="img\grass.png" />
+    <Content Include="img\grass2.png" />
+    <Content Include="img\ground.png" />
+    <Content Include="img\tank.png" />
+    <Content Include="img\tank\tankDown.png" />
+    <Content Include="img\tank\tankLeft.png" />
+    <Content Include="img\tank\tankRight.png" />
+    <Content Include="img\tank\tankUp.png" />
+    <Content Include="img\upgrade\BulletSpeed.png" />
+    <Content Include="img\upgrade\Damage.png" />
+    <Content Include="img\upgrade\Health.png" />
+    <Content Include="img\upgrade\MaxHp.png" />
+    <Content Include="img\upgrade\Speed.png" />
+    <Content Include="img\wall.png" />
+    <Content Include="img\water.jpg" />
+    <Content Include="img\water2.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PreBuildEvent>if not exist "$(TargetDir)\img" (
+mkdir "$(TargetDir)\img"
+)
+
+if not exist  "$(TargetDir)\tank" (
+mkdir "$(TargetDir)\img\tank"
+)
+
+if not exist  "$(TargetDir)\upgrade" (
+mkdir "$(TargetDir)\img\upgrade"
+)
+
+xcopy "$(ProjectDir)img" "$(TargetDir)\img"
+xcopy "$(ProjectDir)img\upgrade" "$(TargetDir)\img\upgrade"
+xcopy "$(ProjectDir)img\tank" "$(TargetDir)\img\tank"
+</PreBuildEvent>
+  </PropertyGroup>
 </Project>
