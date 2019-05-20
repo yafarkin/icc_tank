@@ -25,7 +25,7 @@ namespace TankServer
         protected readonly uint _spectatorUpdateMs;
         protected readonly uint _botUpdateMs;
 
-        public static TankSettings _tankSettings = new TankSettings();
+        public static TankSettings Settings = new TankSettings();
         public string ConfigPath;
 
         public readonly Map Map;
@@ -60,9 +60,6 @@ namespace TankServer
                         Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
                         _logger.Info($"[КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
                         Clients.Add(socket, new ClientInfo());
-
-                        //Проверка на изменения при установке новых настроек. Да, не самое удачное место для неё, для наглядности пойдёт
-                        //_tankSettings.UpdateAll("BattleCity", "BattleCity", "00:15:00", (decimal)2, 4, 2, 50);  //v2
                     }
                 };
                 socket.OnClose = () =>
@@ -190,7 +187,7 @@ namespace TankServer
                 var SW = new StreamWriter(ConfigPath, false, System.Text.Encoding.Default);
                 typeof(TankSettings)
                     .GetProperties()
-                    .Select(x => x.GetValue(_tankSettings, null))
+                    .Select(x => x.GetValue(Settings, null))
                     .ToList()
                     .ForEach(x => SW.WriteLine(x));
 
@@ -238,13 +235,13 @@ namespace TankServer
         {
             if (_fileSettings != null)
             {
-                return (_tankSettings.ServerName == _fileSettings.ServerName &&
-                _tankSettings.ServerType == _fileSettings.ServerType &&
-                _tankSettings.SessionTime - _fileSettings.SessionTime < new TimeSpan(10) &&
-                _tankSettings.GameSpeed == _fileSettings.GameSpeed &&
-                _tankSettings.TankSpeed == _fileSettings.TankSpeed &&
-                _tankSettings.TankDamage == _fileSettings.TankDamage &&
-                _tankSettings.BulletSpeed == _fileSettings.BulletSpeed) ? false : true;
+                return (Settings.ServerName == _fileSettings.ServerName &&
+                Settings.ServerType == _fileSettings.ServerType &&
+                Settings.SessionTime - _fileSettings.SessionTime < new TimeSpan(10) &&
+                Settings.GameSpeed == _fileSettings.GameSpeed &&
+                Settings.TankSpeed == _fileSettings.TankSpeed &&
+                Settings.TankDamage == _fileSettings.TankDamage &&
+                Settings.BulletSpeed == _fileSettings.BulletSpeed) ? false : true;
             }
 
             return true;
@@ -606,11 +603,6 @@ namespace TankServer
                     _lastCoreUpdate = DateTime.Now;
                     var delta = Convert.ToDecimal(tsDelta.TotalSeconds);
 
-                    if (isSettingsChanged(GetSettings()))
-                    {
-                        WriteConfig();
-                    }
-
                     lock (_syncObject)
                     {
                         AddUpgrades();
@@ -655,10 +647,13 @@ namespace TankServer
 
                                     if (movingObject is BulletObject bulletObject)
                                     {
-                                        if (movingObject.Speed != _tankSettings.BulletSpeed)
+                                        //проверка на изменения настроек 
+                                        if (movingObject.Speed != Settings.BulletSpeed)
                                         {
-                                            movingObject.Speed = _tankSettings.BulletSpeed;
+                                            movingObject.Speed = Settings.BulletSpeed;
                                         }
+
+                                        movingObject.Speed *= Settings.GameSpeed;
 
                                         if (cells.Any(c => c.Value == CellMapType.Wall))
                                         {
@@ -731,18 +726,21 @@ namespace TankServer
                                             canMove = false;
                                         }
 
-                                        if (movingObject.Speed != _tankSettings.TankSpeed)
+                                        //проверка на изменения настроек 
+                                        if (movingObject.Speed != Settings.TankSpeed)
                                         {
-                                            movingObject.Speed = _tankSettings.TankSpeed;
+                                            movingObject.Speed = Settings.TankSpeed;
                                         }
+
+                                        movingObject.Speed *= Settings.GameSpeed;
 
                                         if (intersectedObject is UpgradeInteractObject upgradeObject)
                                         {
                                             var tank = movingObject as TankObject;
 
-                                            if (tank.Damage != _tankSettings.TankDamage)
+                                            if (Settings.TankDamage != tank.Damage)
                                             {
-                                                tank.Damage = _tankSettings.TankDamage;
+                                                tank.Damage = Settings.TankDamage;
                                             }
 
                                             switch (upgradeObject.Type)
@@ -831,6 +829,11 @@ namespace TankServer
                                 Map.InteractObjects.Remove(objToRemove);
                             }
                         }
+                    }
+
+                    if (isSettingsChanged(GetSettings()))
+                    {
+                        WriteConfig();
                     }
                 }
                 catch (Exception e)
