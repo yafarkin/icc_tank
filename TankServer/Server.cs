@@ -650,11 +650,13 @@ namespace TankServer
 
                                     if (movingObject is BulletObject bulletObject)
                                     {
-                                        if (_tankSettings.GameSpeed != GetSettings().GameSpeed || _tankSettings.BulletSpeed != GetSettings().BulletSpeed || movingObject.Speed != _tankSettings.BulletSpeed)
+                                        //проверка на изменения настроек 
+                                        if (movingObject.Speed != _tankSettings.BulletSpeed)
                                         {
                                             movingObject.Speed = _tankSettings.BulletSpeed;
-                                            movingObject.Speed *= _tankSettings.GameSpeed;
                                         }
+
+                                        movingObject.Speed *= _tankSettings.GameSpeed;
 
                                         if (cells.Any(c => c.Value == CellMapType.Wall))
                                         {
@@ -727,11 +729,13 @@ namespace TankServer
                                             canMove = false;
                                         }
 
-                                        if (_tankSettings.GameSpeed != GetSettings().GameSpeed || _tankSettings.TankSpeed != GetSettings().TankSpeed || movingObject.Speed != _tankSettings.TankSpeed)
+                                        //проверка на изменения настроек 
+                                        if (movingObject.Speed != _tankSettings.TankSpeed)
                                         {
                                             movingObject.Speed = _tankSettings.TankSpeed;
-                                            movingObject.Speed *= _tankSettings.GameSpeed;
                                         }
+
+                                        movingObject.Speed *= _tankSettings.GameSpeed;
 
                                         if (intersectedObject is UpgradeInteractObject upgradeObject)
                                         {
