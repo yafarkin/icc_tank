@@ -34,21 +34,18 @@ namespace TankCommon
                 throw new InvalidDataException("Слишком маленькая карта");
             }
 
-            if (mapData.GetLength(0) != mapData.GetLength(1))
-            {
-                throw new ArgumentNullException("Карта должа быть квадратной");
-            }
-
+            //Финальный массив должен быть умножен на ширину и длинну константных клеток
             var cellArr = new CellMapType[mapHeight * Constants.CellHeight, mapWidth * Constants.CellWidth];
-            var cellArrLen = cellArr.GetLength(0);
-            //
-            for (var x = 0; x < cellArrLen; x++)
+            var cellArrHeight = cellArr.GetLength(0);
+            var cellArrWidth = cellArr.GetLength(1);
+            //Масштабирую карту исходя из констант
+            for (var height = 0; height < cellArrHeight; height++)
             {
-                for (var y = 0; y < cellArrLen; y++)
+                for (var width = 0; width < cellArrWidth; width++)
                 {
-                    var x1 = (int)Math.Ceiling((decimal)(x / Constants.CellHeight));
-                    var y1 = (int)Math.Ceiling((decimal)(y / Constants.CellHeight));
-                    cellArr[x, y] = mapData[x1, y1];
+                    var oldHeight = (int)Math.Ceiling((decimal)(height / Constants.CellHeight));
+                    var oldWidth = (int)Math.Ceiling((decimal)(width / Constants.CellHeight));
+                    cellArr[height, width] = mapData[oldHeight, oldWidth];
                 }
             }
 
@@ -94,19 +91,19 @@ namespace TankCommon
         /// <returns>Двумерный массив сосотоящий из CellMapType</returns>
         private static CellMapType[,] GenerateMap(int mapHeight, int mapWidth, CellMapType primaryObject, int percentOfPrimObj, int percentAnotherObj)
         {
-            //создаю и заполняю массив
+            //создаю и заполняю массив, по краям карты ставлю стены
             var preMap = new CellMapType[mapHeight,mapWidth];
-            for (var x = 0; x < mapHeight; x++)
+            for (var y = 0; y < mapHeight; y++)
             {
-                for (var y = 0; y < mapWidth; y++)
+                for (var x = 0; x < mapWidth; x++)
                 {
-                    if (x == 0 || y == 0 || x == mapWidth - 1 || y == mapHeight - 1)
+                    if (y == 0 || x == 0 || y == mapHeight - 1 || x == mapWidth - 1)
                     {
-                        preMap[x, y] = CellMapType.Wall;
+                        preMap[y, x] = CellMapType.Wall;
                     }
                     else
                     {
-                        preMap[x, y] = CellMapType.Void;
+                        preMap[y, x] = CellMapType.Void;
                     }
                 }
             }
@@ -126,8 +123,9 @@ namespace TankCommon
         private static CellMapType[,] GeneratePrimitiveOnMap(CellMapType[,] map, CellMapType primaryObject, int percentOfPrimObj, int percentAnotherObj)
         {
             var rnd = new Random();
-            map = DrawHorizontals(map, primaryObject, percentOfPrimObj, rnd);
             map = DrawVerticals(map, percentOfPrimObj, percentAnotherObj, rnd);
+            map = DrawHorizontals(map, primaryObject, percentOfPrimObj, rnd);
+            
             return map;
         }
 
@@ -142,19 +140,20 @@ namespace TankCommon
         private static CellMapType[,] DrawHorizontals(CellMapType[,] map, CellMapType symbol, int percentOfPrimObj, Random rnd)
         {
             int rndNum;
-            var mapLength = map.GetLength(0);
-            for (var x = 2; x < mapLength - 2; x++)
+            var mapWidth = map.GetLength(1);
+            var mapHeight = map.GetLength(0);
+            for (var y = 2; y < mapHeight - 2; y++)
             {
                 rndNum = rnd.Next(0, 100);
-                for (var y = 2; y < mapLength - 2; y++)
+                for (var x = 2; x < mapWidth - 2; x++)
                 {
                     if (rndNum < percentOfPrimObj)
                     {
-                        if (map[x - 1, y - 1] != CellMapType.Wall && map[x - 1, y - 1] != CellMapType.Water && map[x - 1, y - 1] != CellMapType.DestructiveWall &&
-                            map[x + 1, y - 1] != CellMapType.Wall && map[x + 1, y - 1] != CellMapType.Water && map[x + 1, y - 1] != CellMapType.DestructiveWall)
+                        if (map[y - 1, x - 1] != CellMapType.Wall && map[y - 1, x - 1] != CellMapType.Water && map[y - 1, x - 1] != CellMapType.DestructiveWall &&
+                            map[y + 1, x - 1] != CellMapType.Wall && map[y + 1, x - 1] != CellMapType.Water && map[y + 1, x - 1] != CellMapType.DestructiveWall)
                         {
                             //создаю строку того типа, которого должно быть больше
-                            map[x, y] = symbol;
+                            map[y, x] = symbol;
                         }
                     }
                 }
@@ -179,21 +178,27 @@ namespace TankCommon
             var grass = CellMapType.Grass;
 
             int rndNum;
-            var mapLength = map.GetLength(0);
-            var arrSymbols = new CellMapType[] { wall, water, grass, dWall/*, field*/};
-            for (var x = 1; x < mapLength - 1; x++)
+            var mapHeight = map.GetLength(0);
+            var mapWidth = map.GetLength(1);
+            var arrSymbols = new CellMapType[] { wall, water, grass, dWall};
+            for (var x = 1; x < mapWidth - 1; x++)
             {
                 rndNum = rnd.Next(0, 100);
                 var rndForObj = rnd.Next(0, 4);
-                for (var y = 1; y < mapLength - 1; y++)
+                for (var y = 1; y < mapHeight - 1; y++)
                 {
                     if (rndNum < (percentOfPrimObj + percentAnotherObj) && rndNum > percentOfPrimObj)
                     {
                         //Проверяю пересечения с линиями, а так же проверяю нет перекроет ли линия уже имеющийся проход
-                        if (map[y, x] != wall && map[y, x] != water && map[y, x] != dWall &&
+                        if (//В месте постановки нет стен и воды
+                            map[y, x] != wall && map[y, x] != water && map[y, x] != dWall &&
+                            //Снизу от места постановки нет стен и воды
                             map[y + 1, x] != wall && map[y + 1, x] != water && map[y + 1, x] != dWall &&
+                            //справа от места постановки нет стен и воды
                             map[y, x + 1] != wall && map[y, x + 1] != water && map[y, x + 1] != dWall &&
+                            //сверху от постановки нет стен и воды
                             map[y - 1, x] != wall && map[y - 1, x] != water && map[y - 1, x] != dWall &&
+                            //слева от места постановки нет стен и воды
                             map[y, x - 1] != wall && map[y, x - 1] != water && map[y, x - 1] != dWall)
                         {
                             map[y, x] = arrSymbols[rndForObj];
@@ -201,21 +206,15 @@ namespace TankCommon
                         else
                         {
                             //Удаляю 4 клетки возле пересечения, проверяя, что не удалю стену карты
-                            if (x + 1 != mapLength - 1 && y + 1 != mapLength - 1 && x - 1 != 0 && y - 1 != 0)
+                            if (x + 1 != mapWidth - 1 && y + 1 != mapHeight - 1 && x - 1 != 0 && y - 1 != 0)
                             {
                                 map[y, x] = arrSymbols[rndForObj];
-                                map[y - 1, x] = field;
+                                //map[y - 1, x] = field;
                                 map[y, x - 1] = field;
                                 map[y + 1, x] = field;
-                                if (x > mapLength / 2)
-                                {
-                                    x--;
-                                }
-                                else
-                                {
-                                    x++;
-                                }
-                                y++;
+                                
+                                //x++;
+                                //y++;
                             }
                         }
                     }
@@ -223,6 +222,6 @@ namespace TankCommon
             }
             return map;
         }
-    
+
     }
 }
