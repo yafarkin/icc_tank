@@ -92,7 +92,10 @@
             var data = { maxBotsCount: 4, botUpdateMs: 100, coreUpdateMs: 100, spectatorUpdateMs: 100, port: 2000 };
             var newData = new FormData();
             newData.append("json", JSON.stringify(data));
-            var fetchPost = { method: "POST", body: JSON.stringify(data)};
+            console.log(JSON.stringify(data));
+            var fetchPost = { method: "POST", body: JSON.stringify(data) };
+
+
             fetch("admin/CreateServer/", fetchPost);
             /*[FromForm] int maxBotsCount, [FromForm] int botUpdateMs, [FromForm] int coreUpdateMs, [FromForm] int spectatorUpdateMs, [FromForm] int port*/
         }
