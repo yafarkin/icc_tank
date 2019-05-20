@@ -1,5 +1,18 @@
 ﻿
-    class UserForm extends React.Component {
+class UserForm extends React.Component {
+
+    requestHelper(type, url) {
+        var type = { method: type };
+        var url = `admin/${url}`;
+
+        fetch(url, type);
+    }
+
+    postHelper(method, data) {
+        var url = `${method}/?${new URLSearchParams(data)}`;
+        this.requestHelper("POST", url);
+    }
+
     constructor(props) {
         super(props);
 
@@ -67,7 +80,6 @@
         onNameGameChange(e)
         {
             var val = e.target.value;
-            console.log(val);
             var valid = this.validateNameGame(val);
             this.setState({ nameGame: val, nameGameIsValid: valid });
         }
@@ -90,14 +102,8 @@
         doTestStart()
         {
             var data = { maxBotsCount: 4, botUpdateMs: 100, coreUpdateMs: 100, spectatorUpdateMs: 100, port: 2000 };
-            var newData = new FormData();
-            newData.append("json", JSON.stringify(data));
-            console.log(JSON.stringify(data));
-            var fetchPost = { method: "POST", body: JSON.stringify(data) };
 
-
-            fetch("admin/CreateServer/", fetchPost);
-            /*[FromForm] int maxBotsCount, [FromForm] int botUpdateMs, [FromForm] int coreUpdateMs, [FromForm] int spectatorUpdateMs, [FromForm] int port*/
+            this.postHelper("CreateServer", data);
         }
 
         //запросить подтвердить введённые данные
