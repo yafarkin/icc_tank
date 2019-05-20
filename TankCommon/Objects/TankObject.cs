@@ -9,6 +9,8 @@ namespace TankCommon.Objects
         public string Nickname { get; set; }
         public decimal MaximumHp { get; set; }
         public decimal Hp { get; set; }
+        public int MaximumLives { get; set; }
+        public int Lives { get; set; }
         public decimal Score { get; set; }
         public decimal BulletSpeed { get; set; }
         public decimal Damage { get; set; }
@@ -17,11 +19,13 @@ namespace TankCommon.Objects
         {
         }
 
-        public TankObject(Guid id, Rectangle rectangle, decimal speed, bool isMoving, decimal maximumHp, decimal hp, string nickname, string tag, decimal damage)
+        public TankObject(Guid id, Rectangle rectangle, decimal speed, bool isMoving, decimal maximumHp, decimal hp, int maximumLives, int lives, string nickname, string tag, decimal damage)
             : base(id, rectangle, speed, isMoving, DirectionType.Left)
         {
             MaximumHp = maximumHp;
             Hp = hp;
+            MaximumLives = maximumLives;
+            Lives = lives;
             Tag = tag;
             Nickname = nickname;
             Score = 0;
