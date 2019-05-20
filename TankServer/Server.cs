@@ -21,9 +21,6 @@ namespace TankServer
         protected DateTime _lastCoreUpdate;
 
         protected readonly uint _maxBotsCount;
-        protected readonly uint _coreUpdateMs;
-        protected readonly uint _spectatorUpdateMs;
-        protected readonly uint _botUpdateMs;
 
         public static TankSettings Settings = new TankSettings();
         public string ConfigPath;
@@ -33,15 +30,13 @@ namespace TankServer
 
         public readonly Logger _logger;
 
-        public Server(Map map, uint port, uint maxBotsCount, uint coreUpdateMs, uint spectatorUpdateMs, uint botUpdateMs)
+        public Server(Map map, uint port, uint maxBotsCount, TankSettings tankSettings)
         {
             Map = map;
             Clients = new Dictionary<IWebSocketConnection, ClientInfo>();
+            Settings = tankSettings;
 
             _maxBotsCount = maxBotsCount;
-            _coreUpdateMs = coreUpdateMs;
-            _spectatorUpdateMs = spectatorUpdateMs;
-            _botUpdateMs = botUpdateMs;
 
             _random = new Random();
             _logger = LogManager.GetCurrentClassLogger();
@@ -348,16 +343,16 @@ namespace TankServer
                     await SendUpdates(false, cancellationToken);
 
                     // в более частом цикле высылаем состояние движка для наблюдателей
-                    var botTimer = Convert.ToInt32(_botUpdateMs);
+                    var botTimer = 250;
                     while (botTimer > 0 && !cancellationToken.IsCancellationRequested)
                     {
-                        await Task.Delay(Convert.ToInt32(_spectatorUpdateMs));
+                        await Task.Delay(100);
                         if (cancellationToken.IsCancellationRequested)
                         {
                             break;
                         }
 
-                        botTimer -= Convert.ToInt32(_spectatorUpdateMs);
+                        botTimer -= 100;
                         await SendUpdates(true, cancellationToken);
                     }
 
@@ -587,7 +582,7 @@ namespace TankServer
             {
                 try
                 {
-                    await Task.Delay(Convert.ToInt32(_coreUpdateMs));
+                    await Task.Delay(100);
                     if (cancellationToken.IsCancellationRequested)
                     {
                         break;
