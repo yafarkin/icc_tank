@@ -304,7 +304,7 @@
             _textColorAnimation.AnimationStart(300, ref _mapObjectsColors[11]);
             RenderTarget2D.DrawText("Battle City v0.1",
                 _logoBrushTextFormat, _logoTextRect, _mapObjectsColors[14]);
-            RenderTarget2D.DrawText("Press any button to start a game",
+            RenderTarget2D.DrawText("Press Enter to start a game",
                 _statusTextFormat, _statusTextRect, _mapObjectsColors[11]);
         }
 
@@ -569,20 +569,20 @@
             dstinationRectangle = new RawRectangleF(0, 0, 100, 100);
             opacity = 1.0f;
             interpolationMode = BitmapInterpolationMode.Linear;
-            _wallBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\wall.png");
-            _tankUpBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\tank\tankUp.png");
-            _tankDownBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\tank\tankDown.png");
-            _tankLeftBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\tank\tankLeft.png");
-            _tankRightBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\tank\tankRight.png");
-            _waterBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\water2.png");
-            _grassBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\grass2.png");
-            _destructiveWallBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\brick4k.png");
+            _wallBitmap = LoadFromFile(RenderTarget2D, @"img\wall.png");
+            _tankUpBitmap = LoadFromFile(RenderTarget2D, @"img\tank\tankUp.png");
+            _tankDownBitmap = LoadFromFile(RenderTarget2D, @"img\tank\tankDown.png");
+            _tankLeftBitmap = LoadFromFile(RenderTarget2D, @"img\tank\tankLeft.png");
+            _tankRightBitmap = LoadFromFile(RenderTarget2D, @"img\tank\tankRight.png");
+            _waterBitmap = LoadFromFile(RenderTarget2D, @"img\water2.png");
+            _grassBitmap = LoadFromFile(RenderTarget2D, @"img\grass2.png");
+            _destructiveWallBitmap = LoadFromFile(RenderTarget2D, @"img\brick4k.png");
 
-            _bulletSpeedUpgradeBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\upgrade\BulletSpeed.png");
-            _damageUpgradeBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\upgrade\Damage.png");
-            _healthUpgradeBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\upgrade\Health.png");
-            _maxHpUpgradeBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\upgrade\MaxHp.png");
-            _speedUpgradeBitmap = LoadFromFile(RenderTarget2D, @"..\..\img\upgrade\Speed.png");
+            _bulletSpeedUpgradeBitmap = LoadFromFile(RenderTarget2D, @"img\upgrade\BulletSpeed.png");
+            _damageUpgradeBitmap = LoadFromFile(RenderTarget2D, @"img\upgrade\Damage.png");
+            _healthUpgradeBitmap = LoadFromFile(RenderTarget2D, @"img\upgrade\Health.png");
+            _maxHpUpgradeBitmap = LoadFromFile(RenderTarget2D, @"img\upgrade\MaxHp.png");
+            _speedUpgradeBitmap = LoadFromFile(RenderTarget2D, @"img\upgrade\Speed.png");
 
             _bitmaps = new Bitmap[] {
                 _wallBitmap, _waterBitmap, _grassBitmap,
