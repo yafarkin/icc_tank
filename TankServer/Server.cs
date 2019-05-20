@@ -285,7 +285,7 @@ namespace TankServer
                 break;
             }
 
-            var tank = new TankObject(Guid.NewGuid(), rectangle, 2, false, 100, 100, nickname, tag, 40);
+            var tank = new TankObject(Guid.NewGuid(), rectangle, 2, false, 100, 100, 5, 5, nickname, tag, 40);
             Map.InteractObjects.Add(tank);
 
             return tank;
@@ -630,16 +630,15 @@ namespace TankServer
 
                             while (speed >= 0)
                             {
-                                var canMove = newPoint.Left >= 0 &&
-                                              newPoint.Left < Map.MapWidth - Constants.CellWidth &&
-                                              newPoint.Top >= 0 &&
-                                              newPoint.Top < Map.MapHeight - Constants.CellHeight;
+
+                                var canMove = newPoint.Left >= 0 && newPoint.Left < Map.MapWidth - Constants.CellWidth && newPoint.Top >= 0 && newPoint.Top < Map.MapHeight - Constants.CellHeight;
 
                                 if (canMove)
                                 {
                                     var intersectedObject = MapManager.GetIntersectedObject(newRectangle, Map.InteractObjects.Where(o => o.Id != movingObject.Id));
                                     var cells = MapManager.WhatOnMap(newRectangle, Map);
 
+                                    //Если двигающийся объект - это пуля
                                     if (movingObject is BulletObject bulletObject)
                                     {
                                         //проверка на изменения настроек 
@@ -664,6 +663,7 @@ namespace TankServer
                                                 Map.Cells[destructiveWall.Key.TopInt, destructiveWall.Key.LeftInt] = CellMapType.Void;
                                             }
 
+                                            //удаляем пулю
                                             objsToRemove.Add(bulletObject);
 
                                             // т.к. изменилась карта, то надо всем клиентам выслать новую карту
@@ -675,20 +675,38 @@ namespace TankServer
                                             canMove = false;
                                         }
 
+                                        //Если пуля попала в танк
                                         if (intersectedObject is TankObject tankIntersectedObject)
                                         {
+                                            //удаляем пулю
                                             objsToRemove.Add(bulletObject);
                                             canMove = false;
 
+                                            //переменная которая проверяет Hp объекта в который попали уменьшилось до смерти
                                             var hpToRemove = tankIntersectedObject.Hp > bulletObject.DamageHp
                                                 ? bulletObject.DamageHp
                                                 : tankIntersectedObject.Hp;
                                             bool isFrag = false;
+                                            //вычитаем здоровье у танка в который попали
                                             tankIntersectedObject.Hp -= hpToRemove;
-                                            if (tankIntersectedObject.Hp <= 0)
+
+                                            //если здоровье танка, в который попали меньше 0, но жизни ещё есть
+                                            if (tankIntersectedObject.Hp <= 0 && tankIntersectedObject.Lives > 0)
                                             {
                                                 isFrag = true;
-                                                objsToRemove.Add(tankIntersectedObject);
+                                                
+                                                //уменьшаем жизни
+                                                tankIntersectedObject.Lives--;
+                                                tankIntersectedObject.Hp = tankIntersectedObject.MaximumHp;
+                                            }
+                                            else
+                                            {
+                                                //если у танка нет жизней и здоровье меньше нуля, то удаляем его
+                                                if(tankIntersectedObject.Hp <= 0 && tankIntersectedObject.Lives <= 0)
+                                                {
+                                                    //удаляем умерший танк
+                                                    objsToRemove.Add(tankIntersectedObject);
+                                                }
                                             }
 
                                             var sourceTank = Map.InteractObjects.OfType<TankObject>()
