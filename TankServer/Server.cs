@@ -535,22 +535,33 @@ namespace TankServer
                 // запоминаем значение, требовалось высылать ли обновление карты
                 var needUpdate = client.Value.NeedUpdateMap;
 
-                clientMap = emptyMap;
-                if (needUpdate)
+                string json;
+                if (client.Value.IsSpecator)
                 {
-                    lock (_syncObject)
+                    var request = new ServerRequest
                     {
-                        clientMap = new Map(Map, visibleObjects);
-                    }
+                        Map = Map,
+                        Tank = null as TankObject
+                    };
+                    json = request.ToJson();
                 }
-
-                var request = new ServerRequest
+                else
                 {
-                    Map = clientMap,
-                    Tank = client.Value.InteractObject as TankObject
-                };
-
-                var json = request.ToJson();
+                    clientMap = emptyMap;
+                    if (needUpdate)
+                    {
+                        lock (_syncObject)
+                        {
+                            clientMap = new Map(Map, visibleObjects);
+                        }
+                    }
+                    var request = new ServerRequest
+                    {
+                        Map = clientMap,
+                        Tank = client.Value.InteractObject as TankObject
+                    };
+                    json = request.ToJson();
+                }
 
                 try
                 {
