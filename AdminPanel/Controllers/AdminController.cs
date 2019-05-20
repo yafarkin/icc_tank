@@ -20,8 +20,9 @@ namespace AdminPanel.Controllers
         /// <param name="spectatorUpdateMs">Частота обновления наблюдателей</param>
         /// <param name="port">Порт по которому будет работать сервер</param>
         [HttpPost]
-        public void CreateServer( int maxBotsCount, int botUpdateMs, int coreUpdateMs, int spectatorUpdateMs, int port)
+        public void CreateServer([FromForm] int maxBotsCount, [FromForm] int botUpdateMs, [FromForm] int coreUpdateMs, [FromForm] int spectatorUpdateMs, [FromForm] int port)
         {
+            var z = HttpContext;
             var newPort = Convert.ToUInt32(port);
             while (true)
             {

@@ -1,16 +1,20 @@
 ﻿
 class UserForm extends React.Component {
 
-    requestHelper(type, url) {
-        var type = { method: type };
-        var url = `admin/${url}`;
+    requestHelper(type, method, data) {
+        var form = new FormData();
+        for (var propt in data) {
+            form.append(propt, data[propt]);
+        }
+
+        var type = { method: type, body: form };
+        var url = `admin/${method}`;
 
         fetch(url, type);
     }
 
     postHelper(method, data) {
-        var url = `${method}/?${new URLSearchParams(data)}`;
-        this.requestHelper("POST", url);
+        this.requestHelper("POST", method, data);
     }
 
     constructor(props) {
