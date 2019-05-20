@@ -160,7 +160,6 @@
         public Map Map { set { _map = value; }  }
         private List<ImmutableObject> _immutableMapObjects;
         private List<DestuctiveWalls> _destuctiveWallsObjects;
-        //methode: DrawClientInfo() use it
         private List<TankObject> _clientInfoTanks;
         private RawVector2 _clientInfoLeftPoint;
         private RawVector2 _clientInfoRightPoint;
@@ -204,6 +203,8 @@
         Bitmap _healthUpgradeBitmap;
         Bitmap _maxHpUpgradeBitmap;
         Bitmap _speedUpgradeBitmap;
+
+        Bitmap _bulletUpBitmap;
 
         Bitmap[] _bitmaps;
 
@@ -448,30 +449,7 @@
             RawRectangleF rawRectangleTemp = new RawRectangleF();
             foreach (var obj in baseInteractObjects)
             {
-                if (obj is TankObject tankObject)
-                {
-                    rawRectangleTemp.Left = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Left) * _zoomWidth;
-                    rawRectangleTemp.Top = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Top) * _zoomHeight;
-                    rawRectangleTemp.Right = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Left + tankObject.Rectangle.Width) * _zoomWidth;
-                    rawRectangleTemp.Bottom = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Top + tankObject.Rectangle.Height) * _zoomHeight;
-                    if (tankObject.Direction == DirectionType.Up)
-                    {
-                        RenderTarget2D.DrawBitmap(_tankUpBitmap, rawRectangleTemp, opacity, interpolationMode);
-                    }
-                    else if (tankObject.Direction == DirectionType.Down)
-                    {
-                        RenderTarget2D.DrawBitmap(_tankDownBitmap, rawRectangleTemp, opacity, interpolationMode);
-                    }
-                    else if (tankObject.Direction == DirectionType.Left)
-                    {
-                        RenderTarget2D.DrawBitmap(_tankLeftBitmap, rawRectangleTemp, opacity, interpolationMode);
-                    }
-                    else if (tankObject.Direction == DirectionType.Right)
-                    {
-                        RenderTarget2D.DrawBitmap(_tankRightBitmap, rawRectangleTemp, opacity, interpolationMode);
-                    }
-                }
-                else if (obj is UpgradeInteractObject upgradeObject)
+                if (obj is UpgradeInteractObject upgradeObject)
                 {
                     switch (upgradeObject.Type)
                     {
@@ -529,6 +507,39 @@
                     rawRectangleTemp.Right = Convert.ToSingle(bulletObject.Rectangle.LeftCorner.Left + bulletObject.Rectangle.Width) * _zoomWidth;
                     rawRectangleTemp.Bottom = Convert.ToSingle(bulletObject.Rectangle.LeftCorner.Top + bulletObject.Rectangle.Height) * _zoomHeight;
                     FillBlock(rawRectangleTemp, _mapObjectsColors[10]);
+                    //RenderTarget2D.DrawBitmap(_bulletUpBitmap, rawRectangleTemp, opacity, interpolationMode);
+                }
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(256)]
+        public void DrawTanks(List<BaseInteractObject> baseInteractObjects)
+        {
+            RawRectangleF rawRectangleTemp = new RawRectangleF();
+            foreach (var obj in baseInteractObjects)
+            {
+                if (obj is TankObject tankObject)
+                {
+                    rawRectangleTemp.Left = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Left) * _zoomWidth;
+                    rawRectangleTemp.Top = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Top) * _zoomHeight;
+                    rawRectangleTemp.Right = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Left + tankObject.Rectangle.Width) * _zoomWidth;
+                    rawRectangleTemp.Bottom = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Top + tankObject.Rectangle.Height) * _zoomHeight;
+                    if (tankObject.Direction == DirectionType.Up)
+                    {
+                        RenderTarget2D.DrawBitmap(_tankUpBitmap, rawRectangleTemp, opacity, interpolationMode);
+                    }
+                    else if (tankObject.Direction == DirectionType.Down)
+                    {
+                        RenderTarget2D.DrawBitmap(_tankDownBitmap, rawRectangleTemp, opacity, interpolationMode);
+                    }
+                    else if (tankObject.Direction == DirectionType.Left)
+                    {
+                        RenderTarget2D.DrawBitmap(_tankLeftBitmap, rawRectangleTemp, opacity, interpolationMode);
+                    }
+                    else if (tankObject.Direction == DirectionType.Right)
+                    {
+                        RenderTarget2D.DrawBitmap(_tankRightBitmap, rawRectangleTemp, opacity, interpolationMode);
+                    }
                 }
             }
         }
@@ -575,7 +586,7 @@
             _tankLeftBitmap = LoadFromFile(RenderTarget2D, @"img\tank\tankLeft.png");
             _tankRightBitmap = LoadFromFile(RenderTarget2D, @"img\tank\tankRight.png");
             _waterBitmap = LoadFromFile(RenderTarget2D, @"img\water2.png");
-            _grassBitmap = LoadFromFile(RenderTarget2D, @"img\grass2.png");
+            _grassBitmap = LoadFromFile(RenderTarget2D, @"img\Grass_T.png");
             _destructiveWallBitmap = LoadFromFile(RenderTarget2D, @"img\brick4k.png");
 
             _bulletSpeedUpgradeBitmap = LoadFromFile(RenderTarget2D, @"img\upgrade\BulletSpeed.png");
@@ -583,6 +594,8 @@
             _healthUpgradeBitmap = LoadFromFile(RenderTarget2D, @"img\upgrade\Health.png");
             _maxHpUpgradeBitmap = LoadFromFile(RenderTarget2D, @"img\upgrade\MaxHp.png");
             _speedUpgradeBitmap = LoadFromFile(RenderTarget2D, @"img\upgrade\Speed.png");
+
+            //_bulletUpBitmap = LoadFromFile(RenderTarget2D, @"img\Bullet_T.png");
 
             _bitmaps = new Bitmap[] {
                 _wallBitmap, _waterBitmap, _grassBitmap,
