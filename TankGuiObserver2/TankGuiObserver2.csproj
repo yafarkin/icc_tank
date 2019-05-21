@@ -148,4 +148,22 @@
     </BootstrapperPackage>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PreBuildEvent>if not exist "$(TargetDir)\img" (
+mkdir "$(TargetDir)\img"
+xcopy "$(ProjectDir)img" "$(TargetDir)\img"
+)
+
+if not exist  "$(TargetDir)\img\tank" (
+mkdir "$(TargetDir)\img\tank"
+xcopy "$(ProjectDir)img\tank" "$(TargetDir)\img\tank"
+)
+
+if not exist  "$(TargetDir)\img\upgrade" (
+mkdir "$(TargetDir)\img\upgrade"
+xcopy "$(ProjectDir)img\upgrade" "$(TargetDir)\img\upgrade"
+)
+
+</PreBuildEvent>
+  </PropertyGroup>
 </Project>

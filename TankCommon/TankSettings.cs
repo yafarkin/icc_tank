@@ -28,6 +28,10 @@
         public void UpdateAll(string _serverName, string _serverType, string _sessionTime, decimal _gameSpeed, decimal _tankSpeed, decimal _bulletSpeed, decimal _tankDamage)
         {
             Version++;
+            if (_serverName == "")
+            {
+                _serverName = null;
+            }
             ServerName = _serverName;
             ServerType = (ServerType)System.Enum.Parse(typeof(ServerType), _serverType);
             SessionTime = TimeSpan.Parse(_sessionTime);
