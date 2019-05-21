@@ -265,6 +265,7 @@ namespace TankServer
         {
             var rectangle = PastOnPassablePlace();
             var tank = new TankObject(Guid.NewGuid(), rectangle, 2, false, 100, 100, 5, 5, nickname, tag, 40);
+            CallInvulnerability(tank, 5);
             Map.InteractObjects.Add(tank);
 
             return tank;
