@@ -15,6 +15,7 @@ namespace TankCommon.Objects
         public decimal BulletSpeed { get; set; }
         public decimal Damage { get; set; }
         public bool IsDead { get; set; }
+        public bool IsInvulnerable { get; set; } = false;
 
         public TankObject()
         {

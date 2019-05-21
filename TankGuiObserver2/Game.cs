@@ -28,16 +28,10 @@
         Connector _connector;
 
         bool _isEnterPressed;
-        bool _isTabPressed;
         bool _isFPressed;
         DirectInput _directInput;
         Keyboard _keyboard;
         GameRender _gameRender;
-
-        float _bitmapOpacity;
-        SharpDX.Mathematics.Interop.RawRectangleF _destinationRectangle;
-        BitmapInterpolationMode _interpolationMode;
-        Bitmap _bitmap;
 
         public Game(string windowName,
             int windowWidth, int windowHeight,
@@ -47,6 +41,9 @@
             _renderForm.Width = windowWidth;
             _renderForm.Height = windowHeight;
             _renderForm.AllowUserResizing = false;
+            _renderForm.TopMost = true;
+            _renderForm.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            _renderForm.WindowState = System.Windows.Forms.FormWindowState.Maximized;
 
             var desc = new SwapChainDescription()
             {
@@ -135,16 +132,19 @@
                         }
                     }
                 }
-                else if (key == Key.Tab)
-                {
-                    _isTabPressed = true;
-                }
                 else if (key == Key.Return && _spectatorClass.Map != null)
                 {
                     _isEnterPressed = true;
                 }
                 else if (key == Key.Escape)
                 {
+                    try
+                    {
+                        _clientThread.Interrupt();
+                    }
+                    catch
+                    {
+                    }
                     _renderForm.Close();
                 }
             }
@@ -152,9 +152,12 @@
             //Drawing a gama
             if (_isEnterPressed)
             {
+                if (!_gameRender.UIIsVisible) { _gameRender.UIIsVisible = true; }
                 _gameRender.Map = _spectatorClass.Map;
                 _gameRender.DrawClientInfo();
                 _gameRender.DrawMap();
+                _gameRender.DrawTanks(_spectatorClass.Map.InteractObjects);
+                _gameRender.DrawGrass();
                 _gameRender.DrawInteractiveObjects(_spectatorClass.Map.InteractObjects);
             }
             else
@@ -252,6 +255,7 @@
             _device.Dispose();
             _connector.Dispose();
             _gameRender.Dispose();
+            
         }
 
     }

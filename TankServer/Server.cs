@@ -22,7 +22,7 @@ namespace TankServer
 
         protected readonly uint _maxBotsCount;
 
-        public static TankSettings Settings = new TankSettings();
+        public TankSettings Settings = new TankSettings();
         public string ConfigPath;
 
         public readonly Map Map;
@@ -42,7 +42,9 @@ namespace TankServer
             _logger = LogManager.GetCurrentClassLogger();
             //FleckLog.Level = LogLevel.Debug;
 
+            //создаём файл конфигурации, если его не существует
             CreateConfigResourcesIfNotExist();
+            //записываем исходные настройки
             WriteConfig();
 
             _socketServer = new WebSocketServer($"ws://0.0.0.0:{port}");
@@ -54,7 +56,8 @@ namespace TankServer
                     {
                         Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
                         _logger.Info($"[КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
-                        Clients.Add(socket, new ClientInfo());
+                        //добавляем клиента с заданными настройками и флагом об их обновлении
+                        Clients.Add(socket, new ClientInfo() { Request = new ServerRequest { Settings = Settings, IsSettingsChanged = true } });
                     }
                 };
                 socket.OnClose = () =>
@@ -117,6 +120,11 @@ namespace TankServer
 
                                 clientInfo.IsLogined = true;
                                 clientInfo.NeedUpdateMap = true;
+                                
+                                //если настройки изменились, клиенту отправится новая версия и флаг об обновлении настроек
+                                clientInfo.Request = isSettingsChanged(GetSettings())
+                                    ? new ServerRequest { IsSettingsChanged = true, Settings = Settings }
+                                    : new ServerRequest { IsSettingsChanged = false, Settings = Settings };
 
                                 if (string.IsNullOrWhiteSpace(response.CommandParameter))
                                 {
@@ -161,6 +169,7 @@ namespace TankServer
             });
         }
 
+        //создание директории для файла конфигурации, если она не существует, и создание файла TankConfig.txt
         public void CreateConfigResourcesIfNotExist()
         {
             ConfigPath = $"{Directory.GetCurrentDirectory()}/config";
@@ -176,6 +185,7 @@ namespace TankServer
             }
         }
 
+        //запись в файл всех настроек сервера
         public void WriteConfig()
         {
             try
@@ -192,9 +202,11 @@ namespace TankServer
             catch (Exception e)
             {
                 Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [СЕРВЕР]: {e.Message}");
+                _logger.Error($"[СЕРВЕР]: {e.Message}");
             }
         }
 
+        //получить настройки из файла - возвращает экземпляр TankSettings
         public TankSettings GetSettings()
         {
             var _fileSettings = new TankSettings();
@@ -204,7 +216,7 @@ namespace TankServer
                 var SR = new StreamReader(ConfigPath);
 
                 var FileEntry = new List<string>();
-                FileEntry.AddRange(SR.ReadToEnd().Split('\n'));
+                FileEntry.AddRange(SR.ReadToEnd().Replace("\r", "").Split('\n'));
 
                 SR.Close();
 
@@ -222,25 +234,27 @@ namespace TankServer
             catch (Exception e)
             {
                 Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [СЕРВЕР]: {e.Message}");
+                _logger.Error($"[СЕРВЕР]: {e.Message}");
             }
 
             return _fileSettings;
         }
 
+        //проверка на изменение настроек: проверяет всё, кроме версии
         public bool isSettingsChanged(TankSettings _fileSettings)
         {
-            if (_fileSettings != null)
+            if (_fileSettings == null)
             {
-                return (Settings.ServerName == _fileSettings.ServerName &&
-                Settings.ServerType == _fileSettings.ServerType &&
-                Settings.SessionTime - _fileSettings.SessionTime < new TimeSpan(10) &&
-                Settings.GameSpeed == _fileSettings.GameSpeed &&
-                Settings.TankSpeed == _fileSettings.TankSpeed &&
-                Settings.TankDamage == _fileSettings.TankDamage &&
-                Settings.BulletSpeed == _fileSettings.BulletSpeed) ? false : true;
+                return true;
             }
 
-            return true;
+            return (Settings.ServerName != _fileSettings.ServerName ||
+                Settings.ServerType != _fileSettings.ServerType ||
+                Settings.SessionTime != _fileSettings.SessionTime ||
+                Settings.GameSpeed != _fileSettings.GameSpeed ||
+                Settings.TankSpeed != _fileSettings.TankSpeed ||
+                Settings.TankDamage != _fileSettings.TankDamage ||
+                Settings.BulletSpeed != _fileSettings.BulletSpeed);
         }
 
         public void Dispose()
@@ -299,6 +313,7 @@ namespace TankServer
                     break;
             }
 
+            clientTank.BulletSpeed = Settings.BulletSpeed;
             var bullet = new BulletObject(Guid.NewGuid(), new Rectangle(location, 1, 1), clientTank.BulletSpeed, 
                 true, clientTank.Direction, clientTank.Id, clientTank.Damage);
 
@@ -351,6 +366,7 @@ namespace TankServer
             catch (Exception e)
             {
                 Console.WriteLine($"Ошибка во время выполнения: {e}");
+                _logger.Error($"Ошибка во время выполнения: {e}");
             }
         }
 
@@ -534,18 +550,17 @@ namespace TankServer
                 {
                     lock (_syncObject)
                     {
-                        //в карту для клиентов кладётся только видимые объекты
                         clientMap = new Map(Map, visibleObjects);
                     }
                 }
 
-                var request = new ServerRequest
-                {
-                    Map = clientMap,
-                    Tank = client.Value.InteractObject as TankObject
-                };
+                    //если настройки изменились, клиенту отправится новая версия и флаг об обновлении настроек
+                    var request = isSettingsChanged(GetSettings())
+                        ? new ServerRequest { Map = clientMap, Tank = client.Value.InteractObject as TankObject, IsSettingsChanged = true, Settings = Settings }
+                        : new ServerRequest { Map = clientMap, Tank = client.Value.InteractObject as TankObject, IsSettingsChanged = false, Settings = Settings };
 
-                var json = request.ToJson();
+                    json = request.ToJson();
+                }
 
                 try
                 {
@@ -553,11 +568,13 @@ namespace TankServer
                     if (needUpdate)
                     {
                         Console.WriteLine($"{DateTime.Now.ToShortTimeString()} Передача полной карты для {client.Key.ConnectionInfo.ClientIpAddress} / {(client.Value.IsSpecator ? "наблюдатель" : client.Value.Nickname)}");
+                        _logger.Info($"Передача полной карты для {client.Key.ConnectionInfo.ClientIpAddress} / {(client.Value.IsSpecator ? "наблюдатель" : client.Value.Nickname)}");
                     }
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine($"{DateTime.Now.ToShortTimeString()} Ошибка передачи данных клиенту: {e.Message}");
+                    _logger.Error($"Ошибка передачи данных клиенту: {e.Message}");
                     client.Value.NeedRemove = true;
                 }
 
@@ -638,12 +655,13 @@ namespace TankServer
                                     //Если двигающийся объект - это пуля
                                     if (movingObject is BulletObject bulletObject)
                                     {
-                                        //проверка на изменения настроек 
+                                        //если скорость пули была изменена в настройках игры, устанавливаем новое значение
                                         if (movingObject.Speed != Settings.BulletSpeed)
                                         {
                                             movingObject.Speed = Settings.BulletSpeed;
                                         }
 
+                                        //домножение скорости на скорость игры
                                         movingObject.Speed *= Settings.GameSpeed;
 
                                         //если пуля попала в стену
@@ -676,45 +694,30 @@ namespace TankServer
                                         //Если пуля попала в танк
                                         if (intersectedObject is TankObject tankIntersectedObject)
                                         {
-                                            //удаляем пулю
                                             objsToRemove.Add(bulletObject);
                                             canMove = false;
 
-                                            //переменная которая проверяет Hp объекта в который попали уменьшилось до смерти
                                             var hpToRemove = tankIntersectedObject.Hp > bulletObject.DamageHp
                                                 ? bulletObject.DamageHp
                                                 : tankIntersectedObject.Hp;
                                             bool isFrag = false;
-                                            //вычитаем здоровье у танка в который попали
                                             tankIntersectedObject.Hp -= hpToRemove;
-
-                                            //если здоровье танка, в который попали меньше 0, но жизни ещё есть
-                                            if (tankIntersectedObject.Hp <= 0 && tankIntersectedObject.Lives > 0)
+                                            if (tankIntersectedObject.Hp <= 0)
                                             {
                                                 isFrag = true;
-
-                                                Reborn(tankIntersectedObject);
-
-                                            }
-                                            else
-                                            {
-                                                //если у танка нет жизней и здоровье меньше нуля, то удаляем его
-                                                if(tankIntersectedObject.Hp <= 0 && tankIntersectedObject.Lives <= 0)
-                                                {
-                                                    //удаляем умерший танк
-                                                    objsToRemove.Add(tankIntersectedObject);
-                                                }
+                                                objsToRemove.Add(tankIntersectedObject);
                                             }
 
-                                            var sourceTank = Map.InteractObjects.OfType<TankObject>()
-                                                .FirstOrDefault(t => t.Id == bulletObject.SourceId);
-                                            if (sourceTank != null)
-                                            {
-                                                sourceTank.Score += hpToRemove;
-                                                if (isFrag)
+                                                var sourceTank = Map.InteractObjects.OfType<TankObject>()
+                                                    .FirstOrDefault(t => t.Id == bulletObject.SourceId);
+                                                if (sourceTank != null)
                                                 {
-                                                    sourceTank.Score += 50;
-                                                    _logger.Info($"{tankIntersectedObject.Nickname} was killed by {sourceTank.Nickname}");
+                                                    sourceTank.Score += hpToRemove;
+                                                    if (isFrag)
+                                                    {
+                                                        sourceTank.Score += 50;
+                                                        _logger.Info($"{tankIntersectedObject.Nickname} was killed by {sourceTank.Nickname}");
+                                                    }
                                                 }
                                             }
                                         }
@@ -730,18 +733,22 @@ namespace TankServer
                                         {
                                             canMove = false;
                                         }
-                                        else if ((decimal) cells.Count(c => c.Value == CellMapType.Water) / cells.Count >= 0.5m)
+                                        else if ((decimal)cells.Count(c => c.Value == CellMapType.Water) / cells.Count >= 0.5m)
                                         {
-                                            objsToRemove.Add(tankObject);
-                                            canMove = false;
+                                            if (tankObject.IsInvulnerable == false)
+                                            {
+                                                objsToRemove.Add(tankObject);
+                                                canMove = false;
+                                            }
                                         }
 
-                                        //проверка на изменения настроек 
+                                        //если скорость танка была изменена в настройках игры, устанавливаем новое значение
                                         if (movingObject.Speed != Settings.TankSpeed)
                                         {
                                             movingObject.Speed = Settings.TankSpeed;
                                         }
 
+                                        //домножение на скорость игры
                                         movingObject.Speed *= Settings.GameSpeed;
 
                                         if (intersectedObject is UpgradeInteractObject upgradeObject)
@@ -781,6 +788,12 @@ namespace TankServer
                                                     tank.Hp += upgrade.IncreaseHP;
                                                     break;
                                                 }
+                                                case UpgradeType.Invulnerability:
+                                                {
+                                                    var upgrade = upgradeObject as InvulnerabilityUpgradeObject;
+                                                    CallInvulnerability(tank, 5);
+                                                    break;
+                                                }
                                             }
 
                                             objsToRemove.Add(intersectedObject);
@@ -796,6 +809,8 @@ namespace TankServer
                                 if (canMove)
                                 {
                                     movingObject.Rectangle = new Rectangle(newRectangle);
+                                    Rectangle rec;
+                                    List<KeyValuePair<Point, CellMapType>> cells;
 
                                     switch (movingObject.Direction)
                                     {
@@ -803,12 +818,26 @@ namespace TankServer
                                             newPoint.Left -= shift;
                                             break;
                                         case DirectionType.Right:
+                                            if (movingObject is TankObject)
+                                            {
+                                                rec = new Rectangle() { Height = 5, Width = 1, LeftCorner = new Point { Left = (int)newPoint.Left + movingObject.Rectangle.Width, Top = newPoint.Top } };
+                                                cells = MapManager.WhatOnMap(rec, Map);
+                                                if (cells.Any(c => c.Value == CellMapType.DestructiveWall || c.Value == CellMapType.Wall))
+                                                    break;
+                                            }
                                             newPoint.Left += shift;
                                             break;
                                         case DirectionType.Up:
                                             newPoint.Top -= shift;
                                             break;
                                         case DirectionType.Down:
+                                            if (movingObject is TankObject)
+                                            {
+                                                rec = new Rectangle() { Height = 1, Width = 5, LeftCorner = new Point { Left = newPoint.Left, Top = newPoint.Top + movingObject.Rectangle.Height } };
+                                                cells = MapManager.WhatOnMap(rec, Map);
+                                                if (cells.Any(c => c.Value == CellMapType.DestructiveWall || c.Value == CellMapType.Wall))
+                                                    break;
+                                            }
                                             newPoint.Top += shift;
                                             break;
                                     }
@@ -851,6 +880,7 @@ namespace TankServer
                 catch (Exception e)
                 {
                     Console.WriteLine($"Ошибка работы игрового движка: {e}");
+                    _logger.Error($"Ошибка работы игрового движка: {e}");
                 }
             }
         }
@@ -947,11 +977,26 @@ namespace TankServer
                 case 5:
                     result = new SpeedUpgradeObject(objId, rectangle);
                     break;
+                case 6:
+                    result = new InvulnerabilityUpgradeObject(objId, rectangle);
+                    break;
                 default:
                     throw new NotSupportedException("Incorrect object");
             }
 
             return result;
+        }
+
+        protected async void CallInvulnerability(TankObject tank, int sec)
+        {
+            await Task.Run(() => Invulnerability(tank, sec));
+        }
+
+        protected void Invulnerability(TankObject tank, int sec)
+        {
+            tank.IsInvulnerable = true;
+            Thread.Sleep(int.TryParse($"{sec}000", out var value) ? value : 3000);
+            tank.IsInvulnerable = false;
         }
     }
 }
