@@ -167,18 +167,22 @@
         private SolidColorBrush[] _mapObjectsColors;
 
         //ClientInfo
-        public bool DgvIsVisible
+        public bool UIIsVisible
         {
             get { return _dgv.Visible; }
-            set { _dgv.Visible = true; }
+            set
+            {
+                _clientInfoLabel.Visible = true;
+                _dgv.Visible = true;
+            }
         }
+        Label _clientInfoLabel;
         DataGridView _dgv;
         private List<TankObject> _clientInfoTanks;
         private RawVector2 _clientInfoLeftPoint;
         private RawVector2 _clientInfoRightPoint;
-        private RectangleF _clientInfoRect;
+        private RectangleF _clientInfoAreaRect;
         private RectangleF _clientInfoTextRect;
-        private RectangleF _clientInfoListRect;
 
         //Entry screen
         private RectangleF _logoTextRect;
@@ -197,6 +201,7 @@
         //DrawTank()
         private RawRectangleF _tankRectangle;
         private RawRectangleF _nickRectangle;
+        private RawRectangleF _nickBackRectangle;
         private TextFormat _nicknameTextFormat;
 
         //Bitmap
@@ -248,7 +253,7 @@
             /*12*/ new SolidColorBrush(RenderTarget2D, Color.Green), //_greenBrush
             /*13*/ new SolidColorBrush(RenderTarget2D, new RawColor4(0.3f, 0.3f, 0.3f, 0.9f)), //_backgroundBrush
             /*14*/ new SolidColorBrush(RenderTarget2D, new RawColor4(1.0f, 1.0f, 1.0f, 1.0f)), //_logoBrush
-            /*15*/ new SolidColorBrush(RenderTarget2D, new RawColor4(0.9f, 0.1f, 0.1f, 1.0f)) //nickname
+            /*15*/ new SolidColorBrush(RenderTarget2D, new RawColor4(0.28f, 0.88f, 0.23f, 1.0f)) //nickname
             };
 
             _fpsmsTextRect = new RectangleF(25, 5, 150, 30);
@@ -259,21 +264,19 @@
             _statusTextRect = new RectangleF(
                 _logoTextRect.X + _logoTextRect.X,
                 RenderForm.Height - (RenderForm.Height - _logoTextRect.Bottom - 200), 800, 30);
-            _clientInfoRect = new RectangleF(1000, 0, 1920 - 1000, 1080);
+            _clientInfoAreaRect = new RectangleF(1080, 0, 1920 - 1080, 1080);
             _clientInfoTextRect = new RectangleF(
-                _clientInfoRect.X + 0.39f * _clientInfoRect.X,
-                _clientInfoRect.Y + 0.05f * _clientInfoRect.Height, 300, 100);
-            _clientInfoLeftPoint = new RawVector2(_clientInfoRect.X,
+                _clientInfoAreaRect.X + 0.39f * _clientInfoAreaRect.X,
+                _clientInfoAreaRect.Y + 0.05f * _clientInfoAreaRect.Height, 300, 100);
+            _clientInfoLeftPoint = new RawVector2(_clientInfoAreaRect.X,
                 _clientInfoTextRect.Y + 0.6f * _clientInfoTextRect.Height);
             _clientInfoRightPoint = new RawVector2(
-                _clientInfoRect.X + _clientInfoRect.Width,
+                _clientInfoAreaRect.X + _clientInfoAreaRect.Width,
                 _clientInfoTextRect.Y + 0.6f * _clientInfoTextRect.Height);
-            _clientInfoListRect = new RectangleF(
-                1080, _clientInfoRightPoint.Y + 50,
-                900, 200);
 
             _tankRectangle = new RawRectangleF();
             _nickRectangle = new RawRectangleF();
+            _nickBackRectangle = new RawRectangleF();
 
             SharpDX.DirectWrite.Factory directFactory =
                 new SharpDX.DirectWrite.Factory(SharpDX.DirectWrite.FactoryType.Shared);
@@ -282,7 +285,7 @@
             _logoBrushTextFormat =
                 new TextFormat(directFactory, "Arial", FontWeight.Normal, FontStyle.Italic, 180.0f);
             _nicknameTextFormat =
-                new TextFormat(directFactory, "Times New Roman", FontWeight.Normal, FontStyle.Italic, 14.0f);
+                new TextFormat(directFactory, "Times New Roman", FontWeight.Normal, FontStyle.Italic, 16.0f);
 
             _textAnimation = new TextAnimation();
             _textAnimation.SetAnimatedString("Waiting for connection to the server");
@@ -294,13 +297,22 @@
               ##### UI #####
               ##############
              */
+            _clientInfoLabel = new Label();
+            _clientInfoLabel.Text = "Client info";
+            _clientInfoLabel.Font = new System.Drawing.Font("Cambria", 30);
+            _clientInfoLabel.BackColor = System.Drawing.Color.Green;
+            _clientInfoLabel.ForeColor = System.Drawing.Color.White;
+            _clientInfoLabel.Location = new System.Drawing.Point(1400, 30);
+            _clientInfoLabel.AutoSize = true;
+            _clientInfoLabel.Visible = false;
+
             _dgv = new DataGridView();
             _dgv.Width = 800; //840 (1920)
             _dgv.Height = 350; //1080
             _dgv.AutoSize = true;
             _dgv.Font = new System.Drawing.Font("Microsoft Sans Serif", 14F, 
                 System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            _dgv.Location = new System.Drawing.Point(1080, 120);
+            _dgv.Location = new System.Drawing.Point(1100, 150);
             _dgv.Name = "dataTab";
             _dgv.Text = "Статус:";
             _dgv.Visible = false;
@@ -334,6 +346,7 @@
                 _dgv.Columns[i].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             }
 
+            RenderForm.Controls.Add(_clientInfoLabel);
             RenderForm.Controls.Add(_dgv);
 
             //Loading resources
@@ -397,8 +410,7 @@
                 _isMapSet = true;
                 _mapWidth = Map.MapWidth;
                 _mapHeight = Map.MapHeight;
-
-                _zoomWidth = 1080 / _mapWidth;
+                _zoomWidth = (float)1080 / _mapWidth;
                 _zoomHeight = RenderTarget2D.Size.Height / _mapHeight;
             }
 
@@ -611,32 +623,21 @@
 
                     nickLength = tankObject.Nickname.Length;
                     w = _tankRectangle.Right - _tankRectangle.Left;
-
-                    //if (nickLength > w)
-                    //{
-                    //    d = nickLength / w;
-                    //    _nickRectangle.Left = _tankRectangle.Left - d * _zoomWidth;
-                    //    _nickRectangle.Right = _tankRectangle.Right + d * _zoomWidth;
-                    //}
-                    //else if (nickLength < w) //done
-                    //{
-                    //    _nickRectangle.Left   = _tankRectangle.Left + 1 * _zoomWidth;
-                    //    _nickRectangle.Right  = _tankRectangle.Right;
-                    //}
-                    //else
-                    //{
-                    //    _nickRectangle.Left = _tankRectangle.Left;
-                    //    _nickRectangle.Right = _tankRectangle.Right;
-                    //}
                     d = (w - nickLength * _zoomWidth) / 2;
-                    _nickRectangle.Left = _tankRectangle.Left   + d /** _zoomWidth*/;
-                    _nickRectangle.Right = _tankRectangle.Right - d /** _zoomWidth*/;
+                    _nickRectangle.Left = _tankRectangle.Left   + d;
+                    _nickRectangle.Right = _tankRectangle.Right - d + 3*_zoomWidth;
                     _nickRectangle.Top = _tankRectangle.Top - 3 * _zoomHeight;
                     _nickRectangle.Bottom = _tankRectangle.Top - _zoomHeight;
-                    
+
+                    _nickBackRectangle.Left   = _nickRectangle.Left-5;
+                    _nickBackRectangle.Right  = _nickRectangle.Right;
+                    _nickBackRectangle.Top    = _nickRectangle.Top-3;
+                    _nickBackRectangle.Bottom = _nickRectangle.Bottom+5;
+
+                    RenderTarget2D.FillRectangle(_nickBackRectangle, _mapObjectsColors[13]);
                     RenderTarget2D.DrawText(tankObject.Nickname,
                         _nicknameTextFormat, _nickRectangle, _mapObjectsColors[15]);
-                    
+
                     if (tankObject.Direction == DirectionType.Up)
                     {
                         RenderTarget2D.DrawBitmap(_tankUpBitmap, _tankRectangle, opacity, interpolationMode);
@@ -661,9 +662,9 @@
         public void DrawClientInfo()
         {
             RenderTarget2D.Clear(_blackScreen);
-            RenderTarget2D.FillRectangle(_clientInfoRect, _mapObjectsColors[13]);
+            RenderTarget2D.FillRectangle(_clientInfoAreaRect, _mapObjectsColors[13]);
             RenderTarget2D.DrawLine(_clientInfoLeftPoint, _clientInfoRightPoint, _mapObjectsColors[12], 10);
-            RenderTarget2D.DrawText("Client info", _statusTextFormat, _clientInfoTextRect, _mapObjectsColors[12]);
+            //RenderTarget2D.DrawText("Client info", _statusTextFormat, _clientInfoTextRect, _mapObjectsColors[12]);
             _clientInfoTanks.AddRange(
                 Map.InteractObjects.OfType<TankObject>().OrderByDescending(t => t.Score).ToList());
 
@@ -674,16 +675,19 @@
             //heightIncriment.Y += _clientInfoListRect.Height / 4;
             //int diffLen;
             int index = 0;
-            foreach (var tank in _clientInfoTanks)
+            if (_dgv.Rows.Count > 0)
             {
-                _dgv.Rows[index].SetValues(index, tank.Nickname, tank.Score, tank.Hp);
-                //diffLen = Math.Abs(nicknameFormatted.Length - tank.Nickname.Length);
-                //RenderTarget2D.DrawText(
-                //    $"{index}. {tank.Nickname}{new string(' ', diffLen)} " +
-                //    $"{(int)tank.Score} {(int)tank.Hp}",
-                //    _statusTextFormat, heightIncriment, _mapObjectsColors[12]);
-                //heightIncriment.Y += _clientInfoListRect.Height / 4;
-                ++index;
+                foreach (var tank in _clientInfoTanks)
+                {
+                    _dgv.Rows[index].SetValues(index, tank.Nickname, tank.Score, tank.Hp);
+                    //diffLen = Math.Abs(nicknameFormatted.Length - tank.Nickname.Length);
+                    //RenderTarget2D.DrawText(
+                    //    $"{index}. {tank.Nickname}{new string(' ', diffLen)} " +
+                    //    $"{(int)tank.Score} {(int)tank.Hp}",
+                    //    _statusTextFormat, heightIncriment, _mapObjectsColors[12]);
+                    //heightIncriment.Y += _clientInfoListRect.Height / 4;
+                    ++index;
+                }
             }
             _clientInfoTanks.Clear();
         }

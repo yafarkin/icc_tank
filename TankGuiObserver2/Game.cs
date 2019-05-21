@@ -41,6 +41,9 @@
             _renderForm.Width = windowWidth;
             _renderForm.Height = windowHeight;
             _renderForm.AllowUserResizing = false;
+            _renderForm.TopMost = true;
+            _renderForm.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            _renderForm.WindowState = System.Windows.Forms.FormWindowState.Maximized;
 
             var desc = new SwapChainDescription()
             {
@@ -135,6 +138,13 @@
                 }
                 else if (key == Key.Escape)
                 {
+                    try
+                    {
+                        _clientThread.Interrupt();
+                    }
+                    catch
+                    {
+                    }
                     _renderForm.Close();
                 }
             }
@@ -142,7 +152,7 @@
             //Drawing a gama
             if (_isEnterPressed)
             {
-                if (!_gameRender.DgvIsVisible) { _gameRender.DgvIsVisible = true; }
+                if (!_gameRender.UIIsVisible) { _gameRender.UIIsVisible = true; }
                 _gameRender.Map = _spectatorClass.Map;
                 _gameRender.DrawClientInfo();
                 _gameRender.DrawMap();
@@ -245,6 +255,7 @@
             _device.Dispose();
             _connector.Dispose();
             _gameRender.Dispose();
+            
         }
 
     }
