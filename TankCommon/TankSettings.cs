@@ -6,8 +6,6 @@
     {
         public int Version { get; set; }
         public string ServerName { get; set; }
-        public ServerType ServerType { get; set; }
-        public TimeSpan SessionTime { get; set; }
         public decimal GameSpeed { get; set; }
         public decimal TankSpeed { get; set; }
         public decimal BulletSpeed { get; set; }

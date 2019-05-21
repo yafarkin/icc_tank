@@ -14,20 +14,29 @@ namespace AdminPanel.Controllers
         /// <summary>
         /// Создание сервера
         /// </summary>
-        /// <param name="maxBotsCount">Колличество одновременно играющих на сервере</param>
-        /// <param name="botUpdateMs">Частота обновления клиентов</param>
-        /// <param name="coreUpdateMs">Время простоя сервера до его обновления</param>
-        /// <param name="spectatorUpdateMs">Частота обновления наблюдателей</param>
-        /// <param name="port">Порт по которому будет работать сервер</param>
+        /// <param name="maxClientsCount">Колличество одновременно играющих на сервере</param>
+        /// <param name="nameSession"></param>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
         [HttpPost]
-        public void CreateServer([FromForm] int maxBotsCount, [FromForm] int botUpdateMs, [FromForm] int coreUpdateMs, [FromForm] int spectatorUpdateMs, [FromForm] int port)
+        public void CreateServer([FromForm] int? maxClientsCount, [FromForm] string nameSession, [FromForm] int? width, [FromForm] int? height,
+            [FromForm] int? gameSpeed, [FromForm] int? tankSpeed, [FromForm] int? bulletSpeed, [FromForm] int? tankDamage)
         {
-            var newPort = Convert.ToUInt32(port);
+            if (nameSession == String.Empty) return;
+            if (maxClientsCount == null) maxClientsCount = 2;
+            if (width == null) width = 20;
+            if (height == null) height = 20;
+            if (gameSpeed == null) gameSpeed = 1;
+            if (tankSpeed == null) tankSpeed = 2;
+            if (bulletSpeed == null) bulletSpeed = 7;
+            if (tankDamage == null) tankDamage = 40;
+
+            var port = 1000;
             while (true)
             {
-                if (Program.servers.Any(x => x.Port == newPort))
+                if (Program.servers.Any(x => x.Port == port))
                 {
-                    newPort += 10;
+                    port += 10;
                 }
                 else
                 {
@@ -35,15 +44,34 @@ namespace AdminPanel.Controllers
                 }
             }
 
-            TankCommon.Objects.Map map = TankCommon.MapManager.LoadMap(20, TankCommon.Enum.CellMapType.Wall, 50, 50);
-            var server = new Server(map, newPort, Convert.ToUInt32(maxBotsCount), Convert.ToUInt32(coreUpdateMs), Convert.ToUInt32(spectatorUpdateMs), Convert.ToUInt32(botUpdateMs));
+            var serverSettings = new ServerSettings()
+            {
+                SessionName = nameSession,
+                MapType = (TankCommon.Enum.MapType)1,
+                Width = width,
+                Height = height,
+                MaxClientCount = maxClientsCount,
+                port = port
+            };
+
+            var tankSettings = new TankCommon.TankSettings()
+            {
+                Version = 1,
+                GameSpeed = gameSpeed,
+                TankSpeed = tankSpeed,
+                BulletSpeed = bulletSpeed,
+                TankDamage = tankDamage
+            };
+
+//            TankCommon.Objects.Map map = TankCommon.MapManager.LoadMap(20, TankCommon.Enum.CellMapType.Wall, 50, 50);
+            var server = new Server(serverSettings, tankSettings);
             var cancellationToken = new CancellationTokenSource();
 
             Program.servers.Add(new ServerEntity()
             {
-                Id = Program.servers.Count == 0 ? 1 : Program.servers[Program.servers.Count - 1].Id + 1,
+                Id = Program.servers.Count == 0 ? 1 : Program.servers.Count,
                 CancellationToken = cancellationToken,
-                Port = newPort,
+//                Port = port,
                 Server = server,
                 Task = server.Run(cancellationToken.Token)
             });                        

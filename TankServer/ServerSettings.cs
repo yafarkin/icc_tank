@@ -13,5 +13,8 @@ namespace TankServer
         public int Width { get; set; }
         public int Height { get; set; }
         public int MaxClientCount { get; set; }
+        public int Port { get; set; }
+        public TankCommon.Enum.ServerType ServerType { get; set; }
+        public TimeSpan SessionTime { get; set; }
     }
 }
