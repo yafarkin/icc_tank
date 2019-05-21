@@ -21,11 +21,8 @@ namespace TankServer
         protected DateTime _lastCoreUpdate;
 
         protected readonly uint _maxBotsCount;
-        protected readonly uint _coreUpdateMs;
-        protected readonly uint _spectatorUpdateMs;
-        protected readonly uint _botUpdateMs;
 
-        public TankSettings _tankSettings = new TankSettings();
+        public TankSettings Settings = new TankSettings();
         public string ConfigPath;
 
         public readonly Map Map;
@@ -33,21 +30,21 @@ namespace TankServer
 
         public readonly Logger _logger;
 
-        public Server(Map map, uint port, uint maxBotsCount, uint coreUpdateMs, uint spectatorUpdateMs, uint botUpdateMs)
+        public Server(Map map, uint port, uint maxBotsCount, TankSettings tankSettings)
         {
             Map = map;
             Clients = new Dictionary<IWebSocketConnection, ClientInfo>();
+            Settings = tankSettings;
 
             _maxBotsCount = maxBotsCount;
-            _coreUpdateMs = coreUpdateMs;
-            _spectatorUpdateMs = spectatorUpdateMs;
-            _botUpdateMs = botUpdateMs;
 
             _random = new Random();
             _logger = LogManager.GetCurrentClassLogger();
             //FleckLog.Level = LogLevel.Debug;
 
+            //создаём файл конфигурации, если его не существует
             CreateConfigResourcesIfNotExist();
+            //записываем исходные настройки
             WriteConfig();
 
             _socketServer = new WebSocketServer($"ws://0.0.0.0:{port}");
@@ -59,10 +56,8 @@ namespace TankServer
                     {
                         Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
                         _logger.Info($"[КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
-                        Clients.Add(socket, new ClientInfo());
-
-                        //Проверка на изменения при установке новых настроек. Да, не самое удачное место для неё, для наглядности пойдёт
-                        //_tankSettings.UpdateAll("BattleCity", "BattleCity", "00:15:00", (decimal)2, 4, 2, 50);  //v2
+                        //добавляем клиента с заданными настройками и флагом об их обновлении
+                        Clients.Add(socket, new ClientInfo() { Request = new ServerRequest { Settings = Settings, IsSettingsChanged = true } });
                     }
                 };
                 socket.OnClose = () =>
@@ -124,6 +119,11 @@ namespace TankServer
 
                                 clientInfo.IsLogined = true;
                                 clientInfo.NeedUpdateMap = true;
+                                
+                                //если настройки изменились, клиенту отправится новая версия и флаг об обновлении настроек
+                                clientInfo.Request = isSettingsChanged(GetSettings())
+                                    ? new ServerRequest { IsSettingsChanged = true, Settings = Settings }
+                                    : new ServerRequest { IsSettingsChanged = false };
 
                                 if (string.IsNullOrWhiteSpace(response.CommandParameter))
                                 {
@@ -168,6 +168,7 @@ namespace TankServer
             });
         }
 
+        //создание директории для файла конфигурации, если она не существует, и создание файла TankConfig.txt
         public void CreateConfigResourcesIfNotExist()
         {
             ConfigPath = $"{Directory.GetCurrentDirectory()}/config";
@@ -183,6 +184,7 @@ namespace TankServer
             }
         }
 
+        //запись в файл всех настроек сервера
         public void WriteConfig()
         {
             try
@@ -190,7 +192,7 @@ namespace TankServer
                 var SW = new StreamWriter(ConfigPath, false, System.Text.Encoding.Default);
                 typeof(TankSettings)
                     .GetProperties()
-                    .Select(x => x.GetValue(_tankSettings, null))
+                    .Select(x => x.GetValue(Settings, null))
                     .ToList()
                     .ForEach(x => SW.WriteLine(x));
 
@@ -199,9 +201,11 @@ namespace TankServer
             catch (Exception e)
             {
                 Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [СЕРВЕР]: {e.Message}");
+                _logger.Error($"[СЕРВЕР]: {e.Message}");
             }
         }
 
+        //получить настройки из файла - возвращает экземпляр TankSettings
         public TankSettings GetSettings()
         {
             var _fileSettings = new TankSettings();
@@ -211,7 +215,7 @@ namespace TankServer
                 var SR = new StreamReader(ConfigPath);
 
                 var FileEntry = new List<string>();
-                FileEntry.AddRange(SR.ReadToEnd().Split('\n'));
+                FileEntry.AddRange(SR.ReadToEnd().Replace("\r", "").Split('\n'));
 
                 SR.Close();
 
@@ -229,25 +233,27 @@ namespace TankServer
             catch (Exception e)
             {
                 Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [СЕРВЕР]: {e.Message}");
+                _logger.Error($"[СЕРВЕР]: {e.Message}");
             }
 
             return _fileSettings;
         }
 
+        //проверка на изменение настроек: проверяет всё, кроме версии
         public bool isSettingsChanged(TankSettings _fileSettings)
         {
-            if (_fileSettings != null)
+            if (_fileSettings == null)
             {
-                return (_tankSettings.ServerName == _fileSettings.ServerName &&
-                _tankSettings.ServerType == _fileSettings.ServerType &&
-                _tankSettings.SessionTime - _fileSettings.SessionTime < new TimeSpan(10) &&
-                _tankSettings.GameSpeed == _fileSettings.GameSpeed &&
-                _tankSettings.TankSpeed == _fileSettings.TankSpeed &&
-                _tankSettings.TankDamage == _fileSettings.TankDamage &&
-                _tankSettings.BulletSpeed == _fileSettings.BulletSpeed) ? false : true;
+                return true;
             }
 
-            return true;
+            return (Settings.ServerName != _fileSettings.ServerName ||
+                Settings.ServerType != _fileSettings.ServerType ||
+                Settings.SessionTime != _fileSettings.SessionTime ||
+                Settings.GameSpeed != _fileSettings.GameSpeed ||
+                Settings.TankSpeed != _fileSettings.TankSpeed ||
+                Settings.TankDamage != _fileSettings.TankDamage ||
+                Settings.BulletSpeed != _fileSettings.BulletSpeed) ? true : false;
         }
 
         public void Dispose()
@@ -293,7 +299,7 @@ namespace TankServer
                 break;
             }
 
-            var tank = new TankObject(Guid.NewGuid(), rectangle, 2, false, 100, 100, nickname, tag, 40);
+            var tank = new TankObject(Guid.NewGuid(), rectangle, Settings.TankSpeed, false, 100, 100, nickname, tag, Settings.TankDamage);
             Map.InteractObjects.Add(tank);
 
             return tank;
@@ -327,6 +333,7 @@ namespace TankServer
                     break;
             }
 
+            clientTank.BulletSpeed = Settings.BulletSpeed;
             var bullet = new BulletObject(Guid.NewGuid(), new Rectangle(location, 1, 1), clientTank.BulletSpeed, 
                 true, clientTank.Direction, clientTank.Id, clientTank.Damage);
 
@@ -351,16 +358,16 @@ namespace TankServer
                     await SendUpdates(false, cancellationToken);
 
                     // в более частом цикле высылаем состояние движка для наблюдателей
-                    var botTimer = Convert.ToInt32(_botUpdateMs);
+                    var botTimer = 250;
                     while (botTimer > 0 && !cancellationToken.IsCancellationRequested)
                     {
-                        await Task.Delay(Convert.ToInt32(_spectatorUpdateMs));
+                        await Task.Delay(100);
                         if (cancellationToken.IsCancellationRequested)
                         {
                             break;
                         }
 
-                        botTimer -= Convert.ToInt32(_spectatorUpdateMs);
+                        botTimer -= 100;
                         await SendUpdates(true, cancellationToken);
                     }
 
@@ -379,6 +386,7 @@ namespace TankServer
             catch (Exception e)
             {
                 Console.WriteLine($"Ошибка во время выполнения: {e}");
+                _logger.Error($"Ошибка во время выполнения: {e}");
             }
         }
 
@@ -543,22 +551,34 @@ namespace TankServer
                 // запоминаем значение, требовалось высылать ли обновление карты
                 var needUpdate = client.Value.NeedUpdateMap;
 
-                clientMap = emptyMap;
-                if (needUpdate)
+                string json;
+                if (client.Value.IsSpecator)
                 {
-                    lock (_syncObject)
+                    var request = new ServerRequest
                     {
-                        clientMap = new Map(Map, visibleObjects);
-                    }
+                        Map = Map,
+                        Tank = null as TankObject
+                    };
+                    json = request.ToJson();
                 }
-
-                var request = new ServerRequest
+                else
                 {
-                    Map = clientMap,
-                    Tank = client.Value.InteractObject as TankObject
-                };
+                    clientMap = emptyMap;
+                    if (needUpdate)
+                    {
+                        lock (_syncObject)
+                        {
+                            clientMap = new Map(Map, visibleObjects);
+                        }
+                    }
 
-                var json = request.ToJson();
+                    //если настройки изменились, клиенту отправится новая версия и флаг об обновлении настроек
+                    var request = isSettingsChanged(GetSettings())
+                        ? new ServerRequest { Map = clientMap, Tank = client.Value.InteractObject as TankObject, IsSettingsChanged = true, Settings = Settings }
+                        : new ServerRequest { Map = clientMap, Tank = client.Value.InteractObject as TankObject, IsSettingsChanged = false, Settings = Settings };
+
+                    json = request.ToJson();
+                }
 
                 try
                 {
@@ -566,11 +586,13 @@ namespace TankServer
                     if (needUpdate)
                     {
                         Console.WriteLine($"{DateTime.Now.ToShortTimeString()} Передача полной карты для {client.Key.ConnectionInfo.ClientIpAddress} / {(client.Value.IsSpecator ? "наблюдатель" : client.Value.Nickname)}");
+                        _logger.Info($"Передача полной карты для {client.Key.ConnectionInfo.ClientIpAddress} / {(client.Value.IsSpecator ? "наблюдатель" : client.Value.Nickname)}");
                     }
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine($"{DateTime.Now.ToShortTimeString()} Ошибка передачи данных клиенту: {e.Message}");
+                    _logger.Error($"Ошибка передачи данных клиенту: {e.Message}");
                     client.Value.NeedRemove = true;
                 }
 
@@ -590,7 +612,7 @@ namespace TankServer
             {
                 try
                 {
-                    await Task.Delay(Convert.ToInt32(_coreUpdateMs));
+                    await Task.Delay(100);
                     if (cancellationToken.IsCancellationRequested)
                     {
                         break;
@@ -605,11 +627,6 @@ namespace TankServer
                     var tsDelta = DateTime.Now - _lastCoreUpdate;
                     _lastCoreUpdate = DateTime.Now;
                     var delta = Convert.ToDecimal(tsDelta.TotalSeconds);
-
-                    if (isSettingsChanged(GetSettings()))
-                    {
-                        WriteConfig();
-                    }
 
                     lock (_syncObject)
                     {
@@ -655,10 +672,14 @@ namespace TankServer
 
                                     if (movingObject is BulletObject bulletObject)
                                     {
-                                        if (movingObject.Speed != _tankSettings.BulletSpeed)
+                                        //если скорость пули была изменена в настройках игры, устанавливаем новое значение
+                                        if (movingObject.Speed != Settings.BulletSpeed)
                                         {
-                                            movingObject.Speed = _tankSettings.BulletSpeed;
+                                            movingObject.Speed = Settings.BulletSpeed;
                                         }
+
+                                        //домножение скорости на скорость игры
+                                        movingObject.Speed *= Settings.GameSpeed;
 
                                         if (cells.Any(c => c.Value == CellMapType.Wall))
                                         {
@@ -731,18 +752,22 @@ namespace TankServer
                                             canMove = false;
                                         }
 
-                                        if (movingObject.Speed != _tankSettings.TankSpeed)
+                                        //если скорость танка была изменена в настройках игры, устанавливаем новое значение
+                                        if (movingObject.Speed != Settings.TankSpeed)
                                         {
-                                            movingObject.Speed = _tankSettings.TankSpeed;
+                                            movingObject.Speed = Settings.TankSpeed;
                                         }
+
+                                        //домножение на скорость игры
+                                        movingObject.Speed *= Settings.GameSpeed;
 
                                         if (intersectedObject is UpgradeInteractObject upgradeObject)
                                         {
                                             var tank = movingObject as TankObject;
 
-                                            if (tank.Damage != _tankSettings.TankDamage)
+                                            if (Settings.TankDamage != tank.Damage)
                                             {
-                                                tank.Damage = _tankSettings.TankDamage;
+                                                tank.Damage = Settings.TankDamage;
                                             }
 
                                             switch (upgradeObject.Type)
@@ -832,10 +857,16 @@ namespace TankServer
                             }
                         }
                     }
+
+                    if (isSettingsChanged(GetSettings()))
+                    {
+                        WriteConfig();
+                    }
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine($"Ошибка работы игрового движка: {e}");
+                    _logger.Error($"Ошибка работы игрового движка: {e}");
                 }
             }
         }

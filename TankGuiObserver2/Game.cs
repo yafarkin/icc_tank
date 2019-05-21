@@ -154,6 +154,7 @@
             {
                 _gameRender.Map = _spectatorClass.Map;
                 _gameRender.DrawClientInfo();
+                _gameRender.DrawTanks(_spectatorClass.Map.InteractObjects);
                 _gameRender.DrawMap();
                 _gameRender.DrawInteractiveObjects(_spectatorClass.Map.InteractObjects);
             }
