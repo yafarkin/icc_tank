@@ -86,6 +86,7 @@ namespace TankServer
                             return;
                         }
 
+                        //Информация для клиента
                         var clientInfo = Clients[socket];
 
                         var response = msg.FromJson<ServerResponse>();
@@ -475,20 +476,25 @@ namespace TankServer
 
             lock (_syncObject)
             {
+                //Лист видимых объектов
                 visibleObjects = new List<BaseInteractObject>(Map.InteractObjects.Count);
 
+                //Для всех интерактивных объектов
                 foreach (var interactObj in Map.InteractObjects.OfType<BaseInteractObject>())
                 {
+                    //Если этот объект это наблюдатель
                     if (interactObj is SpectatorObject)
                     {
                         continue;
                     }
 
+                    //Если интерактивный объект это танк или апгрейд
                     if (interactObj is TankObject || interactObj is UpgradeInteractObject)
                     {
                         var cells = MapManager.WhatOnMap(interactObj.Rectangle, Map);
                         if (cells.Any(c => c.Value != CellMapType.Grass))
                         {
+
                             if (interactObj is TankObject && (interactObj as TankObject).IsDead)
                             {
                                 
@@ -510,8 +516,10 @@ namespace TankServer
 
             var emptyMap = new Map(null, visibleObjects);
 
+            // Для всёх игроков
             foreach (var client in clientsCopy)
             {
+                //Если только смотрящие
                 if ((onlySpectators && !client.Value.IsSpecator) || !client.Value.IsLogined || client.Value.IsInQueue)
                 {
                     continue;
@@ -525,6 +533,7 @@ namespace TankServer
                 {
                     lock (_syncObject)
                     {
+                        //в карту для клиентов кладётся только видимые объекты
                         clientMap = new Map(Map, visibleObjects);
                     }
                 }
