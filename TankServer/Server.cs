@@ -262,29 +262,7 @@ namespace TankServer
 
         public BaseInteractObject AddTankBot(string nickname, string tag)
         {
-            Rectangle rectangle;
-
-            while (true)
-            {
-                var left = _random.Next(Map.MapWidth - Map.CellWidth);
-                var top = _random.Next(Map.MapHeight - Map.CellHeight);
-
-                rectangle = new Rectangle(new Point(left, top), Map.CellWidth, Map.CellHeight);
-
-                if (MapManager.GetIntersectedObject(rectangle, Map.InteractObjects) != null)
-                {
-                    continue;
-                }
-
-                var cellTypes = MapManager.WhatOnMap(rectangle, Map);
-                if (cellTypes.Any(ct => ct.Value != CellMapType.Void && ct.Value != CellMapType.Grass))
-                {
-                    continue;
-                }
-
-                break;
-            }
-
+            var rectangle = PastOnPassablePlace();
             var tank = new TankObject(Guid.NewGuid(), rectangle, 2, false, 100, 100, 5, 5, nickname, tag, 40);
             Map.InteractObjects.Add(tank);
 
@@ -511,7 +489,14 @@ namespace TankServer
                         var cells = MapManager.WhatOnMap(interactObj.Rectangle, Map);
                         if (cells.Any(c => c.Value != CellMapType.Grass))
                         {
-                            visibleObjects.Add(interactObj);
+                            if (interactObj is TankObject && (interactObj as TankObject).IsDead)
+                            {
+                                
+                            }
+                            else
+                            {
+                                visibleObjects.Add(interactObj);
+                            }
                         }
                     }
                     else
@@ -578,6 +563,8 @@ namespace TankServer
 
         public async Task UpdateEngine(CancellationToken cancellationToken)
         {
+            var reincarnationArr = new List<TankObject>();
+            
             while (!cancellationToken.IsCancellationRequested)
             {
                 try
@@ -695,10 +682,9 @@ namespace TankServer
                                             if (tankIntersectedObject.Hp <= 0 && tankIntersectedObject.Lives > 0)
                                             {
                                                 isFrag = true;
-                                                
-                                                //уменьшаем жизни
-                                                tankIntersectedObject.Lives--;
-                                                tankIntersectedObject.Hp = tankIntersectedObject.MaximumHp;
+
+                                                Reborn(tankIntersectedObject);
+
                                             }
                                             else
                                             {
@@ -859,19 +845,31 @@ namespace TankServer
             }
         }
 
-        protected void AddUpgrades()
+        private async void Reborn(TankObject tank, int normalHP = 100)
         {
-            var rnd = _random.NextDouble();
-            if (rnd <= 0.995)
+            tank.IsDead = true;
+            //уменьшаем жизни
+            tank.Lives--;
+            //Переносим на 0
+            tank.Rectangle.LeftCorner.Top = 0;
+            tank.Rectangle.LeftCorner.Left = 0;
+            var isFire = Map.InteractObjects.FirstOrDefault(x => (x as BulletObject)?.SourceId == tank.Id) != null;
+
+            await Task.Delay(5000);
+
+            tank.IsDead = false;
+            tank.Hp = normalHP;
+            tank.Rectangle =  PastOnPassablePlace();
+            var bullet = Map.InteractObjects.FirstOrDefault(x => (x as BulletObject)?.SourceId == tank.Id);
+            if (!isFire && bullet != null)
             {
-                return;
+                Map.InteractObjects.Remove(bullet);
             }
 
-            if (Map.InteractObjects.OfType<UpgradeInteractObject>().Count() >= 3)
-            {
-                return;
-            }
+        }
 
+        private Rectangle PastOnPassablePlace()
+        {
             Rectangle rectangle;
 
             while (true)
@@ -895,6 +893,23 @@ namespace TankServer
                 break;
             }
 
+            return rectangle;
+        }
+
+        protected void AddUpgrades()
+        {
+            var rnd = _random.NextDouble();
+            if (rnd <= 0.995)
+            {
+                return;
+            }
+
+            if (Map.InteractObjects.OfType<UpgradeInteractObject>().Count() >= 3)
+            {
+                return;
+            }
+
+            var rectangle = PastOnPassablePlace();
             var upgradeObj = GetUpgradeToCreate(rectangle);
             Map.InteractObjects.Add(upgradeObj);
         }

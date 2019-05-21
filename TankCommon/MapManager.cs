@@ -181,11 +181,11 @@ namespace TankCommon
             var mapHeight = map.GetLength(0);
             var mapWidth = map.GetLength(1);
             var arrSymbols = new CellMapType[] { wall, water, grass, dWall, field};
-            for (var x = 2; x < mapWidth - 1; x++)
+            for (var x = 2; x < mapWidth - 2; x++)
             {
                 rndNum = rnd.Next(0, 100);
                 var rndForObj = rnd.Next(0, 5);
-                for (var y = 2; y < mapHeight - 1; y++)
+                for (var y = 2; y < mapHeight - 2; y++)
                 {
                     if (rndNum < (percentOfPrimObj + percentAnotherObj) && rndNum > percentOfPrimObj)
                     {
