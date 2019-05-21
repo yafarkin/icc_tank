@@ -813,6 +813,8 @@ namespace TankServer
                                 if (canMove)
                                 {
                                     movingObject.Rectangle = new Rectangle(newRectangle);
+                                    Rectangle rec;
+                                    List<KeyValuePair<Point, CellMapType>> cells;
 
                                     switch (movingObject.Direction)
                                     {
@@ -820,12 +822,26 @@ namespace TankServer
                                             newPoint.Left -= shift;
                                             break;
                                         case DirectionType.Right:
+                                            if (movingObject is TankObject)
+                                            {
+                                                rec = new Rectangle() { Height = 5, Width = 1, LeftCorner = new Point { Left = (int)newPoint.Left + movingObject.Rectangle.Width, Top = newPoint.Top } };
+                                                cells = MapManager.WhatOnMap(rec, Map);
+                                                if (cells.Any(c => c.Value == CellMapType.DestructiveWall || c.Value == CellMapType.Wall))
+                                                    break;
+                                            }
                                             newPoint.Left += shift;
                                             break;
                                         case DirectionType.Up:
                                             newPoint.Top -= shift;
                                             break;
                                         case DirectionType.Down:
+                                            if (movingObject is TankObject)
+                                            {
+                                                rec = new Rectangle() { Height = 1, Width = 5, LeftCorner = new Point { Left = newPoint.Left, Top = newPoint.Top + movingObject.Rectangle.Height } };
+                                                cells = MapManager.WhatOnMap(rec, Map);
+                                                if (cells.Any(c => c.Value == CellMapType.DestructiveWall || c.Value == CellMapType.Wall))
+                                                    break;
+                                            }
                                             newPoint.Top += shift;
                                             break;
                                     }
