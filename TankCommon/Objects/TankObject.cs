@@ -12,12 +12,13 @@ namespace TankCommon.Objects
         public decimal Score { get; set; }
         public decimal BulletSpeed { get; set; }
         public decimal Damage { get; set; }
+        public bool IsInvulnerable { get; set; } = false;
 
         public TankObject()
         {
         }
 
-        public TankObject(Guid id, Rectangle rectangle, decimal speed, bool isMoving, decimal maximumHp, decimal hp, string nickname, string tag, decimal damage)
+        public TankObject(Guid id, Rectangle rectangle, decimal speed, bool isMoving, decimal maximumHp, decimal hp, string nickname, string tag, decimal damage, bool invulnerable)
             : base(id, rectangle, speed, isMoving, DirectionType.Left)
         {
             MaximumHp = maximumHp;
@@ -27,6 +28,7 @@ namespace TankCommon.Objects
             Score = 0;
             BulletSpeed = 7;
             Damage = damage;
+            IsInvulnerable = invulnerable;
         }
     }
 }
