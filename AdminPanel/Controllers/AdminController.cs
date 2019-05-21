@@ -22,7 +22,7 @@ namespace AdminPanel.Controllers
         public void CreateServer([FromForm] int? maxClientsCount, [FromForm] string nameSession, [FromForm] int? width, [FromForm] int? height,
             [FromForm] int? gameSpeed, [FromForm] int? tankSpeed, [FromForm] int? bulletSpeed, [FromForm] int? tankDamage, [FromForm] int? sessionTime)
         {
-            if (nameSession == String.Empty) return;
+            if (nameSession == string.Empty) return;
             if (maxClientsCount == null) maxClientsCount = 2;
             if (width == null) width = 20;
             if (height == null) height = 20;
@@ -51,7 +51,7 @@ namespace AdminPanel.Controllers
                 MapType = (TankCommon.Enum.MapType)1,
                 Width = (int)width,
                 Height = (int)height,
-                MaxClientCount = (int)maxClientsCount,
+                MaxClientCount = (uint)maxClientsCount,
                 Port = port,
                 SessionTime = DateTime.Now.AddMinutes((int)sessionTime) - DateTime.Now,
                 ServerType = TankCommon.Enum.ServerType.BattleCity
@@ -66,7 +66,6 @@ namespace AdminPanel.Controllers
                 TankDamage = (int)tankDamage
             };
 
-//            TankCommon.Objects.Map map = TankCommon.MapManager.LoadMap(20, TankCommon.Enum.CellMapType.Wall, 50, 50);
             var server = new Server(serverSettings, tankSettings);
             var cancellationToken = new CancellationTokenSource();
 
@@ -74,7 +73,6 @@ namespace AdminPanel.Controllers
             {
                 Id = Program.servers.Count == 0 ? 1 : Program.servers.Count,
                 CancellationToken = cancellationToken,
-//                Port = port,
                 Server = server,
                 Task = server.Run(cancellationToken.Token)
             });                        
@@ -105,7 +103,7 @@ namespace AdminPanel.Controllers
             [FromForm] decimal? TankDamage, [FromForm] string ServerName, [FromForm] string ServerType, [FromForm] string SessionTime)
         {
             if (Program.ServerStatusIsRun(id))
-            {
+            {/*
                 var server = Program.servers[id - 1].Server;
                 if (GameSpeed != null) server._tankSettings.GameSpeed = (decimal)GameSpeed;
                 if (TankSpeed != null) server._tankSettings.TankSpeed = (decimal)TankSpeed;
@@ -114,7 +112,7 @@ namespace AdminPanel.Controllers
                 if (ServerName != null) server._tankSettings.ServerName = ServerName;
                 if (ServerType != null) server._tankSettings.ServerType = (TankCommon.Enum.ServerType)Enum.Parse(typeof(TankCommon.Enum.ServerType), ServerType);
                 if (SessionTime != null) server._tankSettings.SessionTime = DateTime.Now.AddMinutes(int.Parse(SessionTime)) - DateTime.Now;
-                server._tankSettings.Version++;
+                server._tankSettings.Version++;*/
             }
         }
         
