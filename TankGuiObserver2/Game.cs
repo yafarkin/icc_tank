@@ -28,16 +28,10 @@
         Connector _connector;
 
         bool _isEnterPressed;
-        bool _isTabPressed;
         bool _isFPressed;
         DirectInput _directInput;
         Keyboard _keyboard;
         GameRender _gameRender;
-
-        float _bitmapOpacity;
-        SharpDX.Mathematics.Interop.RawRectangleF _destinationRectangle;
-        BitmapInterpolationMode _interpolationMode;
-        Bitmap _bitmap;
 
         public Game(string windowName,
             int windowWidth, int windowHeight,
@@ -135,10 +129,6 @@
                         }
                     }
                 }
-                else if (key == Key.Tab)
-                {
-                    _isTabPressed = true;
-                }
                 else if (key == Key.Return && _spectatorClass.Map != null)
                 {
                     _isEnterPressed = true;
@@ -152,10 +142,12 @@
             //Drawing a gama
             if (_isEnterPressed)
             {
+                if (!_gameRender.DgvIsVisible) { _gameRender.DgvIsVisible = true; }
                 _gameRender.Map = _spectatorClass.Map;
                 _gameRender.DrawClientInfo();
-                _gameRender.DrawTanks(_spectatorClass.Map.InteractObjects);
                 _gameRender.DrawMap();
+                _gameRender.DrawTanks(_spectatorClass.Map.InteractObjects);
+                _gameRender.DrawGrass();
                 _gameRender.DrawInteractiveObjects(_spectatorClass.Map.InteractObjects);
             }
             else

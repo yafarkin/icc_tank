@@ -1,6 +1,7 @@
 ﻿namespace TankGuiObserver2
 {
     using System;
+    using System.Windows.Forms;
     using System.Collections.Generic;
 
     using SharpDX;
@@ -149,42 +150,56 @@
         private RenderTarget RenderTarget2D;
         private SharpDX.Direct2D1.Factory _factory2D;
 
-        private bool _isImmutableObjectsInitialized;
-        private bool _isDestructiveObjectsInitialized;
+        //DrawMap
         private bool _isMapSet;
-        private int _mapWidth;
-        private int _mapHeight;
         private float _zoomWidth;
         private float _zoomHeight;
-        private Map _map;
-        public Map Map { set { _map = value; }  }
+        private bool _isImmutableObjectsInitialized;
+        private bool _isDestructiveObjectsInitialized;
+
+        private int _mapWidth;
+        private int _mapHeight;
+        public Map Map { get; set; }
+        private RawColor4 _blackScreen;
         private List<ImmutableObject> _immutableMapObjects;
+        private List<ImmutableObject> _immutableGrass;
         private List<DestuctiveWalls> _destuctiveWallsObjects;
+        private SolidColorBrush[] _mapObjectsColors;
+
+        //ClientInfo
+        public bool DgvIsVisible
+        {
+            get { return _dgv.Visible; }
+            set { _dgv.Visible = true; }
+        }
+        DataGridView _dgv;
         private List<TankObject> _clientInfoTanks;
         private RawVector2 _clientInfoLeftPoint;
         private RawVector2 _clientInfoRightPoint;
-        private RawColor4 _blackScreen;
-        private RectangleF _fullTextBackground;
-        private RectangleF _fpsmsTextRect;
-        private RectangleF _statusTextRect;
-        private RectangleF _logoTextRect;
         private RectangleF _clientInfoRect;
         private RectangleF _clientInfoTextRect;
         private RectangleF _clientInfoListRect;
-        private SharpDX.DirectWrite.Factory directFactory;
+
+        //Entry screen
+        private RectangleF _logoTextRect;
+        private RectangleF _statusTextRect;
         private TextFormat _statusTextFormat;
-        private TextFormat _fpsmsTextFormat;
         private TextFormat _logoBrushTextFormat;
-        private SolidColorBrush[] _mapObjectsColors;
-        private FpsCounter _fpsCounter;
         private TextAnimation _textAnimation;
         private TextColorAnimation _textColorAnimation;
 
-        public long GetElapsedMs()
-        {
-            return _fpsCounter.FPSTimer.ElapsedMilliseconds;
-        }
+        //Fps
+        private RectangleF _fpsmsTextRect;
+        private RectangleF _fpsmsTextBackground;
+        private FpsCounter _fpsmsCounter;
+        private TextFormat _fpsmsTextFormat;
 
+        //DrawTank()
+        private RawRectangleF _tankRectangle;
+        private RawRectangleF _nickRectangle;
+        private TextFormat _nicknameTextFormat;
+
+        //Bitmap
         RawRectangleF dstinationRectangle;
         float opacity;
         BitmapInterpolationMode interpolationMode;
@@ -192,20 +207,12 @@
         Bitmap _tankDownBitmap;
         Bitmap _tankLeftBitmap;
         Bitmap _tankRightBitmap;
-
-        Bitmap _waterBitmap;
-        Bitmap _grassBitmap;
-        Bitmap _destructiveWallBitmap;
-        Bitmap _wallBitmap;
-
         Bitmap _bulletSpeedUpgradeBitmap;
         Bitmap _damageUpgradeBitmap;
         Bitmap _healthUpgradeBitmap;
         Bitmap _maxHpUpgradeBitmap;
         Bitmap _speedUpgradeBitmap;
-
         Bitmap _bulletUpBitmap;
-
         Bitmap[] _bitmaps;
 
         public GameRender(
@@ -218,6 +225,7 @@
             RenderTarget2D = renderTarget;
 
             _immutableMapObjects = new List<ImmutableObject>();
+            _immutableGrass = new List<ImmutableObject>();
             _destuctiveWallsObjects = new List<DestuctiveWalls>();
             _clientInfoTanks = new List<TankObject>(10);
 
@@ -239,11 +247,12 @@
             /*11*/ new SolidColorBrush(RenderTarget2D, Color.White), //_defaultBrush
             /*12*/ new SolidColorBrush(RenderTarget2D, Color.Green), //_greenBrush
             /*13*/ new SolidColorBrush(RenderTarget2D, new RawColor4(0.3f, 0.3f, 0.3f, 0.9f)), //_backgroundBrush
-            /*14*/ new SolidColorBrush(RenderTarget2D, new RawColor4(1.0f, 1.0f, 1.0f, 1.0f)) //_logoBrush
+            /*14*/ new SolidColorBrush(RenderTarget2D, new RawColor4(1.0f, 1.0f, 1.0f, 1.0f)), //_logoBrush
+            /*15*/ new SolidColorBrush(RenderTarget2D, new RawColor4(0.9f, 0.1f, 0.1f, 1.0f)) //nickname
             };
 
             _fpsmsTextRect = new RectangleF(25, 5, 150, 30);
-            _fullTextBackground = new RectangleF(
+            _fpsmsTextBackground = new RectangleF(
                 _fpsmsTextRect.Left, _fpsmsTextRect.Top,
                 _fpsmsTextRect.Width, _fpsmsTextRect.Height);
             _logoTextRect = new RectangleF((float)RenderForm.Width / 5, (float)RenderForm.Height / 3, 1500, 100);
@@ -263,21 +272,84 @@
                 1080, _clientInfoRightPoint.Y + 50,
                 900, 200);
 
-            directFactory =
+            _tankRectangle = new RawRectangleF();
+            _nickRectangle = new RawRectangleF();
+
+            SharpDX.DirectWrite.Factory directFactory =
                 new SharpDX.DirectWrite.Factory(SharpDX.DirectWrite.FactoryType.Shared);
             _statusTextFormat = new TextFormat(directFactory, "Arial", FontWeight.Regular, FontStyle.Normal, 30.0f);
             _fpsmsTextFormat = new TextFormat(directFactory, "Arial", FontWeight.Regular, FontStyle.Normal, 24.0f);
             _logoBrushTextFormat =
                 new TextFormat(directFactory, "Arial", FontWeight.Normal, FontStyle.Italic, 180.0f);
+            _nicknameTextFormat =
+                new TextFormat(directFactory, "Times New Roman", FontWeight.Normal, FontStyle.Italic, 14.0f);
 
             _textAnimation = new TextAnimation();
             _textAnimation.SetAnimatedString("Waiting for connection to the server");
             _textColorAnimation = new TextColorAnimation();
-            _fpsCounter = new FpsCounter();
+            _fpsmsCounter = new FpsCounter();
+
+            /*
+              ##############
+              ##### UI #####
+              ##############
+             */
+            _dgv = new DataGridView();
+            _dgv.Width = 800; //840 (1920)
+            _dgv.Height = 350; //1080
+            _dgv.AutoSize = true;
+            _dgv.Font = new System.Drawing.Font("Microsoft Sans Serif", 14F, 
+                System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            _dgv.Location = new System.Drawing.Point(1080, 120);
+            _dgv.Name = "dataTab";
+            _dgv.Text = "Статус:";
+            _dgv.Visible = false;
+            _dgv.Columns.Add("id", "Id");
+            _dgv.Columns.Add("nick", "Nickname");
+            _dgv.Columns.Add("score", "Score");
+            _dgv.Columns.Add("hp", "Hp");
+            _dgv.Rows.Add(); _dgv.Rows.Add();
+            _dgv.Rows.Add(); _dgv.Rows.Add();
+            _dgv.Rows.Add(); _dgv.Rows.Add();
+            _dgv.Rows.Add(); _dgv.Rows.Add();
+            _dgv.Rows.Add(); _dgv.Rows.Add();
+            _dgv.Rows.Add(); _dgv.Rows.Add();
+            _dgv.Rows.Add(); _dgv.Rows.Add();
+            _dgv.AutoSize = false;
+            _dgv.ReadOnly = false;
+            _dgv.AllowUserToOrderColumns = false;
+            _dgv.AllowDrop = false;
+            _dgv.AllowUserToResizeColumns = false;
+            _dgv.AllowUserToResizeRows = false;
+            _dgv.AllowUserToDeleteRows = false;
+            _dgv.AllowUserToDeleteRows = false;
+            _dgv.AllowUserToOrderColumns = false;
+            _dgv.IsAccessible = false;
+            _dgv.ReadOnly = true;
+            _dgv.SelectionMode = DataGridViewSelectionMode.CellSelect;
+            _dgv.MultiSelect = false;
+            _dgv.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(dgr_CellContentClick);
+            
+            for (int i = 0; i < _dgv.ColumnCount; i++)
+            {
+                _dgv.Columns[i].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            }
+
+            RenderForm.Controls.Add(_dgv);
 
             //Loading resources
             LoadResources();
 
+        }
+
+        private void dgr_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+        }
+        
+        [System.Runtime.CompilerServices.MethodImpl(256)]
+        public long GetElapsedMs()
+        {
+            return _fpsmsCounter.FPSTimer.ElapsedMilliseconds;
         }
 
         [System.Runtime.CompilerServices.MethodImpl(256)]
@@ -289,13 +361,13 @@
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawFPS()
         {
-            ++_fpsCounter.FPSCounter;
-            if (_fpsCounter.FPSTimer.ElapsedMilliseconds > 1000)
+            ++_fpsmsCounter.FPSCounter;
+            if (_fpsmsCounter.FPSTimer.ElapsedMilliseconds > 1000)
             {
-                _fpsCounter.CalculateFpsMs();
+                _fpsmsCounter.CalculateFpsMs();
             }
-            RenderTarget2D.FillRectangle(_fullTextBackground, _mapObjectsColors[13]);
-            RenderTarget2D.DrawText(_fpsCounter.ToString(), _fpsmsTextFormat, _fpsmsTextRect, _mapObjectsColors[12]);
+            RenderTarget2D.FillRectangle(_fpsmsTextBackground, _mapObjectsColors[13]);
+            RenderTarget2D.DrawText(_fpsmsCounter.ToString(), _fpsmsTextFormat, _fpsmsTextRect, _mapObjectsColors[12]);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(256)]
@@ -328,8 +400,8 @@
             if (!_isMapSet)
             {
                 _isMapSet = true;
-                _mapWidth = _map.MapWidth;
-                _mapHeight = _map.MapHeight;
+                _mapWidth = Map.MapWidth;
+                _mapHeight = Map.MapHeight;
 
                 _zoomWidth = 1080 / _mapWidth;
                 _zoomHeight = RenderTarget2D.Size.Height / _mapHeight;
@@ -359,15 +431,15 @@
                         {
                             for (j = (5 * c); j < (5 * c + 5); j++)
                             {
-                                if (_map[i, j] == CellMapType.Wall)
+                                if (Map[i, j] == CellMapType.Wall)
                                 {
                                     walls.Add(new SharpDX.Point(i, j));
                                 }
-                                else if (_map[i, j] == CellMapType.Water)
+                                else if (Map[i, j] == CellMapType.Water)
                                 {
                                     water.Add(new SharpDX.Point(i, j));
                                 }
-                                if (_map[i, j] == CellMapType.Grass)
+                                if (Map[i, j] == CellMapType.Grass)
                                 {
                                     grass.Add(new SharpDX.Point(i, j));
                                 }
@@ -397,7 +469,7 @@
                             rawRectangleTemp.Top = 5 * r * _zoomHeight;
                             rawRectangleTemp.Right = (5 * c + 5) * _zoomWidth;
                             rawRectangleTemp.Bottom = (5 * r + 5) * _zoomHeight;
-                            _immutableMapObjects.Add(new ImmutableObject((char)2, rawRectangleTemp));
+                            _immutableGrass.Add(new ImmutableObject((char)2, rawRectangleTemp));
                             grass.Clear();
                         }
                     }
@@ -407,7 +479,8 @@
             {
                 foreach (var obj in _immutableMapObjects)
                 {
-                    RenderTarget2D.DrawBitmap(_bitmaps[obj.BitmapIndex], obj.Rectangle, 1.0f, BitmapInterpolationMode.Linear);
+                    RenderTarget2D.DrawBitmap(_bitmaps[obj.BitmapIndex], obj.Rectangle, 
+                        1.0f, BitmapInterpolationMode.Linear);
                 }
             }
 
@@ -418,7 +491,7 @@
                 {
                     for (var j = 5; j < (_mapWidth - 5); j++)
                     {
-                        var c = _map[i, j];
+                        var c = Map[i, j];
                         if (c == CellMapType.DestructiveWall)
                         {
                             rawRectangleTemp.Left = j * _zoomWidth;
@@ -426,7 +499,8 @@
                             rawRectangleTemp.Right = j * _zoomWidth + _zoomWidth;
                             rawRectangleTemp.Bottom = i * _zoomHeight + _zoomHeight;
                             _destuctiveWallsObjects.Add(new DestuctiveWalls((char)1, i, j, rawRectangleTemp));
-                            RenderTarget2D.DrawBitmap(_bitmaps[3], rawRectangleTemp, 1.0f, BitmapInterpolationMode.Linear);
+                            RenderTarget2D.DrawBitmap(_bitmaps[3], rawRectangleTemp, 
+                                1.0f, BitmapInterpolationMode.Linear);
                         }
                     }
                 }
@@ -435,11 +509,24 @@
             {
                 foreach (var obj in _destuctiveWallsObjects)
                 {
-                    if (_map[obj.RowIndex, obj.ColumnIndex] == CellMapType.DestructiveWall)
+                    if (Map[obj.RowIndex, obj.ColumnIndex] == CellMapType.DestructiveWall)
                     {
-                        RenderTarget2D.DrawBitmap(_bitmaps[3], obj.Rectangle, 1.0f, BitmapInterpolationMode.Linear);
+                        RenderTarget2D.DrawBitmap(_bitmaps[3], obj.Rectangle, 
+                            1.0f, BitmapInterpolationMode.Linear);
                     }
                 }
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(256)]
+        public void DrawGrass()
+        {
+            foreach (var obj in _immutableGrass)
+            {
+                RenderTarget2D.DrawBitmap(
+                    _bitmaps[obj.BitmapIndex], 
+                    obj.Rectangle, 
+                    1.0f, BitmapInterpolationMode.Linear);
             }
         }
 
@@ -515,30 +602,61 @@
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawTanks(List<BaseInteractObject> baseInteractObjects)
         {
-            RawRectangleF rawRectangleTemp = new RawRectangleF();
+            int nickLength;
+            float w;
+            float d;
             foreach (var obj in baseInteractObjects)
             {
                 if (obj is TankObject tankObject)
                 {
-                    rawRectangleTemp.Left = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Left) * _zoomWidth;
-                    rawRectangleTemp.Top = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Top) * _zoomHeight;
-                    rawRectangleTemp.Right = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Left + tankObject.Rectangle.Width) * _zoomWidth;
-                    rawRectangleTemp.Bottom = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Top + tankObject.Rectangle.Height) * _zoomHeight;
+                    _tankRectangle.Left = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Left) * _zoomWidth;
+                    _tankRectangle.Top = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Top) * _zoomHeight;
+                    _tankRectangle.Right = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Left + tankObject.Rectangle.Width) * _zoomWidth;
+                    _tankRectangle.Bottom = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Top + tankObject.Rectangle.Height) * _zoomHeight;
+
+                    nickLength = tankObject.Nickname.Length;
+                    w = _tankRectangle.Right - _tankRectangle.Left;
+
+                    //if (nickLength > w)
+                    //{
+                    //    d = nickLength / w;
+                    //    _nickRectangle.Left = _tankRectangle.Left - d * _zoomWidth;
+                    //    _nickRectangle.Right = _tankRectangle.Right + d * _zoomWidth;
+                    //}
+                    //else if (nickLength < w) //done
+                    //{
+                    //    _nickRectangle.Left   = _tankRectangle.Left + 1 * _zoomWidth;
+                    //    _nickRectangle.Right  = _tankRectangle.Right;
+                    //}
+                    //else
+                    //{
+                    //    _nickRectangle.Left = _tankRectangle.Left;
+                    //    _nickRectangle.Right = _tankRectangle.Right;
+                    //}
+                    d = (w - nickLength * _zoomWidth) / 2;
+                    _nickRectangle.Left = _tankRectangle.Left   + d /** _zoomWidth*/;
+                    _nickRectangle.Right = _tankRectangle.Right - d /** _zoomWidth*/;
+                    _nickRectangle.Top = _tankRectangle.Top - 3 * _zoomHeight;
+                    _nickRectangle.Bottom = _tankRectangle.Top - _zoomHeight;
+                    
+                    RenderTarget2D.DrawText(tankObject.Nickname,
+                        _nicknameTextFormat, _nickRectangle, _mapObjectsColors[15]);
+                    
                     if (tankObject.Direction == DirectionType.Up)
                     {
-                        RenderTarget2D.DrawBitmap(_tankUpBitmap, rawRectangleTemp, opacity, interpolationMode);
+                        RenderTarget2D.DrawBitmap(_tankUpBitmap, _tankRectangle, opacity, interpolationMode);
                     }
                     else if (tankObject.Direction == DirectionType.Down)
                     {
-                        RenderTarget2D.DrawBitmap(_tankDownBitmap, rawRectangleTemp, opacity, interpolationMode);
+                        RenderTarget2D.DrawBitmap(_tankDownBitmap, _tankRectangle, opacity, interpolationMode);
                     }
                     else if (tankObject.Direction == DirectionType.Left)
                     {
-                        RenderTarget2D.DrawBitmap(_tankLeftBitmap, rawRectangleTemp, opacity, interpolationMode);
+                        RenderTarget2D.DrawBitmap(_tankLeftBitmap, _tankRectangle, opacity, interpolationMode);
                     }
                     else if (tankObject.Direction == DirectionType.Right)
                     {
-                        RenderTarget2D.DrawBitmap(_tankRightBitmap, rawRectangleTemp, opacity, interpolationMode);
+                        RenderTarget2D.DrawBitmap(_tankRightBitmap, _tankRectangle, opacity, interpolationMode);
                     }
                 }
             }
@@ -552,24 +670,25 @@
             RenderTarget2D.DrawLine(_clientInfoLeftPoint, _clientInfoRightPoint, _mapObjectsColors[12], 10);
             RenderTarget2D.DrawText("Client info", _statusTextFormat, _clientInfoTextRect, _mapObjectsColors[12]);
             _clientInfoTanks.AddRange(
-                _map.InteractObjects.OfType<TankObject>().OrderByDescending(t => t.Score).ToList());
-            int index = 1;
+                Map.InteractObjects.OfType<TankObject>().OrderByDescending(t => t.Score).ToList());
             RectangleF heightIncriment = _clientInfoListRect;
 
-            string nicknameFormatted = "Nickname            ";//20
-            RenderTarget2D.DrawText(
-                    $"Id " + nicknameFormatted + " Score Hp",
-                    _statusTextFormat, heightIncriment, _mapObjectsColors[12]);
-            heightIncriment.Y += _clientInfoListRect.Height / 4;
-            int diffLen;
+            //string nicknameFormatted = "Nickname";//20
+            //RenderTarget2D.DrawText(
+            //        $"Id " + nicknameFormatted + " Score Hp",
+            //        _statusTextFormat, heightIncriment, _mapObjectsColors[12]);
+            //heightIncriment.Y += _clientInfoListRect.Height / 4;
+            //int diffLen;
+            int index = 0;
             foreach (var tank in _clientInfoTanks)
             {
-                diffLen = Math.Abs(nicknameFormatted.Length - tank.Nickname.Length);
-                RenderTarget2D.DrawText(
-                    $"{index}. {tank.Nickname}{new string(' ', diffLen)} " +
-                    $"{(int)tank.Score} {(int)tank.Hp}",
-                    _statusTextFormat, heightIncriment, _mapObjectsColors[12]);
-                heightIncriment.Y += _clientInfoListRect.Height / 4;
+                _dgv.Rows[index].SetValues(index, tank.Nickname, tank.Score, tank.Hp);
+                //diffLen = Math.Abs(nicknameFormatted.Length - tank.Nickname.Length);
+                //RenderTarget2D.DrawText(
+                //    $"{index}. {tank.Nickname}{new string(' ', diffLen)} " +
+                //    $"{(int)tank.Score} {(int)tank.Hp}",
+                //    _statusTextFormat, heightIncriment, _mapObjectsColors[12]);
+                //heightIncriment.Y += _clientInfoListRect.Height / 4;
                 ++index;
             }
             _clientInfoTanks.Clear();
@@ -580,14 +699,17 @@
             dstinationRectangle = new RawRectangleF(0, 0, 100, 100);
             opacity = 1.0f;
             interpolationMode = BitmapInterpolationMode.Linear;
-            _wallBitmap = LoadFromFile(RenderTarget2D, @"img\wall.png");
+            _bitmaps = new Bitmap[4];
+
+            _bitmaps[0] = LoadFromFile(RenderTarget2D, @"img\wall.png");
+            _bitmaps[1] = LoadFromFile(RenderTarget2D, @"img\water2.png");
+            _bitmaps[2] = LoadFromFile(RenderTarget2D, @"img\Grass_T.png");
+            _bitmaps[3] = LoadFromFile(RenderTarget2D, @"img\brick4k.png");
+
             _tankUpBitmap = LoadFromFile(RenderTarget2D, @"img\tank\tankUp.png");
             _tankDownBitmap = LoadFromFile(RenderTarget2D, @"img\tank\tankDown.png");
             _tankLeftBitmap = LoadFromFile(RenderTarget2D, @"img\tank\tankLeft.png");
             _tankRightBitmap = LoadFromFile(RenderTarget2D, @"img\tank\tankRight.png");
-            _waterBitmap = LoadFromFile(RenderTarget2D, @"img\water2.png");
-            _grassBitmap = LoadFromFile(RenderTarget2D, @"img\Grass_T.png");
-            _destructiveWallBitmap = LoadFromFile(RenderTarget2D, @"img\brick4k.png");
 
             _bulletSpeedUpgradeBitmap = LoadFromFile(RenderTarget2D, @"img\upgrade\BulletSpeed.png");
             _damageUpgradeBitmap = LoadFromFile(RenderTarget2D, @"img\upgrade\Damage.png");
@@ -596,12 +718,7 @@
             _speedUpgradeBitmap = LoadFromFile(RenderTarget2D, @"img\upgrade\Speed.png");
 
             //_bulletUpBitmap = LoadFromFile(RenderTarget2D, @"img\Bullet_T.png");
-
-            _bitmaps = new Bitmap[] {
-                _wallBitmap, _waterBitmap, _grassBitmap,
-                _destructiveWallBitmap
-            };
-
+            
         }
 
         public static Bitmap LoadFromFile(RenderTarget renderTarget, string file)
@@ -653,6 +770,22 @@
             {
                 _mapObjectsColors[mapIndex].Dispose();
             }
+
+            for (int i = 0; i < _bitmaps.Length; i++)
+            {
+                _bitmaps[i].Dispose();
+            }
+
+            _tankUpBitmap.Dispose();
+            _tankDownBitmap.Dispose();
+            _tankLeftBitmap.Dispose();
+            _tankRightBitmap.Dispose();
+
+            _bulletSpeedUpgradeBitmap.Dispose();
+            _damageUpgradeBitmap.Dispose();
+            _healthUpgradeBitmap.Dispose();
+            _maxHpUpgradeBitmap.Dispose();
+            _speedUpgradeBitmap.Dispose();
         }
 
     }
