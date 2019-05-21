@@ -328,7 +328,6 @@
             _dgv.ReadOnly = true;
             _dgv.SelectionMode = DataGridViewSelectionMode.CellSelect;
             _dgv.MultiSelect = false;
-            _dgv.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(dgr_CellContentClick);
             
             for (int i = 0; i < _dgv.ColumnCount; i++)
             {
@@ -340,10 +339,6 @@
             //Loading resources
             LoadResources();
 
-        }
-
-        private void dgr_CellContentClick(object sender, DataGridViewCellEventArgs e)
-        {
         }
         
         [System.Runtime.CompilerServices.MethodImpl(256)]
@@ -671,7 +666,6 @@
             RenderTarget2D.DrawText("Client info", _statusTextFormat, _clientInfoTextRect, _mapObjectsColors[12]);
             _clientInfoTanks.AddRange(
                 Map.InteractObjects.OfType<TankObject>().OrderByDescending(t => t.Score).ToList());
-            RectangleF heightIncriment = _clientInfoListRect;
 
             //string nicknameFormatted = "Nickname";//20
             //RenderTarget2D.DrawText(
