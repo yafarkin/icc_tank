@@ -3,10 +3,9 @@ using TankCommon.Enum;
 
 namespace TankCommon
 {    
-    public class TankSettings : ISettings
+    public class TankSettings
     {
         public int Version { get; set; }
-        public string ServerName { get; set; }
         public decimal GameSpeed { get; set; }
         public decimal TankSpeed { get; set; }
         public decimal BulletSpeed { get; set; }
@@ -15,9 +14,6 @@ namespace TankCommon
         public TankSettings()
         {
             Version++;
-            ServerName = null;
-            ServerType = ServerType.BattleCity;
-            SessionTime = DateTime.Now.AddMinutes(2).AddSeconds(1) - DateTime.Now;  
             GameSpeed = 1;
             TankSpeed = 2;
             BulletSpeed = 4;
@@ -31,9 +27,6 @@ namespace TankCommon
             {
                 _serverName = null;
             }
-            ServerName = _serverName;
-            ServerType = (ServerType)System.Enum.Parse(typeof(ServerType), _serverType);
-            SessionTime = TimeSpan.Parse(_sessionTime);
             GameSpeed = _gameSpeed;
             TankSpeed = _tankSpeed;
             BulletSpeed = _bulletSpeed;
