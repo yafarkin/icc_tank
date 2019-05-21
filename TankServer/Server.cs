@@ -22,7 +22,7 @@ namespace TankServer
 
         protected readonly uint _maxBotsCount;
 
-        public static TankSettings Settings = new TankSettings();
+        public TankSettings Settings = new TankSettings();
         public string ConfigPath;
 
         public readonly Map Map;
