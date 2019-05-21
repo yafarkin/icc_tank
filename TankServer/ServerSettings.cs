@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TankServer
 {
-    class ServerSettings
+    public class ServerSettings
     {
         public string SessionName { get; set; }
         public TankCommon.Enum.MapType MapType { get; set; }

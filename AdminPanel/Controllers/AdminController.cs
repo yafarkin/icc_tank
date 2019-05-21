@@ -20,7 +20,7 @@ namespace AdminPanel.Controllers
         /// <param name="height"></param>
         [HttpPost]
         public void CreateServer([FromForm] int? maxClientsCount, [FromForm] string nameSession, [FromForm] int? width, [FromForm] int? height,
-            [FromForm] int? gameSpeed, [FromForm] int? tankSpeed, [FromForm] int? bulletSpeed, [FromForm] int? tankDamage)
+            [FromForm] int? gameSpeed, [FromForm] int? tankSpeed, [FromForm] int? bulletSpeed, [FromForm] int? tankDamage, [FromForm] int? sessionTime)
         {
             if (nameSession == String.Empty) return;
             if (maxClientsCount == null) maxClientsCount = 2;
@@ -30,6 +30,7 @@ namespace AdminPanel.Controllers
             if (tankSpeed == null) tankSpeed = 2;
             if (bulletSpeed == null) bulletSpeed = 7;
             if (tankDamage == null) tankDamage = 40;
+            if (sessionTime == null) sessionTime = 5;
 
             var port = 1000;
             while (true)
@@ -48,19 +49,21 @@ namespace AdminPanel.Controllers
             {
                 SessionName = nameSession,
                 MapType = (TankCommon.Enum.MapType)1,
-                Width = width,
-                Height = height,
-                MaxClientCount = maxClientsCount,
-                port = port
+                Width = (int)width,
+                Height = (int)height,
+                MaxClientCount = (int)maxClientsCount,
+                Port = port,
+                SessionTime = DateTime.Now.AddMinutes((int)sessionTime) - DateTime.Now,
+                ServerType = TankCommon.Enum.ServerType.BattleCity
             };
 
             var tankSettings = new TankCommon.TankSettings()
             {
                 Version = 1,
-                GameSpeed = gameSpeed,
-                TankSpeed = tankSpeed,
-                BulletSpeed = bulletSpeed,
-                TankDamage = tankDamage
+                GameSpeed = (int)gameSpeed,
+                TankSpeed = (int)tankSpeed,
+                BulletSpeed = (int)bulletSpeed,
+                TankDamage = (int)tankDamage
             };
 
 //            TankCommon.Objects.Map map = TankCommon.MapManager.LoadMap(20, TankCommon.Enum.CellMapType.Wall, 50, 50);
