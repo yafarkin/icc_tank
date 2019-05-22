@@ -43,23 +43,23 @@ namespace TankClient
             var tank = request.Tank;
             if (null == tank)
             {
-                return new ServerResponse {ClientCommand = ClientCommandType.None};
+                return new ServerResponse { ClientCommand = ClientCommandType.None };
             }
 
             if (!tank.IsMoving)
             {
-                return new ServerResponse {ClientCommand = ClientCommandType.Go};
+                return new ServerResponse { ClientCommand = ClientCommandType.Go };
             }
 
             if (null == rectangle)
             {
                 rectangle = tank.Rectangle;
-                return new ServerResponse {ClientCommand = SwitchDirection()};
+                return new ServerResponse { ClientCommand = SwitchDirection() };
             }
 
             if (rectangle.LeftCorner.Equals(tank.Rectangle.LeftCorner))
             {
-                return new ServerResponse {ClientCommand = SwitchDirection()};
+                return new ServerResponse { ClientCommand = SwitchDirection() };
             }
 
             rectangle = tank.Rectangle;
@@ -68,10 +68,10 @@ namespace TankClient
 
             if (rndNum > 0.9)
             {
-                return new ServerResponse {ClientCommand = SwitchDirection()};
+                return new ServerResponse { ClientCommand = SwitchDirection() };
             }
 
-            return new ServerResponse {ClientCommand = ClientCommandType.Fire};
+            return new ServerResponse { ClientCommand = ClientCommandType.Fire };
         }
     }
 }
