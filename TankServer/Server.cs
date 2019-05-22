@@ -279,6 +279,7 @@ namespace TankServer
         {
             var rectangle = PastOnPassablePlace();
             var tank = new TankObject(Guid.NewGuid(), rectangle, 2, false, 100, 100, 5, 5, nickname, tag, 40);
+            //При создании нового танка он бессмертен
             CallInvulnerability(tank, 5);
             Map.InteractObjects.Add(tank);
 
@@ -694,39 +695,45 @@ namespace TankServer
                                         //Если пуля попала в танк
                                         if (intersectedObject is TankObject tankIntersectedObject)
                                         {
-                                            //Удалить пулю
-                                            objsToRemove.Add(bulletObject);
-                                            canMove = false;
-
-                                            //Если здоровья больше, чем урон пули
-                                            var hpToRemove = tankIntersectedObject.Hp > bulletObject.DamageHp
-                                                ? bulletObject.DamageHp
-                                                : tankIntersectedObject.Hp;
-                                            bool isFrag = false;
-
-                                            //Уменьшить здоровье танка на урон пули
-                                            tankIntersectedObject.Hp -= hpToRemove;
-                                            //Если здоровье танка меньше нуля и у него ещё есть жизни
-                                            if (tankIntersectedObject.Hp <= 0 && tankIntersectedObject.Lives > 0 )
+                                            if (tankIntersectedObject.IsInvulnerable == false)
                                             {
-                                                Reborn(tankIntersectedObject);
+                                                //Удалить пулю
+                                                objsToRemove.Add(bulletObject);
+                                                canMove = false;
 
+                                                //Если здоровья больше, чем урон пули
+                                                var hpToRemove = tankIntersectedObject.Hp > bulletObject.DamageHp
+                                                    ? bulletObject.DamageHp
+                                                    : tankIntersectedObject.Hp;
+                                                bool isFrag = false;
 
-                                                isFrag = true;
-                                                //objsToRemove.Add(tankIntersectedObject);
-                                            }
-
-                                            var sourceTank = Map.InteractObjects.OfType<TankObject>().FirstOrDefault(t => t.Id == bulletObject.SourceId);
-                                            if (sourceTank != null)
-                                            {
-                                                sourceTank.Score += hpToRemove;
-                                                if (isFrag)
+                                                //Уменьшить здоровье танка на урон пули
+                                                tankIntersectedObject.Hp -= hpToRemove;
+                                                //Если здоровье танка меньше нуля и у него ещё есть жизни
+                                                if (tankIntersectedObject.Hp <= 0 && tankIntersectedObject.Lives > 0 )
                                                 {
-                                                    sourceTank.Score += 50;
-                                                    _logger.Info($"{tankIntersectedObject.Nickname} was killed by {sourceTank.Nickname}");
+                                                    Reborn(tankIntersectedObject
+                                                        isFrag = true;
+                                                }
+                                                else
+                                                {
+                                                    if (tankIntersectedObject.Hp <= 0 && tankIntersectedObject.Lives <= 0)
+                                                    {
+                                                        objsToRemove.Add(tankIntersectedObject);
+                                                    }
+                                                }
+
+                                                var sourceTank = Map.InteractObjects.OfType<TankObject>().FirstOrDefault(t => t.Id == bulletObject.SourceId);
+                                                if (sourceTank != null)
+                                                {
+                                                    sourceTank.Score += hpToRemove;
+                                                    if (isFrag)
+                                                    {
+                                                        sourceTank.Score += 50;
+                                                        _logger.Info($"{tankIntersectedObject.Nickname} was killed by {sourceTank.Nickname}");
+                                                    }
                                                 }
                                             }
-
                                         }
                                         else if (intersectedObject is BulletObject bulletIntersectedObject)
                                         {
@@ -865,7 +872,7 @@ namespace TankServer
 
                         foreach (var objToRemove in objsToRemove)
                         {
-                            //если ссылка на удаляемый объект не ссылается на нулевой объект и айди объекта == айди удаляемого объекта
+                            //Если ссылка на удаляемый объект не ссылается на нулевой объект и айди объекта == айди удаляемого объекта
                             var client = Clients.FirstOrDefault(c => c.Value.InteractObject != null && c.Value.InteractObject.Id == objToRemove.Id);
                             if (client.Key != null)
                             {
@@ -916,7 +923,7 @@ namespace TankServer
             {
                 Map.InteractObjects.Remove(bullet);
             }
-            tank.IsInvulnerable = true;
+            CallInvulnerability(tank,5);
 
         }
 
