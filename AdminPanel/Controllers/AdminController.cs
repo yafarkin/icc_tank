@@ -18,10 +18,7 @@ namespace AdminPanel.Controllers
         /// <summary>
         /// Создание сервера
         /// </summary>
-        /// <param name="maxClientsCount">Колличество одновременно играющих на сервере</param>
-        /// <param name="nameSession"></param>
-        /// <param name="width"></param>
-        /// <param name="height"></param>
+        /// <param name="serverSettings">Класс настроек сервера и темпа игры</param>
         [HttpPost]
         public void CreateServer([FromForm] ServerSettings serverSettings)
         {
@@ -43,10 +40,10 @@ namespace AdminPanel.Controllers
             var tankSettings = new TankSettings()
             {
                 Version = 1,
-                GameSpeed = (int)gameSpeed,
-                TankSpeed = (int)tankSpeed,
-                BulletSpeed = (int)bulletSpeed,
-                TankDamage = (int)tankDamage
+                gameSpeed = (int)gameSpeed,
+                tankSpeed = (int)tankSpeed,
+                bulletSpeed = (int)bulletSpeed,
+                tankDamage = (int)tankDamage
             };
 
             var serverSettings = new ServerSettings()
@@ -82,6 +79,10 @@ namespace AdminPanel.Controllers
             // TODO TBD технической возможности запуска
         }
 
+        /// <summary>
+        /// Отправка класса с настройками сервера UI
+        /// </summary>
+        /// <returns></returns>
         public IEnumerable<object> GetServerTypeInfo()
         {
             var server = new ServerSettings();
@@ -100,35 +101,35 @@ namespace AdminPanel.Controllers
         /// Изменение настроек сервера
         /// </summary>
         /// <param name="id">Номер сервера</param>
-        /// <param name="GameSpeed">Скорость игры</param>
-        /// <param name="TankSpeed">Скорость танка</param>
-        /// <param name="BulletSpeed">Скорость Пули</param>
-        /// <param name="TankDamage">Урон танков</param>
+        /// <param name="gameSpeed">Скорость игры</param>
+        /// <param name="tankSpeed">Скорость танка</param>
+        /// <param name="bulletSpeed">Скорость Пули</param>
+        /// <param name="tankDamage">Урон танков</param>
         [HttpPost]
-        public void ChangeServerSettings([FromForm] int id, [FromForm] decimal? GameSpeed, [FromForm] decimal? TankSpeed, [FromForm] decimal? BulletSpeed, [FromForm] decimal? TankDamage)
+        public void ChangeServerSettings([FromForm] int id, [FromForm] decimal? gameSpeed, [FromForm] decimal? tankSpeed, [FromForm] decimal? bulletSpeed, [FromForm] decimal? tankDamage)
         {
             bool update = false;
             if (Program.ServerStatusIsRun(id))
             {
                 var server = Program.Servers[id - 1].Server;
-                if (GameSpeed != null)
+                if (gameSpeed != null)
                 {
-                    server.serverSettings.TankSettings.GameSpeed = (int)GameSpeed;
+                    server.serverSettings.TankSettings.GameSpeed = (int)gameSpeed;
                     update = true;
                 }
-                if (TankSpeed != null)
+                if (tankSpeed != null)
                 {
-                    server.serverSettings.TankSettings.TankSpeed = (decimal)TankSpeed;
+                    server.serverSettings.TankSettings.TankSpeed = (decimal)tankSpeed;
                     update = true;
                 }
-                if (BulletSpeed != null)
+                if (bulletSpeed != null)
                 {
-                    server.serverSettings.TankSettings.BulletSpeed = (decimal)BulletSpeed;
+                    server.serverSettings.TankSettings.BulletSpeed = (decimal)bulletSpeed;
                     update = true;
                 }
-                if (TankDamage != null)
+                if (tankDamage != null)
                 {
-                    server.serverSettings.TankSettings.TankDamage = (decimal)TankDamage;
+                    server.serverSettings.TankSettings.TankDamage = (decimal)tankDamage;
                     update = true;
                 }
                 if (update) server.serverSettings.TankSettings.Version++;
