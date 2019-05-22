@@ -694,22 +694,29 @@ namespace TankServer
                                         //Если пуля попала в танк
                                         if (intersectedObject is TankObject tankIntersectedObject)
                                         {
+                                            //Удалить пулю
                                             objsToRemove.Add(bulletObject);
                                             canMove = false;
 
+                                            //Если здоровья больше, чем урон пули
                                             var hpToRemove = tankIntersectedObject.Hp > bulletObject.DamageHp
                                                 ? bulletObject.DamageHp
                                                 : tankIntersectedObject.Hp;
                                             bool isFrag = false;
+
+                                            //Уменьшить здоровье танка на урон пули
                                             tankIntersectedObject.Hp -= hpToRemove;
-                                            if (tankIntersectedObject.Hp <= 0)
+                                            //Если здоровье танка меньше нуля и у него ещё есть жизни
+                                            if (tankIntersectedObject.Hp <= 0 && tankIntersectedObject.Lives > 0 )
                                             {
+                                                Reborn(tankIntersectedObject);
+
+
                                                 isFrag = true;
-                                                objsToRemove.Add(tankIntersectedObject);
+                                                //objsToRemove.Add(tankIntersectedObject);
                                             }
 
-                                            var sourceTank = Map.InteractObjects.OfType<TankObject>()
-                                                .FirstOrDefault(t => t.Id == bulletObject.SourceId);
+                                            var sourceTank = Map.InteractObjects.OfType<TankObject>().FirstOrDefault(t => t.Id == bulletObject.SourceId);
                                             if (sourceTank != null)
                                             {
                                                 sourceTank.Score += hpToRemove;
@@ -887,6 +894,7 @@ namespace TankServer
 
         private async void Reborn(TankObject tank, int normalHP = 100)
         {
+            //говорим, что танк пока мёртв
             tank.IsDead = true;
             //уменьшаем жизни
             tank.Lives--;
@@ -895,9 +903,12 @@ namespace TankServer
             tank.Rectangle.LeftCorner.Left = 0;
             var isFire = Map.InteractObjects.FirstOrDefault(x => (x as BulletObject)?.SourceId == tank.Id) != null;
 
+            //Ждём 5 секунд
             await Task.Delay(5000);
 
+            //Говорим, что теперь танк жив
             tank.IsDead = false;
+            //Делаем танку здоровье нормальным(не увеличенным)
             tank.Hp = normalHP;
             tank.Rectangle = PastOnPassablePlace();
             var bullet = Map.InteractObjects.FirstOrDefault(x => (x as BulletObject)?.SourceId == tank.Id);
@@ -905,6 +916,7 @@ namespace TankServer
             {
                 Map.InteractObjects.Remove(bullet);
             }
+            tank.IsInvulnerable = true;
 
         }
 
