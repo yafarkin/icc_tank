@@ -488,6 +488,7 @@ namespace TankServer
         protected async Task SendUpdates(bool onlySpectators, CancellationToken cancellationToken)
         {
             List<BaseInteractObject> visibleObjects;
+            List<BaseInteractObject> allObjects;
             Map clientMap;
 
             Dictionary<IWebSocketConnection, ClientInfo> clientsCopy;
@@ -496,6 +497,7 @@ namespace TankServer
             {
                 //Лист видимых объектов
                 visibleObjects = new List<BaseInteractObject>(Map.InteractObjects.Count);
+                allObjects = new List<BaseInteractObject>(Map.InteractObjects.Count);
 
                 //Для всех интерактивных объектов
                 foreach (var interactObj in Map.InteractObjects.OfType<BaseInteractObject>())
@@ -507,26 +509,16 @@ namespace TankServer
                     }
 
                     //Если интерактивный объект это танк или апгрейд
-                    if (interactObj is TankObject || interactObj is UpgradeInteractObject)
+                    
+                    var cells = MapManager.WhatOnMap(interactObj.Rectangle, Map);
+                    if (!((interactObj as TankObject)?.IsDead ?? false))
                     {
-                        var cells = MapManager.WhatOnMap(interactObj.Rectangle, Map);
                         if (cells.Any(c => c.Value != CellMapType.Grass))
                         {
-
-                            if (interactObj is TankObject && (interactObj as TankObject).IsDead)
-                            {
-
-                            }
-                            else
-                            {
-                                visibleObjects.Add(interactObj);
-                            }
+                            visibleObjects.Add(interactObj);
                         }
                     }
-                    else
-                    {
-                        visibleObjects.Add(interactObj);
-                    }
+                    allObjects.Add(interactObj);
                 }
 
                 clientsCopy = new Dictionary<IWebSocketConnection, ClientInfo>(Clients);
@@ -551,14 +543,14 @@ namespace TankServer
                 {
                     lock (_syncObject)
                     {
-                        clientMap = new Map(Map, visibleObjects);
+                        clientMap.Cells = Map.Cells;
                     }
                 }
 
                 //если настройки изменились, клиенту отправится новая версия и флаг об обновлении настроек
-                var request = isSettingsChanged(GetSettings())
-                    ? new ServerRequest { Map = clientMap, Tank = client.Value.InteractObject as TankObject, IsSettingsChanged = true, Settings = Settings }
-                    : new ServerRequest { Map = clientMap, Tank = client.Value.InteractObject as TankObject, IsSettingsChanged = false, Settings = Settings };
+                var request = new ServerRequest { Map = clientMap, Tank = client.Value.InteractObject as TankObject, IsSettingsChanged = isSettingsChanged(GetSettings()), Settings = Settings };
+
+                request.Map.InteractObjects = client.Value.IsSpecator ? allObjects : visibleObjects;
 
                 var json = request.ToJson();
 
@@ -712,7 +704,7 @@ namespace TankServer
                                                 //Если здоровье танка меньше нуля и у него ещё есть жизни
                                                 if (tankIntersectedObject.Hp <= 0 && tankIntersectedObject.Lives > 0 )
                                                 {
-                                                    Reborn(tankIntersectedObject
+                                                    Reborn(tankIntersectedObject);
                                                         isFrag = true;
                                                 }
                                                 else
