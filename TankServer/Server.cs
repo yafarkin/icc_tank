@@ -227,7 +227,7 @@ namespace TankServer
 
                 if (isCorrectSession && isCorrectGameSpeed && isCorrectTankSpeed && isCorrectBulletSpeed && isCorrectTankDamage)
                 {
-                    _fileSettings.UpdateAll(FileEntry[1], FileEntry[2], FileEntry[3], _gameSpeed, _tankSpeed, _bulletSpeed, _tankDamage);
+                    _fileSettings.UpdateAll((int)_gameSpeed, _tankSpeed, _bulletSpeed, _tankDamage);
                 }
             }
             catch (Exception e)

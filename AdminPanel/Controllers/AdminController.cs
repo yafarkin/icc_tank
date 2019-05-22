@@ -36,6 +36,8 @@ namespace AdminPanel.Controllers
                     break;
                 }
             }
+
+            serverSettings.Port = port;
 /*
             var tankSettings = new TankSettings()
             {
