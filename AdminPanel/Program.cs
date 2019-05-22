@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 
@@ -6,20 +7,14 @@ namespace AdminPanel
 {
     public class Program
     {
-        public static List<Entity.ServerEntity> servers = new List<Entity.ServerEntity>();
+        public static List<Entity.ServerEntity> Servers = new List<Entity.ServerEntity>();
 
         public static bool ServerStatusIsRun(int id)
         {
-            bool stutus = false;
-            if (id - 1 < servers.Count)
-            {
-                if (servers[id - 1].Task.IsCompleted)
-                {
-                    stutus = true;
-                }
-            }
+            var status = (Servers.FirstOrDefault(x => x.Id == id)?.Task.Status
+                ?? System.Threading.Tasks.TaskStatus.Faulted) == System.Threading.Tasks.TaskStatus.Running;
 
-            return stutus;
+            return status;
         }
 
         public static void Main(string[] args)

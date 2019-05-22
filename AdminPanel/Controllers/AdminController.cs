@@ -1,9 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using AdminPanel.Entity;
 using Microsoft.AspNetCore.Mvc;
+using TankCommon.Objects;
 using TankServer;
+using TankCommon;
 
 namespace AdminPanel.Controllers
 {
@@ -19,23 +23,14 @@ namespace AdminPanel.Controllers
         /// <param name="width"></param>
         /// <param name="height"></param>
         [HttpPost]
-        public void CreateServer([FromForm] int? maxClientsCount, [FromForm] string nameSession, [FromForm] int? width, [FromForm] int? height,
-            [FromForm] int? gameSpeed, [FromForm] int? tankSpeed, [FromForm] int? bulletSpeed, [FromForm] int? tankDamage, [FromForm] int? sessionTime)
+        public void CreateServer([FromForm] ServerSettings serverSettings)
         {
-            if (nameSession == string.Empty) return;
-            if (maxClientsCount == null) maxClientsCount = 2;
-            if (width == null) width = 20;
-            if (height == null) height = 20;
-            if (gameSpeed == null) gameSpeed = 1;
-            if (tankSpeed == null) tankSpeed = 2;
-            if (bulletSpeed == null) bulletSpeed = 7;
-            if (tankDamage == null) tankDamage = 40;
-            if (sessionTime == null) sessionTime = 5;
+            if (serverSettings.SessionName == string.Empty) return;
 
-            var port = 1000;
+            var port = 2000;
             while (true)
             {
-                if (Program.servers.Any(x => x.Port == port))
+                if (Program.Servers.Any(x => x.Port == port))
                 {
                     port += 10;
                 }
@@ -44,6 +39,15 @@ namespace AdminPanel.Controllers
                     break;
                 }
             }
+/*
+            var tankSettings = new TankSettings()
+            {
+                Version = 1,
+                GameSpeed = (int)gameSpeed,
+                TankSpeed = (int)tankSpeed,
+                BulletSpeed = (int)bulletSpeed,
+                TankDamage = (int)tankDamage
+            };
 
             var serverSettings = new ServerSettings()
             {
@@ -53,25 +57,16 @@ namespace AdminPanel.Controllers
                 Height = (int)height,
                 MaxClientCount = (uint)maxClientsCount,
                 Port = port,
-                SessionTime = DateTime.Now.AddMinutes((int)sessionTime) - DateTime.Now,
-                ServerType = TankCommon.Enum.ServerType.BattleCity
-            };
+                ServerType = TankCommon.Enum.ServerType.BattleCity,
+                TankSettings = tankSettings
+            };    */        
 
-            var tankSettings = new TankCommon.TankSettings()
-            {
-                Version = 1,
-                GameSpeed = (int)gameSpeed,
-                TankSpeed = (int)tankSpeed,
-                BulletSpeed = (int)bulletSpeed,
-                TankDamage = (int)tankDamage
-            };
-
-            var server = new Server(serverSettings, tankSettings);
+            var server = new Server(serverSettings);
             var cancellationToken = new CancellationTokenSource();
 
-            Program.servers.Add(new ServerEntity()
+            Program.Servers.Add(new ServerEntity()
             {
-                Id = Program.servers.Count == 0 ? 1 : Program.servers.Count,
+                Id = Program.Servers.Count == 0 ? 1 : Program.Servers.Count,
                 CancellationToken = cancellationToken,
                 Server = server,
                 Task = server.Run(cancellationToken.Token)
@@ -87,6 +82,20 @@ namespace AdminPanel.Controllers
             // TODO TBD технической возможности запуска
         }
 
+        public IEnumerable<object> GetServerTypeInfo()
+        {
+            var server = new ServerSettings();
+            var res = server.GetType().GetProperties();
+            var result = res.Select(z => new
+            {
+                Name = z.Name,
+                Text = z.GetDescription(),
+                Value = z.GetValue(server)
+            });
+
+            return result;
+        }
+
         /// <summary>
         /// Изменение настроек сервера
         /// </summary>
@@ -95,24 +104,34 @@ namespace AdminPanel.Controllers
         /// <param name="TankSpeed">Скорость танка</param>
         /// <param name="BulletSpeed">Скорость Пули</param>
         /// <param name="TankDamage">Урон танков</param>
-        /// <param name="ServerName">Имя сервера</param>
-        /// <param name="ServerType">Игровой тип сервера</param>
-        /// <param name="SessionTime">Время игрового матча</param>
         [HttpPost]
-        public void ChangeServerSettings([FromForm] int id, [FromForm] decimal? GameSpeed, [FromForm] decimal? TankSpeed, [FromForm] decimal? BulletSpeed,
-            [FromForm] decimal? TankDamage, [FromForm] string ServerName, [FromForm] string ServerType, [FromForm] string SessionTime)
+        public void ChangeServerSettings([FromForm] int id, [FromForm] decimal? GameSpeed, [FromForm] decimal? TankSpeed, [FromForm] decimal? BulletSpeed, [FromForm] decimal? TankDamage)
         {
+            bool update = false;
             if (Program.ServerStatusIsRun(id))
-            {/*
-                var server = Program.servers[id - 1].Server;
-                if (GameSpeed != null) server._tankSettings.GameSpeed = (decimal)GameSpeed;
-                if (TankSpeed != null) server._tankSettings.TankSpeed = (decimal)TankSpeed;
-                if (BulletSpeed != null) server._tankSettings.BulletSpeed = (decimal)BulletSpeed;
-                if (TankDamage != null) server._tankSettings.TankDamage = (decimal)TankDamage;
-                if (ServerName != null) server._tankSettings.ServerName = ServerName;
-                if (ServerType != null) server._tankSettings.ServerType = (TankCommon.Enum.ServerType)Enum.Parse(typeof(TankCommon.Enum.ServerType), ServerType);
-                if (SessionTime != null) server._tankSettings.SessionTime = DateTime.Now.AddMinutes(int.Parse(SessionTime)) - DateTime.Now;
-                server._tankSettings.Version++;*/
+            {
+                var server = Program.Servers[id - 1].Server;
+                if (GameSpeed != null)
+                {
+                    server.serverSettings.TankSettings.GameSpeed = (int)GameSpeed;
+                    update = true;
+                }
+                if (TankSpeed != null)
+                {
+                    server.serverSettings.TankSettings.TankSpeed = (decimal)TankSpeed;
+                    update = true;
+                }
+                if (BulletSpeed != null)
+                {
+                    server.serverSettings.TankSettings.BulletSpeed = (decimal)BulletSpeed;
+                    update = true;
+                }
+                if (TankDamage != null)
+                {
+                    server.serverSettings.TankSettings.TankDamage = (decimal)TankDamage;
+                    update = true;
+                }
+                if (update) server.serverSettings.TankSettings.Version++;
             }
         }
         
@@ -127,11 +146,10 @@ namespace AdminPanel.Controllers
                 
             if (status)
             {
-                var server = Program.servers[id - 1];
+                var server = Program.Servers[id - 1];
                 server.CancellationToken.Cancel();
-                Program.servers.Remove(server);
+                Program.Servers.Remove(server);
             }
-                
         }
     }
 }
