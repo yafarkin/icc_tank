@@ -134,6 +134,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Bot2.cs" />
     <Compile Include="ClientCore.cs" />
     <Compile Include="IClientBot.cs" />
     <Compile Include="ManualClient.cs" />
@@ -141,7 +142,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Spectator.cs" />
-    <Compile Include="TestClient.cs" />
+    <Compile Include="Bot1.cs" />
     <Compile Include="WebSocketProxy.cs" />
   </ItemGroup>
   <ItemGroup>
