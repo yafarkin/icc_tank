@@ -22,7 +22,7 @@ namespace TankServer
 
         protected readonly uint _maxClientsCount;
 
-        public TankSettings tankSettings;
+        public ServerSettings serverSettings;
         public string ConfigPath;
 
         public readonly Map Map;
@@ -30,10 +30,10 @@ namespace TankServer
 
         public readonly Logger _logger;
 
-        public Server(ServerSettings serverSettings, TankSettings tSettings)
+        public Server(ServerSettings sSettings)
         {            
             Clients = new Dictionary<IWebSocketConnection, ClientInfo>();
-            tankSettings = tSettings;
+            serverSettings = sSettings;
             Map = MapManager.LoadMap(serverSettings.Height, serverSettings.Width, CellMapType.Wall, 50, 50);
 
             _maxClientsCount = serverSettings.MaxClientCount;
@@ -57,7 +57,7 @@ namespace TankServer
                         Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
                         _logger.Info($"[КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
                         //добавляем клиента с заданными настройками и флагом об их обновлении
-                        Clients.Add(socket, new ClientInfo() { Request = new ServerRequest { Settings = tankSettings, IsSettingsChanged = true } });
+                        Clients.Add(socket, new ClientInfo() { Request = new ServerRequest { Settings = serverSettings.TankSettings, IsSettingsChanged = true } });
                     }
                 };
                 socket.OnClose = () =>
@@ -122,7 +122,7 @@ namespace TankServer
                                 
                                 //если настройки изменились, клиенту отправится новая версия и флаг об обновлении настроек
                                 clientInfo.Request = isSettingsChanged(GetSettings())
-                                    ? new ServerRequest { IsSettingsChanged = true, Settings = tankSettings }
+                                    ? new ServerRequest { IsSettingsChanged = true, Settings = serverSettings.TankSettings }
                                     : new ServerRequest { IsSettingsChanged = false };
 
                                 if (string.IsNullOrWhiteSpace(response.CommandParameter))
@@ -192,7 +192,7 @@ namespace TankServer
                 var SW = new StreamWriter(ConfigPath, false, System.Text.Encoding.Default);
                 typeof(TankSettings)
                     .GetProperties()
-                    .Select(x => x.GetValue(tankSettings, null))
+                    .Select(x => x.GetValue(serverSettings.TankSettings, null))
                     .ToList()
                     .ForEach(x => SW.WriteLine(x));
 
@@ -247,10 +247,10 @@ namespace TankServer
                 return true;
             }
 
-            return (tankSettings.GameSpeed != _fileSettings.GameSpeed ||
-                tankSettings.TankSpeed != _fileSettings.TankSpeed ||
-                tankSettings.TankDamage != _fileSettings.TankDamage ||
-                tankSettings.BulletSpeed != _fileSettings.BulletSpeed) ? true : false;
+            return (serverSettings.TankSettings.GameSpeed != _fileSettings.GameSpeed ||
+                serverSettings.TankSettings.TankSpeed != _fileSettings.TankSpeed ||
+                serverSettings.TankSettings.TankDamage != _fileSettings.TankDamage ||
+                serverSettings.TankSettings.BulletSpeed != _fileSettings.BulletSpeed) ? true : false;
         }
 
         public void Dispose()
@@ -296,7 +296,7 @@ namespace TankServer
                 break;
             }
 
-            var tank = new TankObject(Guid.NewGuid(), rectangle, tankSettings.TankSpeed, false, 100, 100, nickname, tag, tankSettings.TankDamage);
+            var tank = new TankObject(Guid.NewGuid(), rectangle, serverSettings.TankSettings.TankSpeed, false, 100, 100, nickname, tag, serverSettings.TankSettings.TankDamage);
             Map.InteractObjects.Add(tank);
 
             return tank;
@@ -330,7 +330,7 @@ namespace TankServer
                     break;
             }
 
-            clientTank.BulletSpeed = tankSettings.BulletSpeed;
+            clientTank.BulletSpeed = serverSettings.TankSettings.BulletSpeed;
             var bullet = new BulletObject(Guid.NewGuid(), new Rectangle(location, 1, 1), clientTank.BulletSpeed, 
                 true, clientTank.Direction, clientTank.Id, clientTank.Damage);
 
@@ -571,8 +571,8 @@ namespace TankServer
 
                     //если настройки изменились, клиенту отправится новая версия и флаг об обновлении настроек
                     var request = isSettingsChanged(GetSettings())
-                        ? new ServerRequest { Map = clientMap, Tank = client.Value.InteractObject as TankObject, IsSettingsChanged = true, Settings = tankSettings }
-                        : new ServerRequest { Map = clientMap, Tank = client.Value.InteractObject as TankObject, IsSettingsChanged = false, Settings = tankSettings };
+                        ? new ServerRequest { Map = clientMap, Tank = client.Value.InteractObject as TankObject, IsSettingsChanged = true, Settings = serverSettings.TankSettings }
+                        : new ServerRequest { Map = clientMap, Tank = client.Value.InteractObject as TankObject, IsSettingsChanged = false, Settings = serverSettings.TankSettings };
 
                     json = request.ToJson();
                 }
@@ -670,13 +670,13 @@ namespace TankServer
                                     if (movingObject is BulletObject bulletObject)
                                     {
                                         //если скорость пули была изменена в настройках игры, устанавливаем новое значение
-                                        if (movingObject.Speed != tankSettings.BulletSpeed)
+                                        if (movingObject.Speed != serverSettings.TankSettings.BulletSpeed)
                                         {
-                                            movingObject.Speed = tankSettings.BulletSpeed;
+                                            movingObject.Speed = serverSettings.TankSettings.BulletSpeed;
                                         }
 
                                         //домножение скорости на скорость игры
-                                        movingObject.Speed *= tankSettings.GameSpeed;
+                                        movingObject.Speed *= serverSettings.TankSettings.GameSpeed;
 
                                         if (cells.Any(c => c.Value == CellMapType.Wall))
                                         {
@@ -750,21 +750,21 @@ namespace TankServer
                                         }
 
                                         //если скорость танка была изменена в настройках игры, устанавливаем новое значение
-                                        if (movingObject.Speed != tankSettings.TankSpeed)
+                                        if (movingObject.Speed != serverSettings.TankSettings.TankSpeed)
                                         {
-                                            movingObject.Speed = tankSettings.TankSpeed;
+                                            movingObject.Speed = serverSettings.TankSettings.TankSpeed;
                                         }
 
                                         //домножение на скорость игры
-                                        movingObject.Speed *= tankSettings.GameSpeed;
+                                        movingObject.Speed *= serverSettings.TankSettings.GameSpeed;
 
                                         if (intersectedObject is UpgradeInteractObject upgradeObject)
                                         {
                                             var tank = movingObject as TankObject;
 
-                                            if (tankSettings.TankDamage != tank.Damage)
+                                            if (serverSettings.TankSettings.TankDamage != tank.Damage)
                                             {
-                                                tank.Damage = tankSettings.TankDamage;
+                                                tank.Damage = serverSettings.TankSettings.TankDamage;
                                             }
 
                                             switch (upgradeObject.Type)

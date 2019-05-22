@@ -5,6 +5,7 @@ using System.Threading;
 using TankCommon;
 using TankServer;
 using TankCommon.Enum;
+using TankCommon.Objects;
 
 namespace ICC_Tank
 {
@@ -51,7 +52,7 @@ namespace ICC_Tank
             Console.WriteLine("Нажмите Escape для выхода");
 
             var tokenSource = new CancellationTokenSource();
-            var server = new Server(new ServerSettings(), new TankSettings());
+            var server = new Server(new ServerSettings());
             var serverTask = server.Run(tokenSource.Token);
             
             try
