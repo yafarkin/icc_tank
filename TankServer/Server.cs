@@ -89,6 +89,7 @@ namespace TankServer
                             return;
                         }
 
+                        //Информация для клиента
                         var clientInfo = Clients[socket];
 
                         var response = msg.FromJson<ServerResponse>();
@@ -119,7 +120,7 @@ namespace TankServer
 
                                 clientInfo.IsLogined = true;
                                 clientInfo.NeedUpdateMap = true;
-                                
+
                                 //если настройки изменились, клиенту отправится новая версия и флаг об обновлении настроек
                                 clientInfo.Request = isSettingsChanged(GetSettings())
                                     ? new ServerRequest { IsSettingsChanged = true, Settings = Settings }
@@ -209,7 +210,7 @@ namespace TankServer
         public TankSettings GetSettings()
         {
             var _fileSettings = new TankSettings();
-            
+
             try
             {
                 var SR = new StreamReader(ConfigPath);
@@ -276,30 +277,9 @@ namespace TankServer
 
         public BaseInteractObject AddTankBot(string nickname, string tag)
         {
-            Rectangle rectangle;
-
-            while (true)
-            {
-                var left = _random.Next(Map.MapWidth - Map.CellWidth);
-                var top = _random.Next(Map.MapHeight - Map.CellHeight);
-
-                rectangle = new Rectangle(new Point(left, top), Map.CellWidth, Map.CellHeight);
-
-                if (MapManager.GetIntersectedObject(rectangle, Map.InteractObjects) != null)
-                {
-                    continue;
-                }
-
-                var cellTypes = MapManager.WhatOnMap(rectangle, Map);
-                if (cellTypes.Any(ct => ct.Value != CellMapType.Void && ct.Value != CellMapType.Grass))
-                {
-                    continue;
-                }
-
-                break;
-            }
-            
-            var tank = new TankObject(Guid.NewGuid(), rectangle, Settings.TankSpeed, false, 100, 100, nickname, tag, Settings.TankDamage);
+            var rectangle = PastOnPassablePlace();
+            var tank = new TankObject(Guid.NewGuid(), rectangle, 2, false, 100, 100, 5, 5, nickname, tag, 40);
+            //При создании нового танка он бессмертен
             CallInvulnerability(tank, 5);
             Map.InteractObjects.Add(tank);
 
@@ -308,13 +288,13 @@ namespace TankServer
 
         private void AddBullet(TankObject clientTank)
         {
-            if(Map.InteractObjects.OfType<BulletObject>().Any(b => b.SourceId == clientTank.Id))
+            if (Map.InteractObjects.OfType<BulletObject>().Any(b => b.SourceId == clientTank.Id))
             {
                 return;
             }
 
             var location = new Point(clientTank.Rectangle.LeftCorner);
-            switch(clientTank.Direction)
+            switch (clientTank.Direction)
             {
                 case DirectionType.Right:
                     location.Left += clientTank.Rectangle.Width;
@@ -335,7 +315,7 @@ namespace TankServer
             }
 
             clientTank.BulletSpeed = Settings.BulletSpeed;
-            var bullet = new BulletObject(Guid.NewGuid(), new Rectangle(location, 1, 1), clientTank.BulletSpeed, 
+            var bullet = new BulletObject(Guid.NewGuid(), new Rectangle(location, 1, 1), clientTank.BulletSpeed,
                 true, clientTank.Direction, clientTank.Id, clientTank.Damage);
 
             Map.InteractObjects.Add(bullet);
@@ -508,33 +488,37 @@ namespace TankServer
         protected async Task SendUpdates(bool onlySpectators, CancellationToken cancellationToken)
         {
             List<BaseInteractObject> visibleObjects;
+            List<BaseInteractObject> allObjects;
             Map clientMap;
 
             Dictionary<IWebSocketConnection, ClientInfo> clientsCopy;
 
             lock (_syncObject)
             {
+                //Лист видимых объектов
                 visibleObjects = new List<BaseInteractObject>(Map.InteractObjects.Count);
+                allObjects = new List<BaseInteractObject>(Map.InteractObjects.Count);
 
+                //Для всех интерактивных объектов
                 foreach (var interactObj in Map.InteractObjects.OfType<BaseInteractObject>())
                 {
+                    //Если этот объект это наблюдатель
                     if (interactObj is SpectatorObject)
                     {
                         continue;
                     }
 
-                    if (interactObj is TankObject || interactObj is UpgradeInteractObject)
+                    //Если интерактивный объект это танк или апгрейд
+                    
+                    var cells = MapManager.WhatOnMap(interactObj.Rectangle, Map);
+                    if (!((interactObj as TankObject)?.IsDead ?? false))
                     {
-                        var cells = MapManager.WhatOnMap(interactObj.Rectangle, Map);
                         if (cells.Any(c => c.Value != CellMapType.Grass))
                         {
                             visibleObjects.Add(interactObj);
                         }
                     }
-                    else
-                    {
-                        visibleObjects.Add(interactObj);
-                    }
+                    allObjects.Add(interactObj);
                 }
 
                 clientsCopy = new Dictionary<IWebSocketConnection, ClientInfo>(Clients);
@@ -542,8 +526,10 @@ namespace TankServer
 
             var emptyMap = new Map(null, visibleObjects);
 
+            // Для всёх игроков
             foreach (var client in clientsCopy)
             {
+                //Если только смотрящие
                 if ((onlySpectators && !client.Value.IsSpecator) || !client.Value.IsLogined || client.Value.IsInQueue)
                 {
                     continue;
@@ -552,34 +538,28 @@ namespace TankServer
                 // запоминаем значение, требовалось высылать ли обновление карты
                 var needUpdate = client.Value.NeedUpdateMap;
 
-                string json;
-                if (client.Value.IsSpecator)
+                clientMap = emptyMap;
+                if (needUpdate)
                 {
-                    var request = new ServerRequest
+                    lock (_syncObject)
                     {
-                        Map = Map,
-                        Tank = null as TankObject
-                    };
-                    json = request.ToJson();
-                }
-                else
-                {
-                    clientMap = emptyMap;
-                    if (needUpdate)
-                    {
-                        lock (_syncObject)
-                        {
-                            clientMap = new Map(Map, visibleObjects);
-                        }
+                        clientMap.Cells = Map.Cells;
                     }
-
-                    //если настройки изменились, клиенту отправится новая версия и флаг об обновлении настроек
-                    var request = isSettingsChanged(GetSettings())
-                        ? new ServerRequest { Map = clientMap, Tank = client.Value.InteractObject as TankObject, IsSettingsChanged = true, Settings = Settings }
-                        : new ServerRequest { Map = clientMap, Tank = client.Value.InteractObject as TankObject, IsSettingsChanged = false, Settings = Settings };
-
-                    json = request.ToJson();
                 }
+
+                //если настройки изменились, клиенту отправится новая версия и флаг об обновлении настроек
+                var request = new ServerRequest
+                {
+                    Map = clientMap,
+                    Tank = client.Value.InteractObject as TankObject,
+                    IsSettingsChanged = isSettingsChanged(GetSettings()),
+                    Settings = Settings
+                };
+
+                request.Map.InteractObjects = client.Value.IsSpecator ? allObjects : visibleObjects;
+
+                var json = request.ToJson();
+
 
                 try
                 {
@@ -609,6 +589,8 @@ namespace TankServer
 
         public async Task UpdateEngine(CancellationToken cancellationToken)
         {
+            var reincarnationArr = new List<TankObject>();
+
             while (!cancellationToken.IsCancellationRequested)
             {
                 try
@@ -661,16 +643,15 @@ namespace TankServer
 
                             while (speed >= 0)
                             {
-                                var canMove = newPoint.Left >= 0 &&
-                                              newPoint.Left < Map.MapWidth - Constants.CellWidth &&
-                                              newPoint.Top >= 0 &&
-                                              newPoint.Top < Map.MapHeight - Constants.CellHeight;
+
+                                var canMove = newPoint.Left >= 0 && newPoint.Left < Map.MapWidth - Constants.CellWidth && newPoint.Top >= 0 && newPoint.Top < Map.MapHeight - Constants.CellHeight;
 
                                 if (canMove)
                                 {
                                     var intersectedObject = MapManager.GetIntersectedObject(newRectangle, Map.InteractObjects.Where(o => o.Id != movingObject.Id));
                                     var cells = MapManager.WhatOnMap(newRectangle, Map);
 
+                                    //Если двигающийся объект - это пуля
                                     if (movingObject is BulletObject bulletObject)
                                     {
                                         //если скорость пули была изменена в настройках игры, устанавливаем новое значение
@@ -682,6 +663,7 @@ namespace TankServer
                                         //домножение скорости на скорость игры
                                         movingObject.Speed *= Settings.GameSpeed;
 
+                                        //если пуля попала в стену
                                         if (cells.Any(c => c.Value == CellMapType.Wall))
                                         {
                                             objsToRemove.Add(bulletObject);
@@ -696,6 +678,7 @@ namespace TankServer
                                                 Map.Cells[destructiveWall.Key.TopInt, destructiveWall.Key.LeftInt] = CellMapType.Void;
                                             }
 
+                                            //удаляем пулю
                                             objsToRemove.Add(bulletObject);
 
                                             // т.к. изменилась карта, то надо всем клиентам выслать новую карту
@@ -707,26 +690,38 @@ namespace TankServer
                                             canMove = false;
                                         }
 
+                                        //Если пуля попала в танк
                                         if (intersectedObject is TankObject tankIntersectedObject)
                                         {
                                             if (tankIntersectedObject.IsInvulnerable == false)
                                             {
+                                                //Удалить пулю
                                                 objsToRemove.Add(bulletObject);
                                                 canMove = false;
 
+                                                //Если здоровья больше, чем урон пули
                                                 var hpToRemove = tankIntersectedObject.Hp > bulletObject.DamageHp
-                                                ? bulletObject.DamageHp
-                                                : tankIntersectedObject.Hp;
+                                                    ? bulletObject.DamageHp
+                                                    : tankIntersectedObject.Hp;
                                                 bool isFrag = false;
+
+                                                //Уменьшить здоровье танка на урон пули
                                                 tankIntersectedObject.Hp -= hpToRemove;
-                                                if (tankIntersectedObject.Hp <= 0)
+                                                //Если здоровье танка меньше нуля и у него ещё есть жизни
+                                                if (tankIntersectedObject.Hp <= 0 && tankIntersectedObject.Lives > 0 )
                                                 {
-                                                    isFrag = true;
-                                                    objsToRemove.Add(tankIntersectedObject);
+                                                    Reborn(tankIntersectedObject);
+                                                        isFrag = true;
+                                                }
+                                                else
+                                                {
+                                                    if (tankIntersectedObject.Hp <= 0 && tankIntersectedObject.Lives <= 0)
+                                                    {
+                                                        objsToRemove.Add(tankIntersectedObject);
+                                                    }
                                                 }
 
-                                                var sourceTank = Map.InteractObjects.OfType<TankObject>()
-                                                    .FirstOrDefault(t => t.Id == bulletObject.SourceId);
+                                                var sourceTank = Map.InteractObjects.OfType<TankObject>().FirstOrDefault(t => t.Id == bulletObject.SourceId);
                                                 if (sourceTank != null)
                                                 {
                                                     sourceTank.Score += hpToRemove;
@@ -780,37 +775,37 @@ namespace TankServer
                                             switch (upgradeObject.Type)
                                             {
                                                 case UpgradeType.BulletSpeed:
-                                                {
-                                                    var upgrade = upgradeObject as BulletSpeedUpgradeObject;
-                                                    tank.BulletSpeed += upgrade.IncreaseBulletSpeed;
-                                                    break;
-                                                }
+                                                    {
+                                                        var upgrade = upgradeObject as BulletSpeedUpgradeObject;
+                                                        tank.BulletSpeed += upgrade.IncreaseBulletSpeed;
+                                                        break;
+                                                    }
                                                 case UpgradeType.Damage:
-                                                {
-                                                    var upgrade = upgradeObject as DamageUpgradeObject;
-                                                    tank.Damage += upgrade.IncreaseDamage;
-                                                    break;
-                                                }
+                                                    {
+                                                        var upgrade = upgradeObject as DamageUpgradeObject;
+                                                        tank.Damage += upgrade.IncreaseDamage;
+                                                        break;
+                                                    }
                                                 case UpgradeType.Health:
-                                                {
-                                                    var upgrade = upgradeObject as HealthUpgradeObject;
-                                                    var newHP = tank.Hp + upgrade.RestHP;
-                                                    tank.Hp = newHP > tank.MaximumHp ? tank.MaximumHp : newHP;
-                                                    break;
-                                                }
+                                                    {
+                                                        var upgrade = upgradeObject as HealthUpgradeObject;
+                                                        var newHP = tank.Hp + upgrade.RestHP;
+                                                        tank.Hp = newHP > tank.MaximumHp ? tank.MaximumHp : newHP;
+                                                        break;
+                                                    }
                                                 case UpgradeType.MaxHp:
-                                                {
-                                                    var upgrade = upgradeObject as MaxHpUpgradeObject;
-                                                    tank.MaximumHp += upgrade.IncreaseHP;
-                                                    tank.Hp += upgrade.IncreaseHP;
-                                                    break;
-                                                }
+                                                    {
+                                                        var upgrade = upgradeObject as MaxHpUpgradeObject;
+                                                        tank.MaximumHp += upgrade.IncreaseHP;
+                                                        tank.Hp += upgrade.IncreaseHP;
+                                                        break;
+                                                    }
                                                 case UpgradeType.Invulnerability:
-                                                {
-                                                    var upgrade = upgradeObject as InvulnerabilityUpgradeObject;
-                                                    CallInvulnerability(tank, 5);
-                                                    break;
-                                                }
+                                                    {
+                                                        var upgrade = upgradeObject as InvulnerabilityUpgradeObject;
+                                                        CallInvulnerability(tank, 5);
+                                                        break;
+                                                    }
                                             }
 
                                             objsToRemove.Add(intersectedObject);
@@ -875,6 +870,7 @@ namespace TankServer
 
                         foreach (var objToRemove in objsToRemove)
                         {
+                            //Если ссылка на удаляемый объект не ссылается на нулевой объект и айди объекта == айди удаляемого объекта
                             var client = Clients.FirstOrDefault(c => c.Value.InteractObject != null && c.Value.InteractObject.Id == objToRemove.Id);
                             if (client.Key != null)
                             {
@@ -882,6 +878,7 @@ namespace TankServer
                             }
                             else
                             {
+                                //Удаляем объект
                                 Map.InteractObjects.Remove(objToRemove);
                             }
                         }
@@ -900,19 +897,36 @@ namespace TankServer
             }
         }
 
-        protected void AddUpgrades()
+        private async void Reborn(TankObject tank, int normalHP = 100)
         {
-            var rnd = _random.NextDouble();
-            if (rnd <= 0.995)
-            {
-                return;
-            }
+            //говорим, что танк пока мёртв
+            tank.IsDead = true;
+            //уменьшаем жизни
+            tank.Lives--;
+            //Переносим на 0
+            tank.Rectangle.LeftCorner.Top = 0;
+            tank.Rectangle.LeftCorner.Left = 0;
+            var isFire = Map.InteractObjects.FirstOrDefault(x => (x as BulletObject)?.SourceId == tank.Id) != null;
 
-            if (Map.InteractObjects.OfType<UpgradeInteractObject>().Count() >= 3)
-            {
-                return;
-            }
+            //Ждём 5 секунд
+            await Task.Delay(5000);
 
+            //Говорим, что теперь танк жив
+            tank.IsDead = false;
+            //Делаем танку здоровье нормальным(не увеличенным)
+            tank.Hp = normalHP;
+            tank.Rectangle = PastOnPassablePlace();
+            var bullet = Map.InteractObjects.FirstOrDefault(x => (x as BulletObject)?.SourceId == tank.Id);
+            if (!isFire && bullet != null)
+            {
+                Map.InteractObjects.Remove(bullet);
+            }
+            CallInvulnerability(tank,5);
+
+        }
+
+        private Rectangle PastOnPassablePlace()
+        {
             Rectangle rectangle;
 
             while (true)
@@ -936,6 +950,23 @@ namespace TankServer
                 break;
             }
 
+            return rectangle;
+        }
+
+        protected void AddUpgrades()
+        {
+            var rnd = _random.NextDouble();
+            if (rnd <= 0.995)
+            {
+                return;
+            }
+
+            if (Map.InteractObjects.OfType<UpgradeInteractObject>().Count() >= 3)
+            {
+                return;
+            }
+
+            var rectangle = PastOnPassablePlace();
             var upgradeObj = GetUpgradeToCreate(rectangle);
             Map.InteractObjects.Add(upgradeObj);
         }
