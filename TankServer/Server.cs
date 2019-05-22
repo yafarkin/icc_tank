@@ -548,7 +548,13 @@ namespace TankServer
                 }
 
                 //если настройки изменились, клиенту отправится новая версия и флаг об обновлении настроек
-                var request = new ServerRequest { Map = clientMap, Tank = client.Value.InteractObject as TankObject, IsSettingsChanged = isSettingsChanged(GetSettings()), Settings = Settings };
+                var request = new ServerRequest
+                {
+                    Map = clientMap,
+                    Tank = client.Value.InteractObject as TankObject,
+                    IsSettingsChanged = isSettingsChanged(GetSettings()),
+                    Settings = Settings
+                };
 
                 request.Map.InteractObjects = client.Value.IsSpecator ? allObjects : visibleObjects;
 
