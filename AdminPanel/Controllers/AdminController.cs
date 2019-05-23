@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using AdminPanel.Entity;
 using Microsoft.AspNetCore.Mvc;
 using TankCommon.Objects;
 using TankServer;
 using TankCommon;
+using TankCommon.Enum;
 
 namespace AdminPanel.Controllers
 {
@@ -22,7 +24,7 @@ namespace AdminPanel.Controllers
         [HttpPost]
         public void CreateServer([FromForm] ServerSettings serverSettings)
         {
-            if (serverSettings.SessionName == string.Empty) return;
+            if (string.IsNullOrWhiteSpace(serverSettings.SessionName)) return;
 
             var port = 2000;
             while (true)
@@ -81,22 +83,49 @@ namespace AdminPanel.Controllers
             // TODO TBD технической возможности запуска
         }
 
-        /// <summary>
-        /// Отправка класса с настройками сервера UI
-        /// </summary>
-        /// <returns></returns>
-        public IEnumerable<object> GetServerTypeInfo()
+        [HttpGet]
+        public IEnumerable<object> GetMapTypes()
         {
-            var server = new ServerSettings();
-            var res = server.GetType().GetProperties();
-            var result = res.Select(z => new
+            var result = new List<object>();
+            foreach (var item in Enum.GetValues(typeof(MapType)))
             {
-                Name = z.Name,
-                Text = z.GetDescription(),
-                Value = z.GetValue(server)
-            });
+                result.Add(new
+                {
+                    Name = Enum.GetName(typeof(MapType), item),
+                    Id = item
+                });
+            }
 
             return result;
+        }
+
+        [HttpGet]
+        public IEnumerable<object> GetServerTypes()
+        {
+            var result = new List<object>();
+            foreach (var item in Enum.GetValues(typeof(ServerType)))
+            {
+                result.Add(new
+                {
+                    Name = Enum.GetName(typeof(ServerType), item),
+                    Id = item
+                });
+            }
+
+            return result;
+        }
+
+        [HttpGet]
+        public IEnumerable<object> GetServerList()
+        {
+            return Program.Servers.Select(x => new
+            {
+                Id = x.Id,
+                Name = x.Server.serverSettings.SessionName,
+                Port = x.Server.serverSettings.Port,
+                Type = x.Server.serverSettings.ServerType.GetDescription(),
+                People = x.Server.Clients.Count(z => !z.Value.IsSpecator) + " / " + x.Server.serverSettings.MaxClientCount
+            });
         }
 
         /// <summary>

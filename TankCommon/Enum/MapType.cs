@@ -2,6 +2,7 @@
 {
     public enum MapType
     {
-        Base
+        Base,
+        Base2
     }
 }

@@ -1,132 +1,76 @@
-﻿var data = [
-    { 'Id': 1, 'Name': 1, 'Ip': 'fgbhf', 'Port': '2000', 'Type': 'Tank' },
-    { 'Id': 2, 'Name': 1, 'Ip': 'MONDAY', 'Port': '2010', 'Type': 'Tank' },
-    { 'Id': 3, 'Name': 1, 'Ip': 'TUESDAY', 'Port': '2020', 'Type': 'Tank' },
-    { 'Id': 4, 'Name': 1, 'Ip': 'WEDNESDAY', 'Port': '2030', 'Type': 'Tank' },
-    { 'Id': 5, 'Name': 1, 'Ip': 'THURSDAY', 'Port': '2040', 'Type': 'Tank' },
-    { 'Id': 6, 'Name': 1, 'Ip': 'FRIDAY', 'Port': '2050', 'Type': 'Tank' }
+﻿var mapTypeList = [];
+var serverList = [
+    { 'id': 1, 'name': 1, 'port': '2000', 'ip': 2000, 'type': 'Tank', 'people': '0 / 0' },
+    { 'id': 2, 'name': 1, 'port': '2010', 'ip': 2000, 'type': 'Tank', 'people': '0 / 0' },
+    { 'id': 3, 'name': 1, 'port': '2020', 'ip': 2000, 'type': 'Tank', 'people': '0 / 0' },
+    { 'id': 4, 'name': 1, 'port': '2030', 'ip': 2000, 'type': 'Tank', 'people': '0 / 0' },
+    { 'id': 5, 'name': 1, 'port': '2040', 'ip': 2000, 'type': 'Tank', 'people': '0 / 0' },
+    { 'id': 6, 'name': 1, 'port': '2050', 'ip': 2000, 'type': 'Tank', 'people': '0 / 0' }
 ];
-
-var serversSettings = [
-    { 'Name': '1', 'Text': 'sdfsd', 'Value': 1 },
-    { 'Name': '2', 'Text': 'sdfsd', 'Value': 1 },
-    { 'Name': '3', 'Text': 'sdfsd', 'Value': 1 },
-    { 'Name': '4', 'Text': 'sdfsd', 'Value': 1 },
-]
+var serverTypeList = [];
 
 class UserForm extends React.Component {
-
-    requestHelper(type, method, data) {
+    postHelper(method, data) {
         var form = new FormData();
-        for (var propt in data) {
-            form.append(propt, data[propt]);
+        for (var prop in data) {
+            form.append(prop, Object(data[prop]));
         }
 
-        var type = { method: type, body: form };
+        var requestType = { method: "POST", body: form };
         var url = `admin/${method}`;
 
-        fetch(url, type);
+        fetch(url, requestType);
     }
 
-    postHelper(method, data) {
-        this.requestHelper("POST", method, data);
+    getHelper(method) {
+        var requestType = { method: "GET" };
+        var url = `admin/${method}`;
+        return fetch(url, requestType).then((x) => { return x.json(); });
     }
 
     constructor(props) {
         super(props);
 
-        //
-        var port = props.port;
-        var portIsValid = this.validatePort(port);
-        //
-        var nameGame = props.nameGame;
-        var nameGameIsValid = this.validateNameGame(nameGame);
-        //
-        var maxBotsCount = props.maxBotsCount;
-        var maxBotsCountIsValid = this.validateMaxBotsCount(maxBotsCount);
-        //
-        var coreUpdatesMs = props.coreUpdatesMs;
-        var coreUpdatesMsIsValid = this.validateCoreUpdatesMs(coreUpdatesMs);
-
         this.state = {
             viewModal: false,
-            nameGame: nameGame, port: port, maxBotsCount: maxBotsCount, coreUpdatesMs: coreUpdatesMs,/*
-         */ nameGameValid: nameGameIsValid, portValid: portIsValid, maxBotsCountValid: maxBotsCountIsValid, coreUpdatesMsValid: coreUpdatesMsIsValid
+            SessionName: "NewGame",
+            serverList: []
         };
 
-        this.onNameGameChange = this.onNameGameChange.bind(this);
-        this.onPortChange = this.onPortChange.bind(this);
-        this.onMaxBotsCountChange = this.onMaxBotsCountChange.bind(this);
-        this.onCoreUpdateMsCharnge = this.onCoreUpdateMsCharnge.bind(this);
-        //
-        this.handleSubmit = this.handleSubmit.bind(this);
         this.openModal = this.openModal.bind(this);
         this.doTestStart = this.doTestStart.bind(this);
+        this.getList = this.getList.bind(this);
+        this.updateServerList = this.updateServerList.bind(this);
     }
 
-    //проверить что порт больше нуля
-    validatePort(port) {
-        return port >= 1000;
+    getList(method) {
+        var list = [];
+        this.getHelper(method).then(x => { x.forEach(z => list.push(z)) });
+        return list;
     }
 
-    //проверить, чтоимя серверя больше трёх символов
-    validateNameGame(nameGame) {
-        return nameGame.length > 2;
+    componentDidMount() {
+        mapTypeList = this.getList('GetMapTypes');
+        serverTypeList = this.getList('GetServerTypes');
+        this.updateServerList();
     }
 
-    //проверить что введённое кол-во ботов больше одного
-    validateMaxBotsCount(maxBotsCount) {
-        return maxBotsCount > 1;
-    }
-
-    validateCoreUpdatesMs(coreUpdatesMs) {
-        return coreUpdatesMs > 0;
-    }
-
-    //при изменении порта
-    onPortChange(e) {
-        var val = e.target.Port;
-        var valid = this.validatePort(val);
-        this.setState({ port: val, portValid: valid });
-    }
-
-    //при изменении имени сервера
-    onNameGameChange(e) {
-        var val = e.target.Port;
-        var valid = this.validateNameGame(val);
-        this.setState({ nameGame: val, nameGameIsValid: valid });
-    }
-
-    //при изменении поля максимального количества ботов
-    onMaxBotsCountChange(e) {
-        var val = e.target.Port;
-        var valid = this.validateMaxBotsCount(val);
-        this.setState({ maxBotsCount: val, maxBotsCountIsValid: valid });
-    }
-
-    onCoreUpdateMsCharnge(e) {
-        var val = e.target.Port;
-        var valid = this.validateCoreUpdatesMs(val);
-        this.setState({ coreUpdatesMs: val, coreUpdatesMsIsValid: valid });
+    updateServerList() {
+        let list = this.getList('GetServerList');
+        this.setState({ serverList: list });
+        console.log(this.state.serverList);
     }
 
     doTestStart() {
-        var data = { maxBotsCount: 4, botUpdateMs: 100, coreUpdateMs: 100, spectatorUpdateMs: 100, port: 2000 };
-        console.log(document.getElementById(serversSettings[0].Name));
-        var newData = serversSettings.map(z => z.Name + ': ' + document.getElementById(z.Name).lastElementChild.getAttribute('value')).join();
-        console.log(newData);
+        var result = [];
+        document.getElementById('modal').childNodes.forEach(z => {
+            if (z.localName === 'div')
+                result.push('"' + z.id + '": "' + z.lastChild.value + '"')});
+        var data = JSON.parse('{ ' + result.join(', ') + ' }');
+        this.openModal();
 
-        // this.postHelper("CreateServer", data);
-    }
-
-    //запросить подтвердить введённые данные
-    handleSubmit(e) {
-        e.preventDefault();
-        if (this.state.nameGameIsValid === true && this.state.portValid === true && this.state.maxBotsCountIsValid) {
-            alert("Имя сервера: " + this.state.nameGame + " Порт: " + this.state.port + " Максимальное количество ботов: " + this.state.maxBotsCount);
-            this.doTestStart();
-
-        }
+        this.postHelper("CreateServer", data);
+        this.updateServerList();
     }
 
     openModal() {
@@ -134,57 +78,65 @@ class UserForm extends React.Component {
     }
 
     render() {
-        let list = data.map(p => {
-            return (
-                <tr key={p.Id}>
-                    {Object.keys(p).filter(k => k !== 'Id').map(k => {
-                        return (
-                            <td>
-                                <div>
-                                    {p[k]}
-                                </div>
-                            </td>
-                        );
-                    })}
-                </tr>
-            );
-        });
-        let dgf = serversSettings.map(p => {
-            return (
-                <div id={p.Name}>
-                    <label>{p.Text}</label>
-                    <input type="text" id="Value" defaultValue={p.Value} />
-                </div>
-            );
-        });
-        // цвет границы для поля для ввода имени игры
-        var nameGameColor = this.state.nameGameIsValid === true ? "green" : "red";
-        // цвет границы для поля для ввода порта
-        var portColor = this.state.portValid === true ? "green" : "red";
-        //цвет границы для поля для ввода максимального кол-ва ботов
-        var maxBotsCountsColor = this.state.maxBotsCountIsValid === true ? "green" : "red";
-
         return (
             <div>
-                <table class="table">
+                <table className="table">
                     <thead>
                         <tr>
                             <th>Name</th>
                             <th>Ip</th>
                             <th>Port</th>
                             <th>Type</th>
+                            <th>People</th>
                         </tr>
                     </thead>
-                    <tbody>{list}</tbody>
+                    <tbody>{this.state.serverList.map(p => {
+                        console.log(p);
+                        return (
+                            <tr key={p.id}>
+                                {Object.keys(p).filter(k => k !== 'id').map(k => { return (<td><div>{p[k]}</div></td>); })}
+                            </tr>
+                        );
+                    })}</tbody>
                 </table>
                 <button className="btn btn-primary" onClick={this.openModal}>Add</button>
-                <div id="modal" class={this.state.viewModal ? 'visible' : 'invisible'}>{dgf}
-                    <button className="btn btn-primary" onClick={this.doTestStart}>Create</button></div>
-            </div>
+                <button className="btn btn-primary" onClick={this.updateServerList}>Refresh</button>
+                <div id="modal" className={this.state.viewModal ? 'visible' : 'invisible'}>
+                    <div id="SessionName">
+                        <label>Имя сервера</label>
+                        <input type="text" id="Value" />
+                    </div>
+                    <div id="MapType">
+                        <label>Тип загружаемого шаблона карты</label>
+                        <select type="text" id="Value">{mapTypeList.map(e => {
+                            return <option value={e.id}>{e.name}</option>;
+                        })}</select>
+                    </div>
+                    <div id="Width">
+                        <label>Ширина генерируемой карты</label>
+                        <input type="number" id="Value" />
+                    </div>
+                    <div id="Height">
+                        <label>Высота генерируемой карты</label>
+                        <input type="number" id="Value" />
+                    </div>
+                    <div id="MaxClientCount">
+                        <label>Максимальное количество одновременно играющих игроков</label>
+                        <input type="number" id="Value" />
+                    </div>
+                    <div id="ServerType">
+                        <label>К какому типу игры относится данный сервер</label>
+                        <select type="text" id="Value">{serverTypeList.map(e => {
+                            return <option value={e.id}>{e.name}</option>;
+                        })}</select>
+                    </div>
+                    <button className="btn btn-primary" onClick={this.doTestStart}>Create</button>
+                </div>
+            </div >
         );
     }
 }
 ReactDOM.render(
-    <UserForm nameGame="" port="1000" maxBotsCount="3" />,
+    <UserForm />,
     document.getElementById("app")
 )
