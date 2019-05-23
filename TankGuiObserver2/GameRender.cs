@@ -160,6 +160,7 @@
         private int _mapWidth;
         private int _mapHeight;
         public Map Map { get; set; }
+        public TankCommon.TankSettings Settings { get; set; }
         private RawColor4 _blackScreen;
         private List<ImmutableObject> _immutableMapObjects;
         private List<ImmutableObject> _immutableGrass;
@@ -177,6 +178,7 @@
             }
         }
         Label _clientInfoLabel;
+        Label _sessionTime;
         DataGridView _dgv;
         private List<TankObject> _clientInfoTanks;
         private RawVector2 _clientInfoLeftPoint;
@@ -186,6 +188,7 @@
 
         //Entry screen
         private RectangleF _logoTextRect;
+        private RectangleF _enterTextRect;
         private RectangleF _statusTextRect;
         private TextFormat _statusTextFormat;
         private TextFormat _logoBrushTextFormat;
@@ -221,6 +224,7 @@
         Bitmap[] _bitmaps;
 
         public GameRender(
+            string server,
             RenderForm renderForm,
             SharpDX.Direct2D1.Factory factory2D,
             RenderTarget renderTarget)
@@ -261,8 +265,11 @@
                 _fpsmsTextRect.Left, _fpsmsTextRect.Top,
                 _fpsmsTextRect.Width, _fpsmsTextRect.Height);
             _logoTextRect = new RectangleF((float)RenderForm.Width / 5, (float)RenderForm.Height / 3, 1500, 100);
-            _statusTextRect = new RectangleF(
+            _enterTextRect = new RectangleF(
                 _logoTextRect.X + _logoTextRect.X,
+                RenderForm.Height - (RenderForm.Height - _logoTextRect.Bottom - 200), 800, 30);
+            _statusTextRect = new RectangleF(
+                _logoTextRect.X + 5*_logoTextRect.X/6,
                 RenderForm.Height - (RenderForm.Height - _logoTextRect.Bottom - 200), 800, 30);
             _clientInfoAreaRect = new RectangleF(1080, 0, 1920 - 1080, 1080);
             _clientInfoTextRect = new RectangleF(
@@ -288,9 +295,10 @@
                 new TextFormat(directFactory, "Times New Roman", FontWeight.Normal, FontStyle.Italic, 16.0f);
 
             _textAnimation = new TextAnimation();
-            _textAnimation.SetAnimatedString("Waiting for connection to the server");
+            _textAnimation.SetAnimatedString($"Waiting for connection to {server}");
             _textColorAnimation = new TextColorAnimation();
             _fpsmsCounter = new FpsCounter();
+            _fpsmsCounter.FPSCounter = 1000;
 
             /*
               ##############
@@ -306,6 +314,15 @@
             _clientInfoLabel.AutoSize = true;
             _clientInfoLabel.Visible = false;
 
+            _sessionTime = new Label();
+            _sessionTime.Text = Settings?.SessionTime.ToString();
+            _sessionTime.Font = new System.Drawing.Font("Cambria", 30);
+            _sessionTime.BackColor = System.Drawing.Color.Green;
+            _sessionTime.ForeColor = System.Drawing.Color.White;
+            _sessionTime.Location = new System.Drawing.Point(1400, 30);
+            _sessionTime.AutoSize = true;
+            _sessionTime.Visible = true;
+            
             _dgv = new DataGridView();
             _dgv.Width = 800; //840 (1920)
             _dgv.Height = 350; //1080
@@ -377,7 +394,7 @@
             RenderTarget2D.FillRectangle(_fpsmsTextBackground, _mapObjectsColors[13]);
             RenderTarget2D.DrawText(_fpsmsCounter.ToString(), _fpsmsTextFormat, _fpsmsTextRect, _mapObjectsColors[12]);
         }
-
+        
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawLogo()
         {
@@ -386,7 +403,7 @@
             RenderTarget2D.DrawText("Battle City v0.1",
                 _logoBrushTextFormat, _logoTextRect, _mapObjectsColors[14]);
             RenderTarget2D.DrawText("Press Enter to start a game",
-                _statusTextFormat, _statusTextRect, _mapObjectsColors[11]);
+                _statusTextFormat, _enterTextRect, _mapObjectsColors[11]);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(256)]
@@ -405,11 +422,14 @@
         public void DrawMap()
         {
             // рисуем всю карту
-            if (!_isMapSet)
+            if (!_isMapSet && 
+                Map != null &&
+                Map.MapWidth > 0 &&
+                Map.MapHeight > 0)
             {
                 _isMapSet = true;
-                _mapWidth = Map.MapWidth;
-                _mapHeight = Map.MapHeight;
+                _mapWidth  = Map.MapWidth /*Map.Cells.GetLength(0)*/;
+                _mapHeight = Map.MapHeight/*Map.Cells.GetLength(1)*/;
                 _zoomWidth = (float)1080 / _mapWidth;
                 _zoomHeight = RenderTarget2D.Size.Height / _mapHeight;
             }
@@ -616,76 +636,71 @@
             {
                 if (obj is TankObject tankObject)
                 {
-                    _tankRectangle.Left = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Left) * _zoomWidth;
-                    _tankRectangle.Top = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Top) * _zoomHeight;
-                    _tankRectangle.Right = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Left + tankObject.Rectangle.Width) * _zoomWidth;
-                    _tankRectangle.Bottom = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Top + tankObject.Rectangle.Height) * _zoomHeight;
-
-                    nickLength = tankObject.Nickname.Length;
-                    w = _tankRectangle.Right - _tankRectangle.Left;
-                    d = (w - nickLength * _zoomWidth) / 2;
-                    _nickRectangle.Left = _tankRectangle.Left   + d;
-                    _nickRectangle.Right = _tankRectangle.Right - d + 3*_zoomWidth;
-                    _nickRectangle.Top = _tankRectangle.Top - 3 * _zoomHeight;
-                    _nickRectangle.Bottom = _tankRectangle.Top - _zoomHeight;
-
-                    _nickBackRectangle.Left   = _nickRectangle.Left-5;
-                    _nickBackRectangle.Right  = _nickRectangle.Right;
-                    _nickBackRectangle.Top    = _nickRectangle.Top-3;
-                    _nickBackRectangle.Bottom = _nickRectangle.Bottom+5;
-
-                    RenderTarget2D.FillRectangle(_nickBackRectangle, _mapObjectsColors[13]);
-                    RenderTarget2D.DrawText(tankObject.Nickname,
-                        _nicknameTextFormat, _nickRectangle, _mapObjectsColors[15]);
-
-                    if (tankObject.Direction == DirectionType.Up)
+                    if (!tankObject.IsDead)
                     {
-                        RenderTarget2D.DrawBitmap(_tankUpBitmap, _tankRectangle, opacity, interpolationMode);
-                    }
-                    else if (tankObject.Direction == DirectionType.Down)
-                    {
-                        RenderTarget2D.DrawBitmap(_tankDownBitmap, _tankRectangle, opacity, interpolationMode);
-                    }
-                    else if (tankObject.Direction == DirectionType.Left)
-                    {
-                        RenderTarget2D.DrawBitmap(_tankLeftBitmap, _tankRectangle, opacity, interpolationMode);
-                    }
-                    else if (tankObject.Direction == DirectionType.Right)
-                    {
-                        RenderTarget2D.DrawBitmap(_tankRightBitmap, _tankRectangle, opacity, interpolationMode);
+                        _tankRectangle.Left = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Left) * _zoomWidth;
+                        _tankRectangle.Top = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Top) * _zoomHeight;
+                        _tankRectangle.Right = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Left + tankObject.Rectangle.Width) * _zoomWidth;
+                        _tankRectangle.Bottom = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Top + tankObject.Rectangle.Height) * _zoomHeight;
+
+                        nickLength = tankObject.Nickname.Length;
+                        w = _tankRectangle.Right - _tankRectangle.Left;
+                        d = (w - nickLength * _zoomWidth) / 2;
+                        _nickRectangle.Left = _tankRectangle.Left + d;
+                        _nickRectangle.Right = _tankRectangle.Right - d + 3 * _zoomWidth;
+                        _nickRectangle.Top = _tankRectangle.Top - 3 * _zoomHeight;
+                        _nickRectangle.Bottom = _tankRectangle.Top - _zoomHeight;
+
+                        _nickBackRectangle.Left = _nickRectangle.Left - 5;
+                        _nickBackRectangle.Right = _nickRectangle.Right;
+                        _nickBackRectangle.Top = _nickRectangle.Top - 3;
+                        _nickBackRectangle.Bottom = _nickRectangle.Bottom + 5;
+
+                        RenderTarget2D.FillRectangle(_nickBackRectangle, _mapObjectsColors[13]);
+                        RenderTarget2D.DrawText(tankObject.Nickname,
+                            _nicknameTextFormat, _nickRectangle, _mapObjectsColors[15]);
+
+                        if (tankObject.Direction == DirectionType.Up)
+                        {
+                            if (tankObject.IsInvulnerable)
+                            {
+                                //doing nothing
+                            }
+                            RenderTarget2D.DrawBitmap(_tankUpBitmap, _tankRectangle, opacity, interpolationMode);
+                        }
+                        else if (tankObject.Direction == DirectionType.Down)
+                        {
+                            RenderTarget2D.DrawBitmap(_tankDownBitmap, _tankRectangle, opacity, interpolationMode);
+                        }
+                        else if (tankObject.Direction == DirectionType.Left)
+                        {
+                            RenderTarget2D.DrawBitmap(_tankLeftBitmap, _tankRectangle, opacity, interpolationMode);
+                        }
+                        else if (tankObject.Direction == DirectionType.Right)
+                        {
+                            RenderTarget2D.DrawBitmap(_tankRightBitmap, _tankRectangle, opacity, interpolationMode);
+                        }
                     }
                 }
             }
         }
-
+        
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawClientInfo()
         {
             RenderTarget2D.Clear(_blackScreen);
+            _sessionTime.Text = Settings?.SessionTime.ToString();
             RenderTarget2D.FillRectangle(_clientInfoAreaRect, _mapObjectsColors[13]);
             RenderTarget2D.DrawLine(_clientInfoLeftPoint, _clientInfoRightPoint, _mapObjectsColors[12], 10);
-            //RenderTarget2D.DrawText("Client info", _statusTextFormat, _clientInfoTextRect, _mapObjectsColors[12]);
             _clientInfoTanks.AddRange(
                 Map.InteractObjects.OfType<TankObject>().OrderByDescending(t => t.Score).ToList());
-
-            //string nicknameFormatted = "Nickname";//20
-            //RenderTarget2D.DrawText(
-            //        $"Id " + nicknameFormatted + " Score Hp",
-            //        _statusTextFormat, heightIncriment, _mapObjectsColors[12]);
-            //heightIncriment.Y += _clientInfoListRect.Height / 4;
-            //int diffLen;
+            
             int index = 0;
             if (_dgv.Rows.Count > 0)
             {
                 foreach (var tank in _clientInfoTanks)
                 {
                     _dgv.Rows[index].SetValues(index, tank.Nickname, tank.Score, tank.Hp);
-                    //diffLen = Math.Abs(nicknameFormatted.Length - tank.Nickname.Length);
-                    //RenderTarget2D.DrawText(
-                    //    $"{index}. {tank.Nickname}{new string(' ', diffLen)} " +
-                    //    $"{(int)tank.Score} {(int)tank.Hp}",
-                    //    _statusTextFormat, heightIncriment, _mapObjectsColors[12]);
-                    //heightIncriment.Y += _clientInfoListRect.Height / 4;
                     ++index;
                 }
             }
