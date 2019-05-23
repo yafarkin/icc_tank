@@ -21,6 +21,7 @@
         Device _device;
 
         bool _isClientThreadRunning;
+        string _serverString;
         System.Threading.Thread _clientThread;
         GuiSpectator _spectatorClass;
         System.Threading.CancellationTokenSource _tokenSource;
@@ -28,25 +29,28 @@
         Connector _connector;
 
         bool _isEnterPressed;
-        bool _isTabPressed;
         bool _isFPressed;
         DirectInput _directInput;
         Keyboard _keyboard;
         GameRender _gameRender;
 
-        float _bitmapOpacity;
-        SharpDX.Mathematics.Interop.RawRectangleF _destinationRectangle;
-        BitmapInterpolationMode _interpolationMode;
-        Bitmap _bitmap;
+        //UI
+        System.Windows.Forms.NotifyIcon _notifyIcon;
 
         public Game(string windowName,
             int windowWidth, int windowHeight,
-            bool isWindowed = true)
+            bool isFullscreen = false)
         {
             _renderForm = new RenderForm(windowName);
             _renderForm.Width = windowWidth;
             _renderForm.Height = windowHeight;
             _renderForm.AllowUserResizing = false;
+            if (isFullscreen)
+            {
+                _renderForm.TopMost = true;
+                _renderForm.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+                _renderForm.WindowState = System.Windows.Forms.FormWindowState.Maximized;
+            }
 
             var desc = new SwapChainDescription()
             {
@@ -57,7 +61,7 @@
                         (int)(_renderForm.Height),
                         new Rational(60, 1),
                         Format.R8G8B8A8_UNorm),
-                IsWindowed = isWindowed,
+                IsWindowed = true,
                 OutputHandle = _renderForm.Handle,
                 SampleDescription = new SampleDescription(1, 0),
                 SwapEffect = SwapEffect.Discard,
@@ -81,7 +85,7 @@
                                  new PixelFormat(Format.Unknown, AlphaMode.Premultiplied)));
 
             //WEB_SOCKET
-            string serverString = string.Empty;
+            _serverString = string.Empty;
             if (!System.IO.Directory.Exists("config"))
             {
                 System.IO.Directory.CreateDirectory("config");
@@ -91,22 +95,30 @@
                 System.IO.File.WriteAllText(@"config/config.txt", @"server-ws://127.0.0.1:2000");
             }
 
-            serverString =
+            _serverString =
                     System.IO.File.ReadAllText(@"config/config.txt")
                     .Split(new char[] { '\n' })[0]
                     .Split(new char[] { '-' })[1];
 
-            _guiObserverCore = new GuiObserverCore(serverString, string.Empty);
+            _guiObserverCore = new GuiObserverCore(_serverString, string.Empty);
             _tokenSource = new System.Threading.CancellationTokenSource();
             _spectatorClass = new GuiSpectator(_tokenSource.Token);
-            _connector = new Connector(serverString);
+            _connector = new Connector(_serverString);
 
-            _gameRender = new GameRender(_renderForm, _factory2D, _renderTarget2D);
+            _gameRender = new GameRender(_serverString, _renderForm, _factory2D, _renderTarget2D);
 
             _directInput = new DirectInput();
             _keyboard = new Keyboard(_directInput);
             _keyboard.Properties.BufferSize = 128;
             _keyboard.Acquire();
+
+            _notifyIcon = new System.Windows.Forms.NotifyIcon();
+            _notifyIcon.Icon = System.Drawing.SystemIcons.Exclamation;
+            _notifyIcon.BalloonTipTitle = "Подсказка";
+            _notifyIcon.BalloonTipText = "Чтобы узнать горячие клавиши GuiObserver, нажмите кнопку H";
+            _notifyIcon.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
+            _notifyIcon.Visible = true;
+            _notifyIcon.ShowBalloonTip(500);
         }
 
         public void RunGame()
@@ -135,27 +147,49 @@
                         }
                     }
                 }
-                else if (key == Key.Tab)
-                {
-                    _isTabPressed = true;
-                }
                 else if (key == Key.Return && _spectatorClass.Map != null)
                 {
                     _isEnterPressed = true;
                 }
                 else if (key == Key.Escape)
                 {
+                    try
+                    {
+                        _clientThread.Interrupt();
+                    }
+                    catch
+                    {
+                    }
                     _renderForm.Close();
                 }
+                else if (key == Key.F1)
+                {
+                    _renderForm.TopMost = true;
+                    _renderForm.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+                    _renderForm.WindowState = System.Windows.Forms.FormWindowState.Maximized;
+                }
+                else if (key == Key.F2)
+                {
+                    _renderForm.TopMost = false;
+                    _renderForm.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Fixed3D;
+                    _renderForm.WindowState = System.Windows.Forms.FormWindowState.Normal;
+                }
+                else if (key == Key.H)
+                {
+                    System.Windows.Forms.MessageBox.Show("F1 - fullscreen\nF2 - windowed\nF - show fps\nH - help\nEsc - exit", "Help(me)");
+                }
             }
-
+           
             //Drawing a gama
             if (_isEnterPressed)
             {
+                if (!_gameRender.UIIsVisible) { _gameRender.UIIsVisible = true; }
                 _gameRender.Map = _spectatorClass.Map;
+                //_gameRender.Settings = _spectatorClass.Settings;
                 _gameRender.DrawClientInfo();
-                _gameRender.DrawTanks(_spectatorClass.Map.InteractObjects);
                 _gameRender.DrawMap();
+                _gameRender.DrawTanks(_spectatorClass.Map.InteractObjects);
+                _gameRender.DrawGrass();
                 _gameRender.DrawInteractiveObjects(_spectatorClass.Map.InteractObjects);
             }
             else
@@ -166,6 +200,7 @@
                 }
                 else
                 {
+                    //_serverString
                     _gameRender.DrawWaitingLogo();
                     if (!_connector.ServerRunning)
                     {
@@ -173,6 +208,7 @@
                     }
                     else if (!_isClientThreadRunning)
                     {
+                        //_gameRender.Settings = _connector.Settings;
                         _isClientThreadRunning = true;
                         _clientThread = new System.Threading.Thread(() => {
                             _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
@@ -253,6 +289,7 @@
             _device.Dispose();
             _connector.Dispose();
             _gameRender.Dispose();
+            _notifyIcon.Dispose();
         }
 
     }
