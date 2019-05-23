@@ -289,7 +289,7 @@
             _device.Dispose();
             _connector.Dispose();
             _gameRender.Dispose();
-            
+            _notifyIcon.Dispose();
         }
 
     }
