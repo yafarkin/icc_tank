@@ -138,9 +138,9 @@ namespace TankClient
             var secondCanGo = false;
             //Если танк повёрнут влево и слева поле или трава на одну клетку
             if (direction == DirectionType.Left &&
-                (map.Cells[GetX(myTank) - (Constants.CellWidth - 2),GetY(myTank)] != CellMapType.Wall &&
-                map.Cells[GetX(myTank) - (Constants.CellWidth - 2), GetY(myTank)] != CellMapType.DestructiveWall &&
-                map.Cells[GetX(myTank) - (Constants.CellWidth - 2), GetY(myTank)] != CellMapType.Water))
+                (map.Cells[ GetY(myTank),GetX(myTank) - (Constants.CellWidth - 2)] != CellMapType.Wall &&
+                map.Cells[ GetY(myTank),GetX(myTank) - (Constants.CellWidth - 2)] != CellMapType.DestructiveWall &&
+                map.Cells[ GetY(myTank),GetX(myTank) - (Constants.CellWidth - 2)] != CellMapType.Water))
             {
                 firstCanGo = true;
             }
@@ -152,24 +152,24 @@ namespace TankClient
                 firstCanGo = true;
             }
             if (direction == DirectionType.Down &&
-                map.Cells[GetX(myTank), GetY(myTank) + ((Constants.CellWidth * 2) - 2)] != CellMapType.Wall &&
-                map.Cells[GetX(myTank), GetY(myTank) + ((Constants.CellWidth * 2) - 2)] != CellMapType.DestructiveWall &&
-                map.Cells[GetX(myTank), GetY(myTank) + ((Constants.CellWidth * 2) - 2)] != CellMapType.Water )
+                map.Cells[GetY(myTank) + ((Constants.CellWidth * 2) - 2), GetX(myTank) ] != CellMapType.Wall &&
+                map.Cells[ GetY(myTank) + ((Constants.CellWidth * 2) - 2), GetX(myTank)] != CellMapType.DestructiveWall &&
+                map.Cells[ GetY(myTank) + ((Constants.CellWidth * 2) - 2), GetX(myTank)] != CellMapType.Water )
             {
                 firstCanGo = true;
             }
             if (direction == DirectionType.Right &&
-                (map.Cells[GetX(myTank) + (Constants.CellWidth * 2 - 2), GetY(myTank)] != CellMapType.Wall &&
-                map.Cells[GetX(myTank) + (Constants.CellWidth * 2 - 2), GetY(myTank)] != CellMapType.DestructiveWall &&
-                map.Cells[GetX(myTank) + (Constants.CellHeight * 2 - 2), GetY(myTank)] != CellMapType.Water))
+                (map.Cells[ GetY(myTank), GetX(myTank) + (Constants.CellWidth * 2 - 2)] != CellMapType.Wall &&
+                map.Cells[ GetY(myTank),GetX(myTank) + (Constants.CellWidth * 2 - 2)] != CellMapType.DestructiveWall &&
+                map.Cells[ GetY(myTank),GetX(myTank) + (Constants.CellHeight * 2 - 2)] != CellMapType.Water))
             {
                 firstCanGo = true;
             }
             //А теперь так же для дальнего угла танка
             if (direction == DirectionType.Left &&
-                (map.Cells[GetX(myTank) - (Constants.CellWidth - 2), GetY(myTank) + (Constants.CellHeight - 1)] != CellMapType.Wall &&
-                map.Cells[GetX(myTank) - (Constants.CellWidth - 2), GetY(myTank) + (Constants.CellHeight - 1)] != CellMapType.DestructiveWall &&
-                map.Cells[GetX(myTank) - (Constants.CellWidth - 2), GetY(myTank) + (Constants.CellHeight - 1)] != CellMapType.Water))
+                (map.Cells[ GetY(myTank) + (Constants.CellHeight - 1),GetX(myTank) - (Constants.CellWidth - 2)] != CellMapType.Wall &&
+                map.Cells[ GetY(myTank) + (Constants.CellHeight - 1),GetX(myTank) - (Constants.CellWidth - 2)] != CellMapType.DestructiveWall &&
+                map.Cells[ GetY(myTank) + (Constants.CellHeight - 1),GetX(myTank) - (Constants.CellWidth - 2)] != CellMapType.Water))
             {
                 secondCanGo = true;
             }
@@ -181,16 +181,16 @@ namespace TankClient
                 secondCanGo = true;
             }
             if (direction == DirectionType.Down &&
-                (map.Cells[GetX(myTank) + (Constants.CellHeight - 1), GetY(myTank) + (Constants.CellWidth * 2 - 2)] != CellMapType.Wall &&
-                map.Cells[GetX(myTank) + (Constants.CellHeight - 1), GetY(myTank) + (Constants.CellWidth * 2 - 2)] != CellMapType.DestructiveWall &&
-                map.Cells[GetX(myTank) + (Constants.CellHeight - 1), GetY(myTank) + (Constants.CellWidth * 2 - 2)] != CellMapType.Water))
+                (map.Cells[ GetY(myTank) + (Constants.CellWidth * 2 - 2),GetX(myTank) + (Constants.CellHeight - 1)] != CellMapType.Wall &&
+                map.Cells[ GetY(myTank) + (Constants.CellWidth * 2 - 2),GetX(myTank) + (Constants.CellHeight - 1)] != CellMapType.DestructiveWall &&
+                map.Cells[ GetY(myTank) + (Constants.CellWidth * 2 - 2),GetX(myTank) + (Constants.CellHeight - 1)] != CellMapType.Water))
             {
                 secondCanGo = true;
             }
             if (direction == DirectionType.Right &&
-                (map.Cells[GetX(myTank) + (Constants.CellWidth * 2 - 2), GetY(myTank) + (Constants.CellHeight - 1)] != CellMapType.Wall &&
-                map.Cells[GetX(myTank) + (Constants.CellWidth * 2 - 2), GetY(myTank) + (Constants.CellHeight - 1)] != CellMapType.DestructiveWall &&
-                map.Cells[GetX(myTank) + (Constants.CellHeight * 2 - 2), GetY(myTank) + (Constants.CellWidth - 1)] != CellMapType.Water))
+                (map.Cells[ GetY(myTank) + (Constants.CellHeight - 1),GetX(myTank) + (Constants.CellWidth * 2 - 2)] != CellMapType.Wall &&
+                map.Cells[ GetY(myTank) + (Constants.CellHeight - 1),GetX(myTank) + (Constants.CellWidth * 2 - 2)] != CellMapType.DestructiveWall &&
+                map.Cells[ GetY(myTank) + (Constants.CellWidth - 1),GetX(myTank) + (Constants.CellHeight * 2 - 2)] != CellMapType.Water))
             {
                 secondCanGo = true;
             }
