@@ -173,6 +173,7 @@
             get { return _dgv.Visible; }
             set
             {
+                _sessionTime.Visible = true;
                 _clientInfoLabel.Visible = true;
                 _dgv.Visible = true;
             }
@@ -286,7 +287,7 @@
                 _fpsmsTextRect.Width, _fpsmsTextRect.Height);
             _logoTextRect = new RectangleF((float)RenderForm.Width / 5, (float)RenderForm.Height / 3, 1500, 100);
             _enterTextRect = new RectangleF(
-                _logoTextRect.X + _logoTextRect.X,
+                _logoTextRect.X + 8*_logoTextRect.X/7,
                 RenderForm.Height - (RenderForm.Height - _logoTextRect.Bottom - 200), 800, 30);
             _statusTextRect = new RectangleF(
                 _logoTextRect.X + 5*_logoTextRect.X/6,
@@ -331,18 +332,18 @@
             _clientInfoLabel.Font = new System.Drawing.Font("Cambria", 30);
             _clientInfoLabel.BackColor = System.Drawing.Color.Green;
             _clientInfoLabel.ForeColor = System.Drawing.Color.White;
-            _clientInfoLabel.Location = new System.Drawing.Point(1400, 30);
+            _clientInfoLabel.Location = new System.Drawing.Point(1380, 30);
             _clientInfoLabel.AutoSize = true;
             _clientInfoLabel.Visible = false;
 
             _sessionTime = new Label();
-            _sessionTime.Text = Settings?.SessionTime.ToString();
-            _sessionTime.Font = new System.Drawing.Font("Cambria", 30);
+            _sessionTime.Text = server;
+            _sessionTime.Font = new System.Drawing.Font("Cambria", 16);
             _sessionTime.BackColor = System.Drawing.Color.Green;
             _sessionTime.ForeColor = System.Drawing.Color.White;
-            _sessionTime.Location = new System.Drawing.Point(1400, 30);
+            _sessionTime.Location = new System.Drawing.Point(1100, 40);
             _sessionTime.AutoSize = true;
-            _sessionTime.Visible = true;
+            _sessionTime.Visible = false;
             
             _dgv = new DataGridView();
             _dgv.Width = 800; //840 (1920)
@@ -383,7 +384,8 @@
             {
                 _dgv.Columns[i].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             }
-
+            
+            RenderForm.Controls.Add(_sessionTime);
             RenderForm.Controls.Add(_clientInfoLabel);
             RenderForm.Controls.Add(_dgv);
 
@@ -736,7 +738,6 @@
         public void DrawClientInfo()
         {
             RenderTarget2D.Clear(_blackScreen);
-            _sessionTime.Text = Settings?.SessionTime.ToString();
             RenderTarget2D.FillRectangle(_clientInfoAreaRect, _mapObjectsColors[13]);
             RenderTarget2D.DrawLine(_clientInfoLeftPoint, _clientInfoRightPoint, _mapObjectsColors[12], 10);
             _clientInfoTanks.AddRange(

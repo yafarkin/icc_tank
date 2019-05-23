@@ -509,7 +509,7 @@ namespace TankServer
                     {
                         continue;
                     }
-                
+                    
                     //Если интерактивный объект это танк или апгрейд
                     var cells = MapManager.WhatOnMap(interactObj.Rectangle, Map);
                     if (!((interactObj as TankObject)?.IsDead ?? false))
