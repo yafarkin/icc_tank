@@ -509,9 +509,8 @@ namespace TankServer
                     {
                         continue;
                     }
-
-                    //Если интерактивный объект это танк или апгрейд
                     
+                    //Если интерактивный объект это танк или апгрейд
                     var cells = MapManager.WhatOnMap(interactObj.Rectangle, Map);
                     if (!((interactObj as TankObject)?.IsDead ?? false))
                     {
@@ -545,6 +544,8 @@ namespace TankServer
                 {
                     lock (_syncObject)
                     {
+                        clientMap.MapWidth = Map.MapWidth;
+                        clientMap.MapHeight = Map.MapHeight;
                         clientMap.Cells = Map.Cells;
                     }
                 }
@@ -561,7 +562,6 @@ namespace TankServer
                 request.Map.InteractObjects = client.Value.IsSpecator ? allObjects : visibleObjects;
 
                 var json = request.ToJson();
-
 
                 try
                 {

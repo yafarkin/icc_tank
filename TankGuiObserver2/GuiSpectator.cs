@@ -11,10 +11,10 @@ namespace TankGuiObserver2
 {
     public class Connector : System.IDisposable
     {
-        object syncObject = new object();
-        Uri _serverUri;
         public bool ServerRunning { get; private set; }
-        WebSocketProxy _webSocketProxy;
+        public TankSettings Settings { get; set; }
+        private Uri _serverUri;
+        private WebSocketProxy _webSocketProxy;
 
         public Connector(string server)
         {
@@ -37,7 +37,11 @@ namespace TankGuiObserver2
                     {
                         _webSocketProxy.Open();
                         Thread.Sleep(300);
-                        ServerRunning = (_webSocketProxy.State == WebSocketState.Open);
+                        if (_webSocketProxy.State == WebSocketState.Open)
+                        {
+                            ServerRunning = true;
+                            Settings = _webSocketProxy.GetMessage().FromJson<TankSettings>();
+                        }
                         return ServerRunning;
                     }
                 }
@@ -59,6 +63,7 @@ namespace TankGuiObserver2
 
     class GuiSpectator
     {
+        public TankSettings Settings { get; set; }
         public Map Map { get; set; }
         protected DateTime _lastMapUpdate;
         protected readonly CancellationToken _cancellationToken;
@@ -84,11 +89,9 @@ namespace TankGuiObserver2
                     continue;
                 }
 
-                Map map;
                 lock (_syncObject)
                 {
                     _wasUpdate = false;
-                    map = new Map(Map, Map.InteractObjects);
                 }
             }
         }
@@ -105,6 +108,12 @@ namespace TankGuiObserver2
                 {
                     return new ServerResponse { ClientCommand = ClientCommandType.UpdateMap };
                 }
+
+                if (request.Settings != null)
+                {
+                    Settings = request.Settings;
+                }
+
 
                 Map.InteractObjects = request.Map.InteractObjects;
                 _msgCount = msgCount;

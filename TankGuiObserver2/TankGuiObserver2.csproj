@@ -122,8 +122,7 @@
     <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
-    <Reference Include="TankClient, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
+    <Reference Include="TankClient">
       <HintPath>dependencies\SharpDX\TankClient.dll</HintPath>
     </Reference>
     <Reference Include="TankCommon, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -149,20 +148,17 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>if not exist "$(TargetDir)\img" (
+    <PreBuildEvent>if exist "$(TargetDir)\img" (
+rd /S  /Q "$(TargetDir)\img"
+)
+
 mkdir "$(TargetDir)\img"
 xcopy "$(ProjectDir)img" "$(TargetDir)\img"
-)
-
-if not exist  "$(TargetDir)\img\tank" (
 mkdir "$(TargetDir)\img\tank"
 xcopy "$(ProjectDir)img\tank" "$(TargetDir)\img\tank"
-)
-
-if not exist  "$(TargetDir)\img\upgrade" (
 mkdir "$(TargetDir)\img\upgrade"
 xcopy "$(ProjectDir)img\upgrade" "$(TargetDir)\img\upgrade"
-)
+
 
 </PreBuildEvent>
   </PropertyGroup>
