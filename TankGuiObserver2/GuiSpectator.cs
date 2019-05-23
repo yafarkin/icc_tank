@@ -114,6 +114,7 @@ namespace TankGuiObserver2
                     Settings = request.Settings;
                 }
 
+
                 Map.InteractObjects = request.Map.InteractObjects;
                 _msgCount = msgCount;
                 _wasUpdate = true;

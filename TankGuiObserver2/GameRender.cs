@@ -146,26 +146,26 @@
 
     class GameRender : System.IDisposable
     {
-        private RenderForm RenderForm;
-        private RenderTarget RenderTarget2D;
-        private SharpDX.Direct2D1.Factory _factory2D;
+        RenderForm RenderForm;
+        RenderTarget RenderTarget2D;
+        SharpDX.Direct2D1.Factory _factory2D;
 
         //DrawMap
-        private bool _isMapSet;
-        private float _zoomWidth;
-        private float _zoomHeight;
-        private bool _isImmutableObjectsInitialized;
-        private bool _isDestructiveObjectsInitialized;
+        bool _isMapSet;
+        float _zoomWidth;
+        float _zoomHeight;
+        bool _isImmutableObjectsInitialized;
+        bool _isDestructiveObjectsInitialized;
 
-        private int _mapWidth;
-        private int _mapHeight;
+        int _mapWidth;
+        int _mapHeight;
         public Map Map { get; set; }
         public TankCommon.TankSettings Settings { get; set; }
-        private RawColor4 _blackScreen;
-        private List<ImmutableObject> _immutableMapObjects;
-        private List<ImmutableObject> _immutableGrass;
-        private List<DestuctiveWalls> _destuctiveWallsObjects;
-        private SolidColorBrush[] _mapObjectsColors;
+        RawColor4 _blackScreen;
+        List<ImmutableObject> _immutableMapObjects;
+        List<ImmutableObject> _immutableGrass;
+        List<DestuctiveWalls> _destuctiveWallsObjects;
+        SolidColorBrush[] _mapObjectsColors;
 
         //ClientInfo
         public bool UIIsVisible
@@ -180,35 +180,38 @@
         Label _clientInfoLabel;
         Label _sessionTime;
         DataGridView _dgv;
-        private List<TankObject> _clientInfoTanks;
-        private RawVector2 _clientInfoLeftPoint;
-        private RawVector2 _clientInfoRightPoint;
-        private RectangleF _clientInfoAreaRect;
-        private RectangleF _clientInfoTextRect;
+        List<TankObject> _clientInfoTanks;
+        RawVector2 _clientInfoLeftPoint;
+        RawVector2 _clientInfoRightPoint;
+        RectangleF _clientInfoAreaRect;
+        RectangleF _clientInfoTextRect;
 
         //Entry screen
-        private RectangleF _logoTextRect;
-        private RectangleF _enterTextRect;
-        private RectangleF _statusTextRect;
-        private TextFormat _statusTextFormat;
-        private TextFormat _logoBrushTextFormat;
-        private TextAnimation _textAnimation;
-        private TextColorAnimation _textColorAnimation;
+        RectangleF _logoTextRect;
+        RectangleF _enterTextRect;
+        RectangleF _statusTextRect;
+        TextFormat _statusTextFormat;
+        TextFormat _logoBrushTextFormat;
+        TextAnimation _textAnimation;
+        TextColorAnimation _textColorAnimation;
 
         //Fps
-        private RectangleF _fpsmsTextRect;
-        private RectangleF _fpsmsTextBackground;
-        private FpsCounter _fpsmsCounter;
-        private TextFormat _fpsmsTextFormat;
+        RectangleF _fpsmsTextRect;
+        RectangleF _fpsmsTextBackground;
+        FpsCounter _fpsmsCounter;
+        TextFormat _fpsmsTextFormat;
 
         //DrawTank()
         int _nickLength;
         float _width;
         float _difference;
-        private RawRectangleF _tankRectangle;
-        private RawRectangleF _nickRectangle;
-        private RawRectangleF _nickBackRectangle;
-        private TextFormat _nicknameTextFormat;
+        RawRectangleF _tankRectangle;
+        RawRectangleF _nickRectangle;
+        RawRectangleF _nickBackRectangle;
+        TextFormat _nicknameTextFormat;
+
+        //Interactive objects
+        RawRectangleF _rawRectangleTemp;
 
         //Bitmap
         RawRectangleF dstinationRectangle;
@@ -301,6 +304,7 @@
             _tankRectangle = new RawRectangleF();
             _nickRectangle = new RawRectangleF();
             _nickBackRectangle = new RawRectangleF();
+            _rawRectangleTemp = new RawRectangleF();
 
             SharpDX.DirectWrite.Factory directFactory =
                 new SharpDX.DirectWrite.Factory(SharpDX.DirectWrite.FactoryType.Shared);
@@ -452,7 +456,6 @@
             }
 
             //неизменяемые
-            RawRectangleF rawRectangleTemp = new RawRectangleF();
             if (!_isImmutableObjectsInitialized)
             {
                 _isImmutableObjectsInitialized = true;
@@ -491,33 +494,37 @@
                         }
                         if (walls.Count == 25)
                         {
-                            rawRectangleTemp.Left = 5 * c * _zoomWidth;
-                            rawRectangleTemp.Top = 5 * r * _zoomHeight;
-                            rawRectangleTemp.Right = (5 * c + 5) * _zoomWidth;
-                            rawRectangleTemp.Bottom = (5 * r + 5) * _zoomHeight;
-                            _immutableMapObjects.Add(new ImmutableObject((char)0, rawRectangleTemp));
+                            _rawRectangleTemp.Left = 5 * c * _zoomWidth;
+                            _rawRectangleTemp.Top = 5 * r * _zoomHeight;
+                            _rawRectangleTemp.Right = (5 * c + 5) * _zoomWidth;
+                            _rawRectangleTemp.Bottom = (5 * r + 5) * _zoomHeight;
+                            _immutableMapObjects.Add(new ImmutableObject((char)0, _rawRectangleTemp));
                             walls.Clear();
                         }
                         if (water.Count == 25)
                         {
-                            rawRectangleTemp.Left = 5 * c * _zoomWidth;
-                            rawRectangleTemp.Top = 5 * r * _zoomHeight;
-                            rawRectangleTemp.Right = (5 * c + 5) * _zoomWidth;
-                            rawRectangleTemp.Bottom = (5 * r + 5) * _zoomHeight;
-                            _immutableMapObjects.Add(new ImmutableObject((char)1, rawRectangleTemp));
+                            _rawRectangleTemp.Left = 5 * c * _zoomWidth;
+                            _rawRectangleTemp.Top = 5 * r * _zoomHeight;
+                            _rawRectangleTemp.Right = (5 * c + 5) * _zoomWidth;
+                            _rawRectangleTemp.Bottom = (5 * r + 5) * _zoomHeight;
+                            _immutableMapObjects.Add(new ImmutableObject((char)1, _rawRectangleTemp));
                             water.Clear();
                         }
                         if (grass.Count == 25)
                         {
-                            rawRectangleTemp.Left = 5 * c * _zoomWidth;
-                            rawRectangleTemp.Top = 5 * r * _zoomHeight;
-                            rawRectangleTemp.Right = (5 * c + 5) * _zoomWidth;
-                            rawRectangleTemp.Bottom = (5 * r + 5) * _zoomHeight;
-                            _immutableGrass.Add(new ImmutableObject((char)2, rawRectangleTemp));
+                            _rawRectangleTemp.Left = 5 * c * _zoomWidth;
+                            _rawRectangleTemp.Top = 5 * r * _zoomHeight;
+                            _rawRectangleTemp.Right = (5 * c + 5) * _zoomWidth;
+                            _rawRectangleTemp.Bottom = (5 * r + 5) * _zoomHeight;
+                            _immutableGrass.Add(new ImmutableObject((char)2, _rawRectangleTemp));
                             grass.Clear();
                         }
                     }
                 }
+
+                walls = null;
+                water = null;
+                grass = null;
             }
             else
             {
@@ -538,12 +545,12 @@
                         var c = Map[i, j];
                         if (c == CellMapType.DestructiveWall)
                         {
-                            rawRectangleTemp.Left = j * _zoomWidth;
-                            rawRectangleTemp.Top = i * _zoomHeight;
-                            rawRectangleTemp.Right = j * _zoomWidth + _zoomWidth;
-                            rawRectangleTemp.Bottom = i * _zoomHeight + _zoomHeight;
-                            _destuctiveWallsObjects.Add(new DestuctiveWalls((char)1, i, j, rawRectangleTemp));
-                            RenderTarget2D.DrawBitmap(_bitmaps[3], rawRectangleTemp, 
+                            _rawRectangleTemp.Left = j * _zoomWidth;
+                            _rawRectangleTemp.Top = i * _zoomHeight;
+                            _rawRectangleTemp.Right = j * _zoomWidth + _zoomWidth;
+                            _rawRectangleTemp.Bottom = i * _zoomHeight + _zoomHeight;
+                            _destuctiveWallsObjects.Add(new DestuctiveWalls((char)1, i, j, _rawRectangleTemp));
+                            RenderTarget2D.DrawBitmap(_bitmaps[3], _rawRectangleTemp, 
                                 1.0f, BitmapInterpolationMode.Linear);
                         }
                     }
@@ -578,69 +585,68 @@
         public void DrawInteractiveObjects(List<BaseInteractObject> baseInteractObjects)
         {
             int upgradeIndex = 0;
-            RawRectangleF rawRectangleTemp = new RawRectangleF();
             foreach (var obj in baseInteractObjects)
             {
                 if (obj is UpgradeInteractObject upgradeObject)
                 {
-                    if (DateTime.Now > upgradeObject.SpawnTime.AddSeconds(27))
-                    {
-                        if (_upgradesOpacities[upgradeIndex] >= 1.0f)
-                            _upgradesIncriments[upgradeIndex] = -0.01f;
-                        else if (_upgradesOpacities[upgradeIndex] < 0.0f)
-                            _upgradesIncriments[upgradeIndex] = 0.01f;
-                        _upgradesOpacities[upgradeIndex] += _upgradesIncriments[upgradeIndex];
-                    }
+                    //if (DateTime.Now > upgradeObject.SpawnTime.AddSeconds(27))
+                    //{
+                    //    if (_upgradesOpacities[upgradeIndex] >= 1.0f)
+                    //        _upgradesIncriments[upgradeIndex] = -0.01f;
+                    //    else if (_upgradesOpacities[upgradeIndex] < 0.0f)
+                    //        _upgradesIncriments[upgradeIndex] = 0.01f;
+                    //    _upgradesOpacities[upgradeIndex] += _upgradesIncriments[upgradeIndex];
+                    //}
 
                     switch (upgradeObject.Type)
                     {
                         case UpgradeType.BulletSpeed:
                             {
-                                rawRectangleTemp.Left = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left) * _zoomWidth;
-                                rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
-                                rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
-                                rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
-                                RenderTarget2D.DrawBitmap(_bulletSpeedUpgradeBitmap, rawRectangleTemp, 
+                                _rawRectangleTemp.Left = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left) * _zoomWidth;
+                                _rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
+                                _rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
+                                _rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
+                                RenderTarget2D.DrawBitmap(_bulletSpeedUpgradeBitmap, _rawRectangleTemp, 
                                     _upgradesOpacities[upgradeIndex], interpolationMode);
                             }
                             break;
                         case UpgradeType.Damage:
                             {
-                                rawRectangleTemp.Left = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left) * _zoomWidth;
-                                rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
-                                rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
-                                rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
-                                RenderTarget2D.DrawBitmap(_damageUpgradeBitmap, rawRectangleTemp,
+                                _rawRectangleTemp.Left = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left) * _zoomWidth;
+                                _rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
+                                _rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
+                                _rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
+                                RenderTarget2D.DrawBitmap(_damageUpgradeBitmap, _rawRectangleTemp,
                                     _upgradesOpacities[upgradeIndex], interpolationMode);
                             }
                             break;
                         case UpgradeType.Health:
                             {
-                                rawRectangleTemp.Left = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left) * _zoomWidth;
-                                rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
-                                rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
-                                rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
-                                RenderTarget2D.DrawBitmap(_healthUpgradeBitmap, rawRectangleTemp,
+                                _rawRectangleTemp.Left = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left) * _zoomWidth;
+                                _rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
+                                _rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
+                                _rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
+                                RenderTarget2D.DrawBitmap(_healthUpgradeBitmap, _rawRectangleTemp,
                                     _upgradesOpacities[upgradeIndex], interpolationMode);
                             }
                             break;
                         case UpgradeType.MaxHp:
                             {
-                                rawRectangleTemp.Left = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left) * _zoomWidth;
-                                rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
-                                rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
-                                rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
-                                RenderTarget2D.DrawBitmap(_maxHpUpgradeBitmap, rawRectangleTemp,
+                                _rawRectangleTemp.Left = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left) * _zoomWidth;
+                                _rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
+                                _rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
+                                _rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
+                                RenderTarget2D.DrawBitmap(_maxHpUpgradeBitmap, _rawRectangleTemp,
                                     _upgradesOpacities[upgradeIndex], interpolationMode);
                             }
                             break;
                         case UpgradeType.Speed:
                             {
-                                rawRectangleTemp.Left = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left) * _zoomWidth;
-                                rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
-                                rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
-                                rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
-                                RenderTarget2D.DrawBitmap(_speedUpgradeBitmap, rawRectangleTemp,
+                                _rawRectangleTemp.Left = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left) * _zoomWidth;
+                                _rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
+                                _rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
+                                _rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
+                                RenderTarget2D.DrawBitmap(_speedUpgradeBitmap, _rawRectangleTemp,
                                     _upgradesOpacities[upgradeIndex], interpolationMode);
                             }
                             break;
@@ -649,11 +655,11 @@
                 }
                 else if (obj is BulletObject bulletObject)
                 {
-                    rawRectangleTemp.Left = Convert.ToSingle(bulletObject.Rectangle.LeftCorner.Left) * _zoomWidth;
-                    rawRectangleTemp.Top = Convert.ToSingle(bulletObject.Rectangle.LeftCorner.Top) * _zoomHeight;
-                    rawRectangleTemp.Right = Convert.ToSingle(bulletObject.Rectangle.LeftCorner.Left + bulletObject.Rectangle.Width) * _zoomWidth;
-                    rawRectangleTemp.Bottom = Convert.ToSingle(bulletObject.Rectangle.LeftCorner.Top + bulletObject.Rectangle.Height) * _zoomHeight;
-                    FillBlock(rawRectangleTemp, _mapObjectsColors[10]);
+                    _rawRectangleTemp.Left = Convert.ToSingle(bulletObject.Rectangle.LeftCorner.Left) * _zoomWidth;
+                    _rawRectangleTemp.Top = Convert.ToSingle(bulletObject.Rectangle.LeftCorner.Top) * _zoomHeight;
+                    _rawRectangleTemp.Right = Convert.ToSingle(bulletObject.Rectangle.LeftCorner.Left + bulletObject.Rectangle.Width) * _zoomWidth;
+                    _rawRectangleTemp.Bottom = Convert.ToSingle(bulletObject.Rectangle.LeftCorner.Top + bulletObject.Rectangle.Height) * _zoomHeight;
+                    FillBlock(_rawRectangleTemp, _mapObjectsColors[10]);
                     //RenderTarget2D.DrawBitmap(_bulletUpBitmap, rawRectangleTemp, 1.0f, interpolationMode);
                 }
             }
@@ -698,6 +704,10 @@
                             else if (_tanksOpacities[tankIndex] < 0.0f)
                                 _tanksIncriments[tankIndex] = 0.01f;
                             _tanksOpacities[tankIndex] += _tanksIncriments[tankIndex];
+                        }
+                        else
+                        {
+                            _tanksOpacities[tankIndex] = 1.0f;
                         }
                         
                         if (tankObject.Direction == DirectionType.Up)
