@@ -17,6 +17,7 @@ namespace TankClient
         //private static int stepsBeforeOver = 0;
         //private static Script delegateScript = Stop;
         private static Rectangle lastRectangle;
+        private bool searchingWay = false;
 
         public ServerResponse Client(int msgCount, ServerRequest request)
         {
@@ -44,35 +45,45 @@ namespace TankClient
                 rectangle = myTank.Rectangle;
             }
 
-            var searchingWay = false;
+            
             var nearestObj = FindNearestInteractiveObjWithoutWalls(_map, myTank);
+
             //Если не упрёшься в стену
+            // Иди своей дорогой, танчик ... Проходи, не задерживайся!
             if (CanGoToPoint(_map, myTank, myTank.Direction) && !searchingWay)
             {
-                //Идти к точке
+                //Идти к точке - ближайшему объекту
                 return GoToPoint(_map, myTank, GetX(nearestObj), GetY(nearestObj));
             }
             else
             {
                 //Сказать, что ищешь обход
                 searchingWay = true;
-
-                return FindSomeWay(_map, myTank, nearestObj);
+                //Если непроходимости с той стороны уже нет - сказать, что не ищешь путь
+                if (CanGoToPoint(_map, myTank, myTank.Direction))
+                {
+                    searchingWay = false;
+                    return GoToPoint(_map, myTank, GetX(nearestObj),GetY(nearestObj));
+                }
+                else
+                {
+                    return FindSomeWay(_map, myTank, nearestObj);
+                }
             }
         }
 
         private ServerResponse FindSomeWay(Map map, TankObject myTank, BaseInteractObject nearestObj)
         {
-            
             //Если со стороны, откуда мы отвернулись уже нет непроходимости, то повернуть обратно
+            
             //запомнить сторону откуда отвернулись
             var lastDirection = myTank.Direction;
             //если со стороны откуда отвернулись нет непроходимости
-            if (CanGoToPoint(map, myTank, lastDirection))
-            {
-                //повернуть направо
-                return TurnLocalRight();
-            }
+            //if (CanGoToPoint(map, myTank, lastDirection))
+            //{
+            //    //повернуть направо
+            //    return TurnLocalRight();
+            //}
             //иначе повернуть налево
             return TurnLocalLeft(myTank);
         }
@@ -115,41 +126,75 @@ namespace TankClient
         }
 
         /// <summary>
-        /// Проверяет, что танк не утонет и не упрётся в стену через клетку
+        /// Проверяет, что танк не утонет и не упрётся в стену через клетку в той стороне, которую передали
         /// </summary>
         /// <param name="map"></param>
         /// <param name="myTank"></param>
         /// <param name="direction"> то направление в котором проверяется непроходимость </param>
-        /// <returns></returns>
+        /// <returns></returns> 
         private bool CanGoToPoint(Map map, TankObject myTank, DirectionType direction)
         {
-            var canGo = false;
+            var firstCanGo = false;
+            var secondCanGo = false;
             //Если танк повёрнут влево и слева поле или трава на одну клетку
             if (direction == DirectionType.Left &&
-                map.Cells[GetX(myTank) - Constants.CellWidth,GetY(myTank)] == CellMapType.Void ||
-                map.Cells[GetX(myTank) - Constants.CellWidth, GetY(myTank)] == CellMapType.Grass)
+                (map.Cells[GetX(myTank) - (Constants.CellWidth - 2),GetY(myTank)] != CellMapType.Wall &&
+                map.Cells[GetX(myTank) - (Constants.CellWidth - 2), GetY(myTank)] != CellMapType.DestructiveWall &&
+                map.Cells[GetX(myTank) - (Constants.CellWidth - 2), GetY(myTank)] != CellMapType.Water))
             {
-                canGo = true;
+                firstCanGo = true;
             }
             if (direction == DirectionType.Up &&
-                map.Cells[GetX(myTank), GetY(myTank) - Constants.CellWidth] == CellMapType.Void ||
-                map.Cells[GetX(myTank), GetY(myTank) - Constants.CellWidth] == CellMapType.Grass)
+                (map.Cells[ GetY(myTank) - (Constants.CellWidth - 2), GetX(myTank)] != CellMapType.Wall &&
+                map.Cells[ GetY(myTank) - (Constants.CellWidth - 2), GetX(myTank)] != CellMapType.DestructiveWall &&
+                map.Cells[ GetY(myTank) - (Constants.CellWidth - 2), GetX(myTank)] != CellMapType.Water))
             {
-                canGo = true;
+                firstCanGo = true;
             }
             if (direction == DirectionType.Down &&
-                map.Cells[GetX(myTank), GetY(myTank) + Constants.CellWidth] == CellMapType.Void ||
-                map.Cells[GetX(myTank), GetY(myTank) + Constants.CellWidth] == CellMapType.Grass)
+                map.Cells[GetX(myTank), GetY(myTank) + ((Constants.CellWidth * 2) - 2)] != CellMapType.Wall &&
+                map.Cells[GetX(myTank), GetY(myTank) + ((Constants.CellWidth * 2) - 2)] != CellMapType.DestructiveWall &&
+                map.Cells[GetX(myTank), GetY(myTank) + ((Constants.CellWidth * 2) - 2)] != CellMapType.Water )
             {
-                canGo = true;
+                firstCanGo = true;
             }
             if (direction == DirectionType.Right &&
-                map.Cells[GetX(myTank) + Constants.CellWidth, GetY(myTank)] == CellMapType.Void ||
-                map.Cells[GetX(myTank) + Constants.CellWidth, GetY(myTank)] == CellMapType.Grass)
+                (map.Cells[GetX(myTank) + (Constants.CellWidth * 2 - 2), GetY(myTank)] != CellMapType.Wall &&
+                map.Cells[GetX(myTank) + (Constants.CellWidth * 2 - 2), GetY(myTank)] != CellMapType.DestructiveWall &&
+                map.Cells[GetX(myTank) + (Constants.CellHeight * 2 - 2), GetY(myTank)] != CellMapType.Water))
             {
-                canGo = true;
+                firstCanGo = true;
             }
-            return canGo;
+            //А теперь так же для дальнего угла танка
+            if (direction == DirectionType.Left &&
+                (map.Cells[GetX(myTank) - (Constants.CellWidth - 2), GetY(myTank) + (Constants.CellHeight - 1)] != CellMapType.Wall &&
+                map.Cells[GetX(myTank) - (Constants.CellWidth - 2), GetY(myTank) + (Constants.CellHeight - 1)] != CellMapType.DestructiveWall &&
+                map.Cells[GetX(myTank) - (Constants.CellWidth - 2), GetY(myTank) + (Constants.CellHeight - 1)] != CellMapType.Water))
+            {
+                secondCanGo = true;
+            }
+            if (direction == DirectionType.Up &&
+                (map.Cells[GetY(myTank) - (Constants.CellWidth - 2), GetX(myTank) + (Constants.CellHeight - 1)] != CellMapType.Wall &&
+                map.Cells[ GetY(myTank) - (Constants.CellWidth - 2), GetX(myTank) + (Constants.CellHeight - 1)] != CellMapType.DestructiveWall &&
+                map.Cells[ GetY(myTank) - (Constants.CellWidth - 2),GetX(myTank) + (Constants.CellHeight - 1)] != CellMapType.Water))
+            {
+                secondCanGo = true;
+            }
+            if (direction == DirectionType.Down &&
+                (map.Cells[GetX(myTank) + (Constants.CellHeight - 1), GetY(myTank) + (Constants.CellWidth * 2 - 2)] != CellMapType.Wall &&
+                map.Cells[GetX(myTank) + (Constants.CellHeight - 1), GetY(myTank) + (Constants.CellWidth * 2 - 2)] != CellMapType.DestructiveWall &&
+                map.Cells[GetX(myTank) + (Constants.CellHeight - 1), GetY(myTank) + (Constants.CellWidth * 2 - 2)] != CellMapType.Water))
+            {
+                secondCanGo = true;
+            }
+            if (direction == DirectionType.Right &&
+                (map.Cells[GetX(myTank) + (Constants.CellWidth * 2 - 2), GetY(myTank) + (Constants.CellHeight - 1)] != CellMapType.Wall &&
+                map.Cells[GetX(myTank) + (Constants.CellWidth * 2 - 2), GetY(myTank) + (Constants.CellHeight - 1)] != CellMapType.DestructiveWall &&
+                map.Cells[GetX(myTank) + (Constants.CellHeight * 2 - 2), GetY(myTank) + (Constants.CellWidth - 1)] != CellMapType.Water))
+            {
+                secondCanGo = true;
+            }
+            return (firstCanGo && secondCanGo);
         }
 
         /// <summary>
