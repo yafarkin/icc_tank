@@ -628,6 +628,12 @@ namespace TankServer
                             }
                         }
 
+                        var upgradeItem = Map.InteractObjects.OfType<UpgradeInteractObject>()
+                            .FirstOrDefault(t => t.DespawnTime < DateTime.Now);
+
+                        if(upgradeItem != null)
+                            objsToRemove.Add(upgradeItem);
+                            
                         foreach (var movingObject in Map.InteractObjects.OfType<BaseMovingObject>())
                         {
                             if (!movingObject.IsMoving)
