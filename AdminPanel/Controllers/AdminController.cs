@@ -139,31 +139,38 @@ namespace AdminPanel.Controllers
         [HttpPost]
         public void ChangeServerSettings([FromForm] int id, [FromForm] decimal? gameSpeed, [FromForm] decimal? tankSpeed, [FromForm] decimal? bulletSpeed, [FromForm] decimal? tankDamage)
         {
-            bool update = false;
+            if (id == 0 || (gameSpeed ?? 0) != 0 && (tankSpeed ?? 0) != 0 && (bulletSpeed ?? 0) != 0 && (tankDamage ?? 0) != 0)
+            {
+                return;
+            }
+
             if (Program.ServerStatusIsRun(id))
             {
-                var server = Program.Servers[id - 1].Server;
-                if (gameSpeed != null)
+                var newSettings = new TankSettings();
+                var server = Program.Servers.FirstOrDefault(x => x.Id == id);
+                if (server == null)
                 {
-                    server.serverSettings.TankSettings.GameSpeed = (int)gameSpeed;
-                    update = true;
+                    return;
                 }
-                if (tankSpeed != null)
+
+                if ((gameSpeed ?? 0) != 0)
                 {
-                    server.serverSettings.TankSettings.TankSpeed = (decimal)tankSpeed;
-                    update = true;
+                    newSettings.GameSpeed = (int)gameSpeed;
                 }
-                if (bulletSpeed != null)
+                if ((tankSpeed ?? 0) != 0)
                 {
-                    server.serverSettings.TankSettings.BulletSpeed = (decimal)bulletSpeed;
-                    update = true;
+                    newSettings.TankSpeed = (decimal)tankSpeed;
                 }
-                if (tankDamage != null)
+                if ((bulletSpeed ?? 0) != 0)
                 {
-                    server.serverSettings.TankSettings.TankDamage = (decimal)tankDamage;
-                    update = true;
+                    newSettings.BulletSpeed = (decimal)bulletSpeed;
                 }
-                if (update) server.serverSettings.TankSettings.Version++;
+                if ((tankDamage ?? 0) != 0)
+                {
+                    newSettings.TankDamage = (decimal)tankDamage;
+                }
+
+                server.Server.serverSettings.TankSettings = newSettings;
             }
         }
         
