@@ -94,6 +94,8 @@ namespace TankServer
 
                         var response = msg.FromJson<ServerResponse>();
 
+                        if(response == null) return;
+
                         if (response.ClientCommand == ClientCommandType.Logout)
                         {
                             clientInfo.NeedRemove = true;
@@ -628,6 +630,12 @@ namespace TankServer
                             }
                         }
 
+                        var upgradeItem = Map.InteractObjects.OfType<UpgradeInteractObject>()
+                            .FirstOrDefault(t => t.DespawnTime < DateTime.Now);
+
+                        if(upgradeItem != null)
+                            objsToRemove.Add(upgradeItem);
+                            
                         foreach (var movingObject in Map.InteractObjects.OfType<BaseMovingObject>())
                         {
                             if (!movingObject.IsMoving)
