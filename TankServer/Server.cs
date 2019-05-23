@@ -94,6 +94,8 @@ namespace TankServer
 
                         var response = msg.FromJson<ServerResponse>();
 
+                        if(response == null) return;
+
                         if (response.ClientCommand == ClientCommandType.Logout)
                         {
                             clientInfo.NeedRemove = true;
