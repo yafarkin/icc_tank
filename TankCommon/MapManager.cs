@@ -153,7 +153,10 @@ namespace TankCommon
                             map[y + 1, x - 1] != CellMapType.Wall && map[y + 1, x - 1] != CellMapType.Water && map[y + 1, x - 1] != CellMapType.DestructiveWall)
                         {
                             //создаю строку того типа, которого должно быть больше
-                            map[y, x] = symbol;
+                            if (x % 4 == 0 || x % 5 == 0)
+                            {
+                                map[y, x] = symbol;
+                            }
                         }
                     }
                 }
@@ -189,11 +192,9 @@ namespace TankCommon
                 {
                     if (rndNum < (percentOfPrimObj + percentAnotherObj) && rndNum > percentOfPrimObj)
                     {
-                        map[y, x] = arrSymbols[rndForObj];
-
-                        if (y % 5 == 0)
+                        if (y % 4 == 0 || y % 5 == 0)
                         {
-                            map[y, x] = field;
+                            map[y, x] = arrSymbols[rndForObj];
                         }
                     }
                 }

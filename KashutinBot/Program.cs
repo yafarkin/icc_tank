@@ -42,7 +42,7 @@ namespace TankClient
 
             var tokenSource = new CancellationTokenSource();
             var clientCore = new ClientCore(server, isSpectator ? string.Empty : nickname);
-            var botClass = isSpectator ? new Spectator(tokenSource.Token) as IClientBot : new Bot1();
+            var botClass = isSpectator ? new Spectator(tokenSource.Token) as IClientBot : new Bot3();
             //var botClass = isSpectator ? new Spectator(tokenSource.Token) as IClientBot : new ManualClient();
 
             var clientThread = new Thread(() => { clientCore.Run(!isSpectator, botClass.Client, tokenSource.Token); });
