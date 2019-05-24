@@ -10,6 +10,7 @@ namespace TankServer
         public bool IsInQueue { get; set; }
 
         public bool NeedUpdateMap { get; set; }
+        public bool NeedUpdateSettings { get; set; }
         public bool NeedRemove { get; set; }
 
         public string Nickname { get; set; }

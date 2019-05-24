@@ -1,7 +1,8 @@
-﻿namespace TankCommon
-{
-    using System;
-    using TankCommon.Enum;
+﻿using System;
+using TankCommon.Enum;
+
+namespace TankCommon
+{    
     interface ISettings
     {
         string ServerName { get; set; }
