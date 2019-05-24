@@ -31,7 +31,7 @@ namespace ICC_Tank
         {
             // 50 на 50 ... Идеальный баланс... эталон гармонии
 
-            var map = MapManager.LoadMap(30, 30, CellMapType.Wall, 20, 20);
+            var map = MapManager.LoadMap(10, 10, CellMapType.Wall, 20, 20);
             Console.WriteLine($"Сгенерирована карта");
 
             var port = ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["port"], 2000);
