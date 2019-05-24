@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TankCommon", "TankCommon\Ta
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TankGuiObserver", "TankGuiObserver\TankGuiObserver.csproj", "{570481BA-52E3-4A52-8825-9B046A741F3E}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AdminPanel", "AdminPanel\AdminPanel.csproj", "{7999FA90-8D97-4CD9-A577-826D7A520367}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTestProject", "UnitTestProject\UnitTestProject.csproj", "{498E3EFE-5D98-4A35-94FA-B49A89376621}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TankGuiObserver2", "TankGuiObserver2\TankGuiObserver2.csproj", "{FA9472AB-7718-4A70-B209-4C459AEE2B18}"
@@ -53,6 +55,10 @@ Global
 		{FA9472AB-7718-4A70-B209-4C459AEE2B18}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FA9472AB-7718-4A70-B209-4C459AEE2B18}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FA9472AB-7718-4A70-B209-4C459AEE2B18}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7999FA90-8D97-4CD9-A577-826D7A520367}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7999FA90-8D97-4CD9-A577-826D7A520367}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7999FA90-8D97-4CD9-A577-826D7A520367}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7999FA90-8D97-4CD9-A577-826D7A520367}.Release|Any CPU.Build.0 = Release|Any CPU
 		{2C0874C6-B0F3-4504-B9B1-93D99580D393}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2C0874C6-B0F3-4504-B9B1-93D99580D393}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2C0874C6-B0F3-4504-B9B1-93D99580D393}.Release|Any CPU.ActiveCfg = Release|Any CPU

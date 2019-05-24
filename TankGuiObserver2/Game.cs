@@ -180,7 +180,7 @@
                     System.Windows.Forms.MessageBox.Show("F1 - fullscreen\nF2 - windowed\nF - show fps\nH - help\nEsc - exit", "Help(me)");
                 }
             }
-
+           
             //Drawing a gama
             _isWebSocketOpen = (_guiObserverCore.WebSocketProxy.State == WebSocket4Net.WebSocketState.Open);
             if (!_isWebSocketOpen)

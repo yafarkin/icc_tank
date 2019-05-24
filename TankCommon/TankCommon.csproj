@@ -60,7 +60,9 @@
     <Compile Include="Enum\CellMapType.cs" />
     <Compile Include="Enum\ClientCommandType.cs" />
     <Compile Include="Enum\DirectionType.cs" />
+    <Compile Include="Enum\MapType.cs" />
     <Compile Include="Enum\ServerType.cs" />
+    <Compile Include="Extensions.cs" />
     <Compile Include="ISettings.cs" />
     <Compile Include="JsonHelper.cs" />
     <Compile Include="MapManager.cs" />
@@ -85,7 +87,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ServerRequest.cs" />
     <Compile Include="ServerResponse.cs" />
-    <Compile Include="TankSettings.cs" />
+    <Compile Include="Objects\ServerSettings.cs" />
+    <Compile Include="Objects\TankSettings.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
