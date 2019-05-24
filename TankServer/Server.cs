@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -669,41 +670,8 @@ namespace TankServer
                                         {
                                             var tank = tankObject;
 
-                                            switch (upgradeObject.Type)
-                                            {
-                                                case UpgradeType.BulletSpeed:
-                                                    {
-                                                        var upgrade = upgradeObject as BulletSpeedUpgradeObject;
-                                                        tank.BulletSpeed += upgrade.IncreaseBulletSpeed;
-                                                        break;
-                                                    }
-                                                case UpgradeType.Damage:
-                                                    {
-                                                        var upgrade = upgradeObject as DamageUpgradeObject;
-                                                        tank.Damage += upgrade.IncreaseDamage;
-                                                        break;
-                                                    }
-                                                case UpgradeType.Health:
-                                                    {
-                                                        var upgrade = upgradeObject as HealthUpgradeObject;
-                                                        var newHP = tank.Hp + upgrade.RestHP;
-                                                        tank.Hp = newHP > tank.MaximumHp ? tank.MaximumHp : newHP;
-                                                        break;
-                                                    }
-                                                case UpgradeType.MaxHp:
-                                                    {
-                                                        var upgrade = upgradeObject as MaxHpUpgradeObject;
-                                                        tank.MaximumHp += upgrade.IncreaseHP;
-                                                        tank.Hp += upgrade.IncreaseHP;
-                                                        break;
-                                                    }
-                                                case UpgradeType.Invulnerability:
-                                                    {
-                                                        var upgrade = upgradeObject as InvulnerabilityUpgradeObject;
-                                                        CallInvulnerability(tank, 5);
-                                                        break;
-                                                    }
-                                            }
+                                            // Применяем эффект улудшения на танк время указывается в секундах
+                                            SetUpgrade(tank, upgradeObject, 5);
 
                                             objsToRemove.Add(intersectedObject);
                                         }
@@ -906,6 +874,66 @@ namespace TankServer
             tank.IsInvulnerable = true;
             Thread.Sleep(int.TryParse($"{sec}000", out var value) ? value : 3000);
             tank.IsInvulnerable = false;
+        }
+
+        private async void SetUpgrade(TankObject tank, UpgradeInteractObject upgradeObj, int time)
+        {
+            time *= 1000;
+
+            switch (upgradeObj.Type)
+            {
+                case UpgradeType.BulletSpeed:
+                {
+                    var upgrade = upgradeObj as BulletSpeedUpgradeObject;
+                    await Task.Run((() =>
+                    {
+                        tank.BulletSpeed += upgrade.IncreaseBulletSpeed;
+                        Thread.Sleep(time);
+                        tank.BulletSpeed -= upgrade.IncreaseBulletSpeed;
+                    }));
+
+                    break;
+                }
+                case UpgradeType.Damage:
+                {
+                    var upgrade = upgradeObj as DamageUpgradeObject;
+                    await Task.Run((() =>
+                    {
+                        tank.Damage += upgrade.IncreaseDamage;
+                        Thread.Sleep(time);
+                        tank.Damage -= upgrade.IncreaseDamage;
+                    }));
+                        
+                    break;
+                }
+                case UpgradeType.Health:
+                {
+                    var upgrade = upgradeObj as HealthUpgradeObject;
+                    var newHP = tank.Hp + upgrade.RestHP;
+                    tank.Hp = newHP > tank.MaximumHp ? tank.MaximumHp : newHP;
+                    break;
+                }
+                case UpgradeType.MaxHp:
+                {
+                    var upgrade = upgradeObj as MaxHpUpgradeObject;
+                    await Task.Run((() =>
+                    {
+                        tank.MaximumHp += upgrade.IncreaseHP;
+                        tank.Hp += upgrade.IncreaseHP;
+                        Thread.Sleep(time);
+                        tank.MaximumHp -= upgrade.IncreaseHP;
+                        tank.Hp -= upgrade.IncreaseHP;
+                    }));
+                        
+                    break;
+                }
+                case UpgradeType.Invulnerability:
+                {
+                    var upgrade = upgradeObj as InvulnerabilityUpgradeObject;
+                    CallInvulnerability(tank, 5);
+                    break;
+                }
+            }
         }
 
         public void UpdateSettings()

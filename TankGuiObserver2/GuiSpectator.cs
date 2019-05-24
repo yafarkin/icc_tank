@@ -22,11 +22,12 @@ namespace TankGuiObserver2
             _webSocketProxy = new WebSocketProxy(_serverUri);
         }
 
-        public bool IsServerRunning()
+        public void IsServerRunning()
         {
             if (_webSocketProxy.State == WebSocketState.Open)
             {
                 ServerRunning = true;
+                Thread.Sleep(200);
             }
             else
             {
@@ -42,7 +43,10 @@ namespace TankGuiObserver2
                             ServerRunning = true;
                             Settings = _webSocketProxy.GetMessage().FromJson<TankSettings>();
                         }
-                        return ServerRunning;
+                        else
+                        {
+                            ServerRunning = false;
+                        }
                     }
                 }
                 catch (Exception e)
@@ -51,8 +55,6 @@ namespace TankGuiObserver2
                 }
 
             }
-
-            return ServerRunning;
         }
 
         public void Dispose()
@@ -213,12 +215,16 @@ namespace TankGuiObserver2
 
     public class GuiObserverCore
     {
+        public WebSocketProxy WebSocketProxy => _webSocketProxy;
         protected readonly Uri _serverUri;
         protected readonly string _nickName;
+
         private WebSocketProxy _webSocketProxy;
+        private AutoResetEvent _autoResetEvent;
 
         public GuiObserverCore(string server, string nickname)
         {
+            _autoResetEvent = new AutoResetEvent(true);
             _serverUri = new Uri(server);
             _nickName = nickname;
             _webSocketProxy = new WebSocketProxy(_serverUri);
@@ -264,11 +270,14 @@ namespace TankGuiObserver2
                     var outputData = serverResponse.ToJson();
 
                     _webSocketProxy.Send(outputData, cancellationToken);
+
+
                 }
 
                 if (_webSocketProxy.State != WebSocketState.Open)
                 {
                     Console.WriteLine($"{DateTime.Now:T} Закрыто соединение с сервером");
+                    
                 }
                 else
                 {

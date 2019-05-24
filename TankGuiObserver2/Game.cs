@@ -28,8 +28,9 @@
         GuiObserverCore _guiObserverCore;
         Connector _connector;
 
-        bool _isEnterPressed;
         bool _isFPressed;
+        bool _isEnterPressed;
+        bool _isWebSocketOpen;
         DirectInput _directInput;
         Keyboard _keyboard;
         GameRender _gameRender;
@@ -181,7 +182,36 @@
             }
            
             //Drawing a gama
-            if (_isEnterPressed)
+            _isWebSocketOpen = (_guiObserverCore.WebSocketProxy.State == WebSocket4Net.WebSocketState.Open);
+            if (!_isWebSocketOpen)
+            {
+                _isEnterPressed = false;
+                _isClientThreadRunning = true;
+                _connector.IsServerRunning();
+                if (_connector.ServerRunning)
+                {
+                    _isClientThreadRunning = false;
+                }
+                _gameRender.UIIsVisible = false;
+                _gameRender.DrawWaitingLogo();
+                _connector.IsServerRunning();
+
+                if (!_isClientThreadRunning)
+                {
+                    //_gameRender.Settings = _connector.Settings;
+                    _isClientThreadRunning = true;
+                    //_clientThread = new System.Threading.Thread(() => {
+                    //    _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
+                    //});
+                    //_clientThread.Start();
+                    new System.Threading.Thread(() => {
+                        _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
+                    }).Start();
+
+                }
+            }
+
+            if (_isEnterPressed && _isWebSocketOpen)
             {
                 if (!_gameRender.UIIsVisible) { _gameRender.UIIsVisible = true; }
                 _gameRender.Map = _spectatorClass.Map;
@@ -192,31 +222,11 @@
                 _gameRender.DrawGrass();
                 _gameRender.DrawInteractiveObjects(_spectatorClass.Map.InteractObjects);
             }
-            else
+            else if (_spectatorClass.Map != null && _isWebSocketOpen)
             {
-                if (_spectatorClass.Map != null)
-                {
-                    _gameRender.DrawLogo();
-                }
-                else
-                {
-                    //_serverString
-                    _gameRender.DrawWaitingLogo();
-                    if (!_connector.ServerRunning)
-                    {
-                        _connector.IsServerRunning();
-                    }
-                    else if (!_isClientThreadRunning)
-                    {
-                        //_gameRender.Settings = _connector.Settings;
-                        _isClientThreadRunning = true;
-                        _clientThread = new System.Threading.Thread(() => {
-                            _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
-                        });
-                        _clientThread.Start();
-                    }
-                }
+                _gameRender.DrawLogo();
             }
+                
 
             if (_isFPressed)
             {
