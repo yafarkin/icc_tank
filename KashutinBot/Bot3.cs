@@ -49,6 +49,7 @@ namespace TankClient
 
 
             var nearestObj = FindNearestInteractiveObjWithoutWalls(_map, myTank);
+            rectangle = myTank.Rectangle;
 
             //Если не упрёшься в стену
             // Иди своей дорогой, танчик ... Проходи, не задерживайся!
@@ -100,14 +101,40 @@ namespace TankClient
                 }
                 else
                 {
+                    //Если можешь идти в своём направлении
                     if (CanGoToPoint(_map, myTank, myTank.Direction))
                     {
                         return Go();
                     }
-
+                    else
+                    {
+                        searchingWay = true;
+                    }
                 }
             }
+            //return CheckMyRect(myTank);
             return Fire();
+        }
+
+        private ServerResponse CheckMyRect(TankObject myTank)
+        {
+            if(myTank.Rectangle == rectangle && myTank.Direction == lastDirection)
+            {
+                return doSomething();
+            }
+            else
+            {
+                return Fire();
+            }
+        }
+
+        private ServerResponse doSomething()
+        {
+            Random rnd = new Random();
+            var WhatCanDo = new ClientCommandType[] { ClientCommandType.Fire, ClientCommandType.TurnDown, ClientCommandType.TurnLeft, ClientCommandType.TurnRight, ClientCommandType.Go, };
+
+            return new ServerResponse { ClientCommand =  WhatCanDo[rnd.Next(0, 5)] };
+
         }
 
         private ServerResponse FindSomeWay(Map map, TankObject myTank, BaseInteractObject nearestObj, DirectionType lastDirection)
@@ -282,8 +309,8 @@ namespace TankClient
             {
                 foreach (var elem in map.InteractObjects)
                 {
-                    //Если этот элемент это 
-                    if (!Equals(elem.Id, myTank.Id))
+                    //Если этот элемент это не мой танк и не пуля
+                    if ((!Equals(elem.Id, myTank.Id)) && !(elem is BulletObject))
                     {
                         var distToElem = (Math.Abs(elem.Rectangle.LeftCorner.LeftInt - GetX(myTank)) + Math.Abs(elem.Rectangle.LeftCorner.TopInt - GetY(myTank)));
                         if (distToElem < shortestDistToElem)
