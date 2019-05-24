@@ -135,6 +135,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Bot2.cs" />
+    <Compile Include="Bot3.cs" />
     <Compile Include="ClientCore.cs" />
     <Compile Include="IClientBot.cs" />
     <Compile Include="ManualClient.cs" />
