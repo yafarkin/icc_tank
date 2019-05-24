@@ -87,11 +87,13 @@
 
     public class TextColorAnimation
     {
-        private Stopwatch _textTimer;
+        private float _incriment;
         private RawColor4 _color;
+        private Stopwatch _textTimer;
 
         public TextColorAnimation()
         {
+            _incriment = -0.15f;
             _textTimer = new Stopwatch();
             _textTimer.Start();
         }
@@ -102,10 +104,12 @@
             {
                 _color = brush.Color;
 
-                if (_color.A < 0.8f)
-                    _color.A += 0.15f;
-                else if (_color.A > 0.0f)
-                    _color.A -= 0.15f;
+                if (_color.A > 1.0f)
+                    _incriment = -0.15f;
+                else if (_color.A < 0.0f)
+                    _incriment = 0.15f;
+
+                _color.A += _incriment;
 
                 brush.Color = _color;
                 _textTimer.Reset();
@@ -170,12 +174,12 @@
         //ClientInfo
         public bool UIIsVisible
         {
-            get { return _dgv.Visible; }
+            get => (_sessionTime.Visible && _clientInfoLabel.Visible && _dgv.Visible); 
             set
             {
-                _sessionTime.Visible = true;
-                _clientInfoLabel.Visible = true;
-                _dgv.Visible = true;
+                _sessionTime.Visible = value;
+                _clientInfoLabel.Visible = value;
+                _dgv.Visible = value;
             }
         }
         Label _clientInfoLabel;
@@ -359,6 +363,7 @@
             _dgv.Columns.Add("nick", "Nickname");
             _dgv.Columns.Add("score", "Score");
             _dgv.Columns.Add("hp", "Hp");
+            _dgv.Columns.Add("lives", "Lives");
             _dgv.Rows.Add(); _dgv.Rows.Add();
             _dgv.Rows.Add(); _dgv.Rows.Add();
             _dgv.Rows.Add(); _dgv.Rows.Add();
@@ -422,7 +427,7 @@
         public void DrawLogo()
         {
             RenderTarget2D.Clear(_blackScreen);
-            _textColorAnimation.AnimationStart(300, ref _mapObjectsColors[11]);
+            _textColorAnimation.AnimationStart(100, ref _mapObjectsColors[11]);
             RenderTarget2D.DrawText("Battle City v0.1",
                 _logoBrushTextFormat, _logoTextRect, _mapObjectsColors[14]);
             RenderTarget2D.DrawText("Press Enter to start a game",
@@ -451,6 +456,7 @@
                 Map.MapHeight > 0)
             {
                 _isMapSet = true;
+                
                 _mapWidth  = Map.MapWidth /*Map.Cells.GetLength(0)*/;
                 _mapHeight = Map.MapHeight/*Map.Cells.GetLength(1)*/;
                 _zoomWidth = (float)1080 / _mapWidth;
@@ -472,9 +478,9 @@
                 List<SharpDX.Point> walls = new List<SharpDX.Point>();
                 List<SharpDX.Point> water = new List<SharpDX.Point>();
                 List<SharpDX.Point> grass = new List<SharpDX.Point>();
-                for (int r = 0; r < blocksInARow; r++)
+                for (int r = 0; r < blocksInACol; r++)
                 {
-                    for (int c = 0; c < blocksInACol; c++)
+                    for (int c = 0; c < blocksInARow; c++)
                     {
                         for (i = (5 * r); i < (5 * r + 5); i++)
                         {
@@ -748,7 +754,7 @@
             {
                 foreach (var tank in _clientInfoTanks)
                 {
-                    _dgv.Rows[index].SetValues(index, tank.Nickname, tank.Score, tank.Hp);
+                    _dgv.Rows[index].SetValues(index, tank.Nickname, tank.Score, tank.Hp, tank.Lives);
                     ++index;
                 }
             }
