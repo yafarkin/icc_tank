@@ -36,6 +36,7 @@ namespace TankServer
         {            
             Clients = new Dictionary<IWebSocketConnection, ClientInfo>();
             serverSettings = sSettings;
+            defaultTankSettings = sSettings.TankSettings;
             Map = MapManager.LoadMap(serverSettings.Height, serverSettings.Width, CellMapType.Wall, 50, 50);
 
             _maxClientsCount = serverSettings.MaxClientCount;
@@ -460,19 +461,11 @@ namespace TankServer
                 //если настройки изменились, клиенту отправится новая версия и флаг об обновлении настроек
                 var request = new ServerRequest
                 {
-                    Map = clientMap,
-                    Tank = client.Value.InteractObject as TankObject,
-                    IsSettingsChanged = isSettingsChanged(GetSettings()),
-                    Settings = Settings
+                    Map = clientMap, Tank = client.Value.InteractObject as TankObject,
+                    IsSettingsChanged = needSettings,
+                    Settings = needSettings ? defaultTankSettings : null
                 };
 
-                    //если настройки изменились, клиенту отправится новая версия и флаг об обновлении настроек
-                    var request = new ServerRequest
-                    {
-                        Map = clientMap, Tank = client.Value.InteractObject as TankObject,
-                        IsSettingsChanged = needSettings,
-                        Settings = needSettings ? defaultTankSettings : null
-                    };
                 request.Map.InteractObjects = client.Value.IsSpecator ? allObjects : visibleObjects;
 
                 var json = request.ToJson();

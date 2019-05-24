@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using AdminPanel.Entity;
@@ -118,10 +120,12 @@ namespace AdminPanel.Controllers
         [HttpGet]
         public IEnumerable<object> GetServerList()
         {
+            Task.Delay(250);
             return Program.Servers.Select(x => new
             {
                 Id = x.Id,
                 Name = x.Server.serverSettings.SessionName,
+                Ip = Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(z => z.AddressFamily == AddressFamily.InterNetwork)?.ToString(),
                 Port = x.Server.serverSettings.Port,
                 Type = x.Server.serverSettings.ServerType.GetDescription(),
                 People = x.Server.Clients.Count(z => !z.Value.IsSpecator) + " / " + x.Server.serverSettings.MaxClientCount

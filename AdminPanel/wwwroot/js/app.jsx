@@ -13,9 +13,10 @@ class UserForm extends React.Component {
     postHelper(method, data) {
         var form = new FormData();
         for (var prop in data) {
-            form.append(prop, Object(data[prop]));
+            if (data[prop].length === undefined) {
+            }
+            else form.append(prop, Object(data[prop]));
         }
-
         var requestType = { method: "POST", body: form };
         var url = `admin/${method}`;
 
@@ -40,6 +41,7 @@ class UserForm extends React.Component {
         this.openModal = this.openModal.bind(this);
         this.doTestStart = this.doTestStart.bind(this);
         this.getList = this.getList.bind(this);
+        this.getText = this.getText.bind(this);
         this.updateServerList = this.updateServerList.bind(this);
     }
 
@@ -58,19 +60,26 @@ class UserForm extends React.Component {
     updateServerList() {
         let list = this.getList('GetServerList');
         this.setState({ serverList: list });
-        console.log(this.state.serverList);
+    }
+
+    getText(div) {
+        var result = [];
+        div.childNodes.forEach(z => {
+            if (z.localName === 'div') {
+                if (z.firstChild.localName === 'div') {
+                    result.push('"' + z.id + '": ' + this.getText(z));
+                } else result.push('"' + z.id + '": "' + z.lastChild.value + '"');
+            }
+        });
+        return ('{ ' + result.join(', ') + ' }');
     }
 
     doTestStart() {
-        var result = [];
-        document.getElementById('modal').childNodes.forEach(z => {
-            if (z.localName === 'div')
-                result.push('"' + z.id + '": "' + z.lastChild.value + '"')});
-        var data = JSON.parse('{ ' + result.join(', ') + ' }');
+        var result = this.getText(document.getElementById('modal'));
+        var data = JSON.parse(result);
         this.openModal();
 
         this.postHelper("CreateServer", data);
-        this.updateServerList();
     }
 
     openModal() {
@@ -91,7 +100,6 @@ class UserForm extends React.Component {
                         </tr>
                     </thead>
                     <tbody>{this.state.serverList.map(p => {
-                        console.log(p);
                         return (
                             <tr key={p.id}>
                                 {Object.keys(p).filter(k => k !== 'id').map(k => { return (<td><div>{p[k]}</div></td>); })}
@@ -123,6 +131,24 @@ class UserForm extends React.Component {
                     <div id="MaxClientCount">
                         <label>Максимальное количество одновременно играющих игроков</label>
                         <input type="number" id="Value" />
+                    </div>
+                    <div id="TankSettings">
+                        <div id="GameSpeed">
+                            <label>Скорость игры</label>
+                            <input type="number" id="Value" />
+                        </div>
+                        <div id="TankSpeed">
+                            <label>Множитель скорости танка</label>
+                            <input type="number" id="Value" />
+                        </div>
+                        <div id="BulletSpeed">
+                            <label>Множитель скорости пули</label>
+                            <input type="number" id="Value" />
+                        </div>
+                        <div id="TankDamage">
+                            <label>Урон танка</label>
+                            <input type="number" id="Value" />
+                        </div>
                     </div>
                     <div id="ServerType">
                         <label>К какому типу игры относится данный сервер</label>
