@@ -766,14 +766,9 @@ namespace TankServer
             tank.IsDead = true;
             //уменьшаем жизни
             tank.Lives--;
-            //Переносим на 0
-            tank.Rectangle.LeftCorner.Top = 0;
-            tank.Rectangle.LeftCorner.Left = 0;
             var isFire = Map.InteractObjects.FirstOrDefault(x => (x as BulletObject)?.SourceId == tank.Id) != null;
-
-            //Ждём 5 секунд
-            await Task.Delay(5000);
-
+            //Ждём 1/10 секунды
+            await Task.Delay(100);
             //Говорим, что теперь танк жив
             tank.IsDead = false;
             //Делаем танку здоровье нормальным(не увеличенным)
