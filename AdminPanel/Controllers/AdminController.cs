@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -43,16 +42,24 @@ namespace AdminPanel.Controllers
 
             serverSettings.Port = port;
 
-            var server = new Server(serverSettings);
-            var cancellationToken = new CancellationTokenSource();
-
-            Program.Servers.Add(new ServerEntity()
+            try
             {
-                Id = Program.Servers.Count == 0 ? 1 : Program.Servers.Count,
-                CancellationToken = cancellationToken,
-                Server = server,
-                Task = server.Run(cancellationToken.Token)
-            });                        
+                var server = new Server(serverSettings);
+
+                var cancellationToken = new CancellationTokenSource();
+
+                Program.Servers.Add(new ServerEntity()
+                {
+                    Id = Program.Servers.Count == 0 ? 1 : Program.Servers.Count,
+                    CancellationToken = cancellationToken,
+                    Server = server,
+                    Task = server.Run(cancellationToken.Token)
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Need loger");
+            }
         }
 
         /// <summary>
