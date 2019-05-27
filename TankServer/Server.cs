@@ -233,8 +233,6 @@ namespace TankServer
 
         public async Task Run(CancellationToken cancellationToken)
         {
-            try
-            {
                 // запускаем фоновую задачу на изменение игровой карты
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
                 UpdateEngine(cancellationToken);
@@ -273,12 +271,9 @@ namespace TankServer
                         break;
                     }
                 }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Ошибка во время выполнения: {e}");
-                _logger.Error($"Ошибка во время выполнения: {e}");
-            }
+//            Console.WriteLine($"Ошибка во время выполнения: {e}");
+//            _logger.Error($"Ошибка во время выполнения: {e}");
+            
         }
 
         private void RemoveClients()
