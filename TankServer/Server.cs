@@ -191,7 +191,7 @@ namespace TankServer
             var rectangle = PastOnPassablePlace();
             var tank = new TankObject(Guid.NewGuid(), rectangle, 2, false, 100, 100, 5, 5, nickname, tag, 40);
             //При создании нового танка он бессмертен
-            CallInvulnerability(tank, 5);
+            CallInvulnerability(tank, 5000);
             Map.InteractObjects.Add(tank);
 
             return tank;
@@ -659,11 +659,15 @@ namespace TankServer
                                         }
                                         else if ((decimal)cells.Count(c => c.Value == CellMapType.Water) / cells.Count >= 0.5m)
                                         {
-                                            if (tankObject.IsInvulnerable == false)
+                                            if (tankObject.Lives > 0)
                                             {
+                                                Reborn(tankObject);
+                                            }
+                                            else { 
                                                 objsToRemove.Add(tankObject);
                                                 canMove = false;
                                             }
+                                            
                                         }
 
                                         if (intersectedObject is UpgradeInteractObject upgradeObject)
