@@ -64,7 +64,7 @@ namespace AdminPanel.Controllers
                 TankSettings = tankSettings
             };    */        
 
-            var server = new Server(serverSettings);
+            var server = new Server(serverSettings, Program.Logger);
             var cancellationToken = new CancellationTokenSource();
 
             Program.Servers.Add(new ServerEntity()

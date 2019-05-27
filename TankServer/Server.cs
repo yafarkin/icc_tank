@@ -31,9 +31,9 @@ namespace TankServer
         public readonly Map Map;
         public Dictionary<IWebSocketConnection, ClientInfo> Clients;
 
-        public readonly Logger _logger;
+        protected readonly Logger _logger;
 
-        public Server(ServerSettings sSettings)
+        public Server(ServerSettings sSettings, Logger logger)
         {            
             Clients = new Dictionary<IWebSocketConnection, ClientInfo>();
             serverSettings = sSettings;
@@ -43,7 +43,7 @@ namespace TankServer
             _maxClientsCount = serverSettings.MaxClientCount;
 
             _random = new Random();
-            _logger = LogManager.GetCurrentClassLogger();
+            _logger = logger;
             //FleckLog.Level = LogLevel.Debug;
 
             _socketServer = new WebSocketServer($"ws://0.0.0.0:{serverSettings.Port}");
