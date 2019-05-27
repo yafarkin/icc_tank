@@ -42,27 +42,6 @@ namespace AdminPanel.Controllers
             }
 
             serverSettings.Port = port;
-/*
-            var tankSettings = new TankSettings()
-            {
-                Version = 1,
-                gameSpeed = (int)gameSpeed,
-                tankSpeed = (int)tankSpeed,
-                bulletSpeed = (int)bulletSpeed,
-                tankDamage = (int)tankDamage
-            };
-
-            var serverSettings = new ServerSettings()
-            {
-                SessionName = nameSession,
-                MapType = (TankCommon.Enum.MapType)1,
-                Width = (int)width,
-                Height = (int)height,
-                MaxClientCount = (uint)maxClientsCount,
-                Port = port,
-                ServerType = TankCommon.Enum.ServerType.BattleCity,
-                TankSettings = tankSettings
-            };    */        
 
             var server = new Server(serverSettings);
             var cancellationToken = new CancellationTokenSource();
