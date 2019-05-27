@@ -30,13 +30,16 @@ namespace AdminPanel.Controllers
             var port = 2000;
             while (true)
             {
-                if (Program.Servers.Any(x => x.Port == port))
+                lock (Program.Servers)
                 {
-                    port += 10;
-                }
-                else
-                {
-                    break;
+                    if (Program.Servers.Any(x => x.Port == port))
+                    {
+                        port += 10;
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
             }
 
@@ -45,17 +48,19 @@ namespace AdminPanel.Controllers
             try
             {
                 var server = new Server(serverSettings);
-                
-                var cancellationToken = new CancellationTokenSource();
 
-                Program.Servers.Add(new ServerEntity()
+                var cancellationToken = new CancellationTokenSource();
+                lock (Program.Servers)
                 {
-                    Id = Program.Servers.Count == 0 ? 1 : Program.Servers.Count + 1,
-                    CancellationToken = cancellationToken,
-                    Server = server,
-                    Port = (uint) port,
-                    Task = server.Run(cancellationToken.Token)
-                });
+                    Program.Servers.Add(new ServerEntity()
+                    {
+                        Id = Program.Servers.Count == 0 ? 1 : Program.Servers.Count + 1,
+                        CancellationToken = cancellationToken,
+                        Server = server,
+                        Port = (uint) port,
+                        Task = server.Run(cancellationToken.Token)
+                    });
+                }
 
                 Program.Servers.Last().Task.Wait();
             }
@@ -110,7 +115,7 @@ namespace AdminPanel.Controllers
         [HttpGet]
         public IEnumerable<object> GetServerList()
         {
-            Task.Delay(250);
+            Task.Delay(150);
             lock (Program.Servers)
             {
                 return Program.Servers.Select(x => new
