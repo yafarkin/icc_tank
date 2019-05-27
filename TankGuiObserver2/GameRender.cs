@@ -105,9 +105,9 @@
                 _color = brush.Color;
 
                 if (_color.A > 1.0f)
-                    _incriment = -0.15f;
-                else if (_color.A < 0.0f)
-                    _incriment = 0.15f;
+                    _incriment = -0.05f;
+                else if (_color.A < 0.2f)
+                    _incriment = 0.05f;
 
                 _color.A += _incriment;
 
@@ -243,6 +243,8 @@
             SharpDX.Direct2D1.Factory factory2D,
             RenderTarget renderTarget)
         {
+            #region Itialization
+
             RenderForm = renderForm;
             _factory2D = factory2D;
             RenderTarget2D = renderTarget;
@@ -285,6 +287,9 @@
             /*15*/ new SolidColorBrush(RenderTarget2D, new RawColor4(0.28f, 0.88f, 0.23f, 1.0f)) //nickname
             };
 
+            #endregion
+
+            #region DirectUI
             _fpsmsTextRect = new RectangleF(25, 5, 150, 30);
             _fpsmsTextBackground = new RectangleF(
                 _fpsmsTextRect.Left, _fpsmsTextRect.Top,
@@ -319,18 +324,17 @@
                 new TextFormat(directFactory, "Arial", FontWeight.Normal, FontStyle.Italic, 180.0f);
             _nicknameTextFormat =
                 new TextFormat(directFactory, "Times New Roman", FontWeight.Normal, FontStyle.Italic, 16.0f);
+            #endregion
 
+            #region Animation
             _textAnimation = new TextAnimation();
             _textAnimation.SetAnimatedString($"Waiting for connection to {server}");
             _textColorAnimation = new TextColorAnimation();
             _fpsmsCounter = new FpsCounter();
             _fpsmsCounter.FPSCounter = 1000;
-
-            /*
-              ##############
-              ##### UI #####
-              ##############
-             */
+            #endregion
+            
+            #region UI
             _clientInfoLabel = new Label();
             _clientInfoLabel.Text = "Client info";
             _clientInfoLabel.Font = new System.Drawing.Font("Cambria", 30);
@@ -393,6 +397,7 @@
             RenderForm.Controls.Add(_sessionTime);
             RenderForm.Controls.Add(_clientInfoLabel);
             RenderForm.Controls.Add(_dgv);
+            #endregion
 
             //Loading resources
             LoadResources();
@@ -438,12 +443,11 @@
         public void DrawWaitingLogo()
         {
             RenderTarget2D.Clear(_blackScreen);
-            _textColorAnimation.AnimationStart(600, ref _mapObjectsColors[11]);
             RenderTarget2D.DrawText("Battle City v0.1",
                 _logoBrushTextFormat, _logoTextRect, _mapObjectsColors[14]);
             _textAnimation.AnimationStart(300, ".");
             RenderTarget2D.DrawText(_textAnimation.GetAnimatedString(),
-                _statusTextFormat, _statusTextRect, _mapObjectsColors[11]);
+                _statusTextFormat, _statusTextRect, _mapObjectsColors[14]);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(256)]

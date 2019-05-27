@@ -87,20 +87,12 @@
 
             //WEB_SOCKET
             _serverString = string.Empty;
-            if (!System.IO.Directory.Exists("config"))
+            _serverString = System.Configuration.ConfigurationManager.AppSettings["server"];
+            if (_serverString == null)
             {
-                System.IO.Directory.CreateDirectory("config");
+                _serverString = "ws://127.0.0.1:2000";
             }
-            if (!System.IO.File.Exists(@"config/config.txt"))
-            {
-                System.IO.File.WriteAllText(@"config/config.txt", @"server-ws://127.0.0.1:2000");
-            }
-
-            _serverString =
-                    System.IO.File.ReadAllText(@"config/config.txt")
-                    .Split(new char[] { '\n' })[0]
-                    .Split(new char[] { '-' })[1];
-
+            
             _guiObserverCore = new GuiObserverCore(_serverString, string.Empty);
             _tokenSource = new System.Threading.CancellationTokenSource();
             _spectatorClass = new GuiSpectator(_tokenSource.Token);
@@ -135,8 +127,7 @@
             {
                 if (key == Key.F)
                 {
-                    bool canChange = _gameRender.GetElapsedMs() > 500;
-                    if (canChange)
+                    if (_gameRender.GetElapsedMs() > 500)
                     {
                         if (!_isFPressed)
                         {
@@ -186,15 +177,15 @@
             if (!_isWebSocketOpen)
             {
                 _isEnterPressed = false;
+                _gameRender.UIIsVisible = false;
                 _isClientThreadRunning = true;
+                _gameRender.DrawWaitingLogo();
+
                 _connector.IsServerRunning();
                 if (_connector.ServerRunning)
                 {
                     _isClientThreadRunning = false;
                 }
-                _gameRender.UIIsVisible = false;
-                _gameRender.DrawWaitingLogo();
-                _connector.IsServerRunning();
 
                 if (!_isClientThreadRunning)
                 {
@@ -289,7 +280,8 @@
 
         public void Dispose()
         {
-            _renderForm.Dispose();
+            _notifyIcon.Dispose();
+            _connector.Dispose();
             _renderTarget2D.Dispose();
             _factory2D.Dispose();
             _surface.Dispose();
@@ -297,9 +289,8 @@
             _device.ImmediateContext.ClearState();
             _device.ImmediateContext.Flush();
             _device.Dispose();
-            _connector.Dispose();
             _gameRender.Dispose();
-            _notifyIcon.Dispose();
+            _renderForm.Dispose();
         }
 
     }
