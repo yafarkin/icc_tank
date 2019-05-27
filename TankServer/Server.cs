@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,7 +8,6 @@ using TankCommon;
 using TankCommon.Enum;
 using TankCommon.Objects;
 using NLog;
-using System.IO;
 
 namespace TankServer
 {
@@ -466,21 +464,21 @@ namespace TankServer
 
                 var json = request.ToJson();
 
-                try
-                {
+//                try
+//                {
                     await client.Key.Send(json);
                     if (needUpdate)
                     {
                         Console.WriteLine($"{DateTime.Now.ToShortTimeString()} Передача полной карты для {client.Key.ConnectionInfo.ClientIpAddress} / {(client.Value.IsSpecator ? "наблюдатель" : client.Value.Nickname)}");
                         _logger.Info($"Передача полной карты для {client.Key.ConnectionInfo.ClientIpAddress} / {(client.Value.IsSpecator ? "наблюдатель" : client.Value.Nickname)}");
-                    }
+                    }/*
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine($"{DateTime.Now.ToShortTimeString()} Ошибка передачи данных клиенту: {e.Message}");
                     _logger.Error($"Ошибка передачи данных клиенту: {e.Message}");
                     client.Value.NeedRemove = true;
-                }
+                }*/
 
                 if (needUpdate)
                 {
@@ -503,8 +501,8 @@ namespace TankServer
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                try
-                {
+//                try
+//                {
                     UpdateSettings();
                     await Task.Delay(100);
                     if (cancellationToken.IsCancellationRequested)
@@ -745,13 +743,13 @@ namespace TankServer
                                 Map.InteractObjects.Remove(objToRemove);
                             }
                         }
-                    }
+                    }/*
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine($"Ошибка работы игрового движка: {e}");
                     _logger.Error($"Ошибка работы игрового движка: {e}");
-                }
+                }*/
             }
         }
 
