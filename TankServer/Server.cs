@@ -42,7 +42,6 @@ namespace TankServer
 
             _random = new Random();
             _logger = logger;
-            //FleckLog.Level = LogLevel.Debug;
 
             _socketServer = new WebSocketServer($"ws://0.0.0.0:{serverSettings.Port}");
             _socketServer.Start(socket =>

@@ -22,10 +22,11 @@ namespace AdminPanel.Controllers
         /// Создание сервера
         /// </summary>
         /// <param name="serverSettings">Класс настроек сервера и темпа игры</param>
-        [HttpPost]
-        public void CreateServer([FromForm] ServerSettings serverSettings)
+        [HttpGet]
+        public string CreateServer([FromForm] ServerSettings serverSettings)
         {
-            if (string.IsNullOrWhiteSpace(serverSettings.SessionName)) return;
+            if (string.IsNullOrWhiteSpace(serverSettings.SessionName))
+                return "SessionName не должен быть пустым";
 
             var port = 2000;
             while (true)
@@ -67,7 +68,10 @@ namespace AdminPanel.Controllers
             catch (Exception ex)
             {
                 Program.Logger.Error($"Ошибка во время работы: {ex}");
+                return ex.Message;
             }
+
+            return string.Empty;
         }
 
         /// <summary>
