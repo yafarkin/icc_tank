@@ -66,8 +66,7 @@ namespace AdminPanel.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
-                Console.WriteLine("Need loger");
+                Program.Logger.Error($"Ошибка во время работы: {ex}");
             }
         }
 
