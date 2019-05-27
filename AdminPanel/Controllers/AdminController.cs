@@ -50,15 +50,18 @@ namespace AdminPanel.Controllers
 
                 Program.Servers.Add(new ServerEntity()
                 {
-                    Id = Program.Servers.Count == 0 ? 1 : Program.Servers.Count,
+                    Id = Program.Servers.Count == 0 ? 1 : Program.Servers.Count + 1,
                     CancellationToken = cancellationToken,
                     Server = server,
                     Port = (uint) port,
                     Task = server.Run(cancellationToken.Token)
                 });
+
+                Program.Servers.Last().Task.Wait();
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex.Message);
                 Console.WriteLine("Need loger");
             }
         }
@@ -108,15 +111,20 @@ namespace AdminPanel.Controllers
         public IEnumerable<object> GetServerList()
         {
             Task.Delay(250);
-            return Program.Servers.Select(x => new
+            lock (Program.Servers)
             {
-                Id = x.Id,
-                Name = x.Server.serverSettings.SessionName,
-                Ip = Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(z => z.AddressFamily == AddressFamily.InterNetwork)?.ToString(),
-                Port = x.Server.serverSettings.Port,
-                Type = x.Server.serverSettings.ServerType.GetDescription(),
-                People = x.Server.Clients.Count(z => !z.Value.IsSpecator) + " / " + x.Server.serverSettings.MaxClientCount
-            });
+                return Program.Servers.Select(x => new
+                {
+                    Id = x.Id,
+                    Name = x.Server.serverSettings.SessionName,
+                    Ip = Dns.GetHostEntry(Dns.GetHostName()).AddressList
+                        .FirstOrDefault(z => z.AddressFamily == AddressFamily.InterNetwork)?.ToString(),
+                    Port = x.Server.serverSettings.Port,
+                    Type = x.Server.serverSettings.ServerType.GetDescription(),
+                    People = x.Server.Clients.Count(z => !z.Value.IsSpecator) + " / " +
+                             x.Server.serverSettings.MaxClientCount
+                });
+            }
         }
 
         /// <summary>
