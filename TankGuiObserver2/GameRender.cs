@@ -399,50 +399,6 @@
             _sessionTime.AutoSize = true;
             _sessionTime.Visible = false;
             
-            //_dgv = new DataGridView();
-            //_dgv.Width = 800; //840 (1920)
-            //_dgv.Height = 350; //1080
-            //_dgv.AutoSize = true;
-            //_dgv.ForeColor = System.Drawing.Color.Green;
-            //_dgv.GridColor = System.Drawing.Color.Green;
-            //_dgv.BackgroundColor = System.Drawing.Color.Red;
-            //_dgv.Font = new System.Drawing.Font("Cambria", 16, 
-            //    System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            //_dgv.Location = new System.Drawing.Point(1100, 150);
-            //_dgv.Name = "dataTab";
-            //_dgv.Text = "Статус:";
-            //_dgv.Visible = false;
-            //_dgv.Columns.Add("id", "Id");
-            //_dgv.Columns.Add("nick", "Nickname");
-            //_dgv.Columns.Add("score", "Score");
-            //_dgv.Columns.Add("hp", "Hp");
-            //_dgv.Columns.Add("lives", "Lives");
-            //_dgv.Rows.Add(); _dgv.Rows.Add();
-            //_dgv.Rows.Add(); _dgv.Rows.Add();
-            //_dgv.Rows.Add(); _dgv.Rows.Add();
-            //_dgv.Rows.Add(); _dgv.Rows.Add();
-            //_dgv.Rows.Add(); _dgv.Rows.Add();
-            //_dgv.Rows.Add(); _dgv.Rows.Add();
-            //_dgv.Rows.Add(); _dgv.Rows.Add();
-            //_dgv.AutoSize = false;
-            //_dgv.ReadOnly = false;
-            //_dgv.AllowUserToOrderColumns = false;
-            //_dgv.AllowDrop = false;
-            //_dgv.AllowUserToResizeColumns = false;
-            //_dgv.AllowUserToResizeRows = false;
-            //_dgv.AllowUserToDeleteRows = false;
-            //_dgv.AllowUserToDeleteRows = false;
-            //_dgv.AllowUserToOrderColumns = false;
-            //_dgv.IsAccessible = false;
-            //_dgv.ReadOnly = true;
-            //_dgv.SelectionMode = DataGridViewSelectionMode.CellSelect;
-            //_dgv.MultiSelect = false;
-            //
-            //for (int i = 0; i < _dgv.ColumnCount; i++)
-            //{
-            //    _dgv.Columns[i].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-            //}
-            
             RenderForm.Controls.Add(_sessionTime);
             RenderForm.Controls.Add(_clientInfoLabel);
             #endregion
@@ -929,7 +885,7 @@
                 _bitmaps[i].Dispose();
             }
 
-            _textLayout.Dispose();
+            if (_textLayout != null) _textLayout.Dispose();
             _tankUpBitmap.Dispose();
             _tankDownBitmap.Dispose();
             _tankLeftBitmap.Dispose();
