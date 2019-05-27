@@ -176,23 +176,23 @@
         //ClientInfo
         public bool UIIsVisible
         {
-            get => (_sessionTime.Visible && _clientInfoLabel.Visible && _dgv.Visible); 
+            get => (_sessionTime.Visible && _clientInfoLabel.Visible); 
             set
             {
                 _sessionTime.Visible = value;
                 _clientInfoLabel.Visible = value;
-                _dgv.Visible = value;
             }
         }
         Label _clientInfoLabel;
         Label _sessionTime;
-        DataGridView _dgv;
         List<TankObject> _clientInfoTanks;
         RawVector2 _clientInfoLeftPoint;
         RawVector2 _clientInfoRightPoint;
         RectangleF _clientInfoAreaRect;
+        RectangleF _cleintInfo;
         RectangleF _clientInfoTextRect;
-
+        TextFormat _clientInfoTextFormat;
+        
         //Entry screen
         RectangleF _logoTextRect;
         RectangleF _enterTextRect;
@@ -304,6 +304,7 @@
                 _logoTextRect.X + 5*_logoTextRect.X/6,
                 RenderForm.Height - (RenderForm.Height - _logoTextRect.Bottom - 200), 800, 30);
             _clientInfoAreaRect = new RectangleF(1080, 0, 1920 - 1080, 1080);
+            _cleintInfo = new RectangleF(1080 + 50, 100 + 50, 700, 500);
             _clientInfoTextRect = new RectangleF(
                 _clientInfoAreaRect.X + 0.39f * _clientInfoAreaRect.X,
                 _clientInfoAreaRect.Y + 0.05f * _clientInfoAreaRect.Height, 300, 100);
@@ -312,7 +313,7 @@
             _clientInfoRightPoint = new RawVector2(
                 _clientInfoAreaRect.X + _clientInfoAreaRect.Width,
                 _clientInfoTextRect.Y + 0.6f * _clientInfoTextRect.Height);
-
+            
             _tankRectangle = new RawRectangleF();
             _nickRectangle = new RawRectangleF();
             _nickBackRectangle = new RawRectangleF();
@@ -326,6 +327,8 @@
                 new TextFormat(directFactory, "Arial", FontWeight.Normal, FontStyle.Italic, 180.0f);
             _nicknameTextFormat =
                 new TextFormat(directFactory, "Times New Roman", FontWeight.Normal, FontStyle.Italic, 16.0f);
+            _clientInfoTextFormat = new TextFormat(directFactory, "Times New Roman", 
+                FontWeight.Normal, FontStyle.Italic, 28.0f);
             #endregion
 
             #region Animation
@@ -355,50 +358,52 @@
             _sessionTime.AutoSize = true;
             _sessionTime.Visible = false;
             
-            _dgv = new DataGridView();
-            _dgv.Width = 800; //840 (1920)
-            _dgv.Height = 350; //1080
-            _dgv.AutoSize = true;
-            _dgv.Font = new System.Drawing.Font("Microsoft Sans Serif", 14F, 
-                System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            _dgv.Location = new System.Drawing.Point(1100, 150);
-            _dgv.Name = "dataTab";
-            _dgv.Text = "Статус:";
-            _dgv.Visible = false;
-            _dgv.Columns.Add("id", "Id");
-            _dgv.Columns.Add("nick", "Nickname");
-            _dgv.Columns.Add("score", "Score");
-            _dgv.Columns.Add("hp", "Hp");
-            _dgv.Columns.Add("lives", "Lives");
-            _dgv.Rows.Add(); _dgv.Rows.Add();
-            _dgv.Rows.Add(); _dgv.Rows.Add();
-            _dgv.Rows.Add(); _dgv.Rows.Add();
-            _dgv.Rows.Add(); _dgv.Rows.Add();
-            _dgv.Rows.Add(); _dgv.Rows.Add();
-            _dgv.Rows.Add(); _dgv.Rows.Add();
-            _dgv.Rows.Add(); _dgv.Rows.Add();
-            _dgv.AutoSize = false;
-            _dgv.ReadOnly = false;
-            _dgv.AllowUserToOrderColumns = false;
-            _dgv.AllowDrop = false;
-            _dgv.AllowUserToResizeColumns = false;
-            _dgv.AllowUserToResizeRows = false;
-            _dgv.AllowUserToDeleteRows = false;
-            _dgv.AllowUserToDeleteRows = false;
-            _dgv.AllowUserToOrderColumns = false;
-            _dgv.IsAccessible = false;
-            _dgv.ReadOnly = true;
-            _dgv.SelectionMode = DataGridViewSelectionMode.CellSelect;
-            _dgv.MultiSelect = false;
-            
-            for (int i = 0; i < _dgv.ColumnCount; i++)
-            {
-                _dgv.Columns[i].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-            }
+            //_dgv = new DataGridView();
+            //_dgv.Width = 800; //840 (1920)
+            //_dgv.Height = 350; //1080
+            //_dgv.AutoSize = true;
+            //_dgv.ForeColor = System.Drawing.Color.Green;
+            //_dgv.GridColor = System.Drawing.Color.Green;
+            //_dgv.BackgroundColor = System.Drawing.Color.Red;
+            //_dgv.Font = new System.Drawing.Font("Cambria", 16, 
+            //    System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            //_dgv.Location = new System.Drawing.Point(1100, 150);
+            //_dgv.Name = "dataTab";
+            //_dgv.Text = "Статус:";
+            //_dgv.Visible = false;
+            //_dgv.Columns.Add("id", "Id");
+            //_dgv.Columns.Add("nick", "Nickname");
+            //_dgv.Columns.Add("score", "Score");
+            //_dgv.Columns.Add("hp", "Hp");
+            //_dgv.Columns.Add("lives", "Lives");
+            //_dgv.Rows.Add(); _dgv.Rows.Add();
+            //_dgv.Rows.Add(); _dgv.Rows.Add();
+            //_dgv.Rows.Add(); _dgv.Rows.Add();
+            //_dgv.Rows.Add(); _dgv.Rows.Add();
+            //_dgv.Rows.Add(); _dgv.Rows.Add();
+            //_dgv.Rows.Add(); _dgv.Rows.Add();
+            //_dgv.Rows.Add(); _dgv.Rows.Add();
+            //_dgv.AutoSize = false;
+            //_dgv.ReadOnly = false;
+            //_dgv.AllowUserToOrderColumns = false;
+            //_dgv.AllowDrop = false;
+            //_dgv.AllowUserToResizeColumns = false;
+            //_dgv.AllowUserToResizeRows = false;
+            //_dgv.AllowUserToDeleteRows = false;
+            //_dgv.AllowUserToDeleteRows = false;
+            //_dgv.AllowUserToOrderColumns = false;
+            //_dgv.IsAccessible = false;
+            //_dgv.ReadOnly = true;
+            //_dgv.SelectionMode = DataGridViewSelectionMode.CellSelect;
+            //_dgv.MultiSelect = false;
+            //
+            //for (int i = 0; i < _dgv.ColumnCount; i++)
+            //{
+            //    _dgv.Columns[i].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            //}
             
             RenderForm.Controls.Add(_sessionTime);
             RenderForm.Controls.Add(_clientInfoLabel);
-            RenderForm.Controls.Add(_dgv);
             #endregion
 
             //Loading resources
@@ -754,16 +759,36 @@
             RenderTarget2D.DrawLine(_clientInfoLeftPoint, _clientInfoRightPoint, _mapObjectsColors[12], 10);
             _clientInfoTanks.AddRange(
                 Map.InteractObjects.OfType<TankObject>().OrderByDescending(t => t.Score).ToList());
-            
+
             int index = 0;
-            if (_dgv.Rows.Count > 0)
+            int nickDifLen = 0;
+            int scoreDifLen = 0;
+            int hpDifLen = 0;
+            int livesDifLen = 0;
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            sb.Append("Id Nickname                  Score          Hp     Lives\n");
+            foreach (var tank in _clientInfoTanks)
             {
-                foreach (var tank in _clientInfoTanks)
-                {
-                    _dgv.Rows[index].SetValues(index, tank.Nickname, tank.Score, tank.Hp, tank.Lives);
-                    ++index;
-                }
+                string score = tank.Score.ToString();
+                string hp = tank.Hp.ToString();
+                string lives = tank.Lives.ToString();
+                nickDifLen = 16 - tank.Nickname.Length;
+                scoreDifLen = 9 - score.Length;
+                hpDifLen = 7 - hp.Length;
+                livesDifLen = 1;
+                sb.AppendFormat("{0}  {1}  {2} {3} {4}\n", 
+                    index.ToString(), 
+                    (nickDifLen  <= 0) ? tank.Nickname : tank.Nickname + new string('_', nickDifLen),
+                    (scoreDifLen <= 0) ? score : score + new string('_', scoreDifLen),
+                    (hpDifLen    <= 0) ? hp : hp + new string('_', hpDifLen),
+                    tank.Lives.ToString());
+                ++index;
             }
+            
+            RenderTarget2D.DrawText(
+                sb.ToString(), _clientInfoTextFormat,
+                _cleintInfo, _mapObjectsColors[14]);
+
             _clientInfoTanks.Clear();
         }
 
