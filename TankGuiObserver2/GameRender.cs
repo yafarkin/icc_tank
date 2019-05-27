@@ -434,9 +434,9 @@
         public void DrawLogo()
         {
             RenderTarget2D.Clear(_blackScreen);
-            _textColorAnimation.AnimationStart(100, ref _mapObjectsColors[11]);
             RenderTarget2D.DrawText("Battle City v0.1",
                 _logoBrushTextFormat, _logoTextRect, _mapObjectsColors[14]);
+            _textColorAnimation.AnimationStart(100, ref _mapObjectsColors[11]);
             RenderTarget2D.DrawText("Press Enter to start a game",
                 _statusTextFormat, _enterTextRect, _mapObjectsColors[11]);
         }
