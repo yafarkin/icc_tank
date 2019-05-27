@@ -2,12 +2,14 @@
 using System.Linq;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
+using NLog;
 
 namespace AdminPanel
 {
     public class Program
     {
         public static List<Entity.ServerEntity> Servers = new List<Entity.ServerEntity>();
+        public static Logger Logger = LogManager.GetCurrentClassLogger();
 
         public static bool ServerStatusIsRun(int id)
         {

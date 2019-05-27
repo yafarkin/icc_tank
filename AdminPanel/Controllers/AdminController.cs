@@ -47,7 +47,7 @@ namespace AdminPanel.Controllers
 
             try
             {
-                var server = new Server(serverSettings);
+                var server = new Server(serverSettings, Program.Logger);
 
                 var cancellationToken = new CancellationTokenSource();
                 lock (Program.Servers)

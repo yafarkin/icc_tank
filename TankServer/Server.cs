@@ -29,9 +29,9 @@ namespace TankServer
         public readonly Map Map;
         public Dictionary<IWebSocketConnection, ClientInfo> Clients;
 
-        public readonly Logger _logger;
+        protected readonly Logger _logger;
 
-        public Server(ServerSettings sSettings)
+        public Server(ServerSettings sSettings, Logger logger)
         {            
             Clients = new Dictionary<IWebSocketConnection, ClientInfo>();
             serverSettings = sSettings;
@@ -41,7 +41,7 @@ namespace TankServer
             _maxClientsCount = serverSettings.MaxClientCount;
 
             _random = new Random();
-            _logger = LogManager.GetCurrentClassLogger();
+            _logger = logger;
             //FleckLog.Level = LogLevel.Debug;
 
             _socketServer = new WebSocketServer($"ws://0.0.0.0:{serverSettings.Port}");
@@ -652,11 +652,15 @@ namespace TankServer
                                         }
                                         else if ((decimal)cells.Count(c => c.Value == CellMapType.Water) / cells.Count >= 0.5m)
                                         {
-                                            if (tankObject.IsInvulnerable == false)
+                                            if (tankObject.Lives > 0)
                                             {
+                                                Reborn(tankObject);
+                                            }
+                                            else { 
                                                 objsToRemove.Add(tankObject);
                                                 canMove = false;
                                             }
+                                            
                                         }
 
                                         if (intersectedObject is UpgradeInteractObject upgradeObject)
@@ -753,30 +757,23 @@ namespace TankServer
             }
         }
 
-        private async void Reborn(TankObject tank, int normalHP = 100)
+        private void Reborn(TankObject tank, int normalHP = 100)
         {
-            //говорим, что танк пока мёртв
-            tank.IsDead = true;
             //уменьшаем жизни
             tank.Lives--;
-            //Переносим на 0
-            tank.Rectangle.LeftCorner.Top = 0;
-            tank.Rectangle.LeftCorner.Left = 0;
-            var isFire = Map.InteractObjects.FirstOrDefault(x => (x as BulletObject)?.SourceId == tank.Id) != null;
-
-            //Ждём 5 секунд
-            await Task.Delay(5000);
-
-            //Говорим, что теперь танк жив
-            tank.IsDead = false;
             //Делаем танку здоровье нормальным(не увеличенным)
             tank.Hp = normalHP;
             tank.Rectangle = PastOnPassablePlace();
-            var bullet = Map.InteractObjects.FirstOrDefault(x => (x as BulletObject)?.SourceId == tank.Id);
-            if (!isFire && bullet != null)
+
+            lock (_syncObject)
             {
-                Map.InteractObjects.Remove(bullet);
+                var bullet = Map.InteractObjects.FirstOrDefault(x => (x as BulletObject)?.SourceId == tank.Id);
+                if (bullet != null)
+                {
+                    Map.InteractObjects.Remove(bullet);
+                }
             }
+
             CallInvulnerability(tank,5);
 
         }
@@ -940,25 +937,31 @@ namespace TankServer
                 return;
             }
 
-            Map.InteractObjects.OfType<TankObject>().ToList().ForEach(x =>
+            lock (_syncObject)
             {
-                x.BulletSpeed = x.BulletSpeed == defaultTankSettings.BulletSpeed
-                    ? settings.BulletSpeed * settings.GameSpeed
-                    : settings.BulletSpeed * settings.GameSpeed + (x.BulletSpeed - defaultTankSettings.BulletSpeed);
-                x.Damage = x.Damage == settings.TankDamage
-                    ? settings.TankDamage
-                    : settings.TankDamage + (x.Damage - defaultTankSettings.TankDamage);
-                x.Speed = x.Speed == defaultTankSettings.TankSpeed * defaultTankSettings.GameSpeed
-                    ? settings.TankSpeed * settings.GameSpeed
-                    : settings.TankSpeed * settings.GameSpeed + (x.Speed - defaultTankSettings.TankSpeed * defaultTankSettings.GameSpeed);
-            });
+                Map.InteractObjects.OfType<TankObject>().ToList().ForEach(x =>
+                {
+                    x.BulletSpeed = x.BulletSpeed == defaultTankSettings.BulletSpeed
+                        ? settings.BulletSpeed * settings.GameSpeed
+                        : settings.BulletSpeed * settings.GameSpeed + (x.BulletSpeed - defaultTankSettings.BulletSpeed);
+                    x.Damage = x.Damage == settings.TankDamage
+                        ? settings.TankDamage
+                        : settings.TankDamage + (x.Damage - defaultTankSettings.TankDamage);
+                    x.Speed = x.Speed == defaultTankSettings.TankSpeed * defaultTankSettings.GameSpeed
+                        ? settings.TankSpeed * settings.GameSpeed
+                        : settings.TankSpeed * settings.GameSpeed + (x.Speed - defaultTankSettings.TankSpeed * defaultTankSettings.GameSpeed);
+                });
+            }
 
             defaultTankSettings = settings;
             serverSettings.TankSettings = null;
 
-            foreach (var client in Clients)
+            lock (Clients)
             {
-                client.Value.NeedUpdateSettings = true;
+                foreach (var client in Clients)
+                {
+                    client.Value.NeedUpdateSettings = true;
+                }
             }
         }
     }
