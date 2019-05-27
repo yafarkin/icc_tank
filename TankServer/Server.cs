@@ -764,15 +764,13 @@ namespace TankServer
             }
         }
 
-        private async void Reborn(TankObject tank, int normalHP = 100)
+        private void Reborn(TankObject tank, int normalHP = 100)
         {
             //говорим, что танк пока мёртв
             tank.IsDead = true;
             //уменьшаем жизни
             tank.Lives--;
             var isFire = Map.InteractObjects.FirstOrDefault(x => (x as BulletObject)?.SourceId == tank.Id) != null;
-            //Ждём 1/10 секунды
-            await Task.Delay(100);
             //Говорим, что теперь танк жив
             tank.IsDead = false;
             //Делаем танку здоровье нормальным(не увеличенным)
