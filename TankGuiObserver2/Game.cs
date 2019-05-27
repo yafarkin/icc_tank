@@ -31,6 +31,7 @@
         bool _isFPressed;
         bool _isEnterPressed;
         bool _isWebSocketOpen;
+        int _verticalSyncOn;
         DirectInput _directInput;
         Keyboard _keyboard;
         GameRender _gameRender;
@@ -42,6 +43,7 @@
             int windowWidth, int windowHeight,
             bool isFullscreen = false)
         {
+            #region Initialization
             _renderForm = new RenderForm(windowName);
             _renderForm.Width = windowWidth;
             _renderForm.Height = windowHeight;
@@ -84,26 +86,15 @@
 
             _renderTarget2D = new RenderTarget(_factory2D, _surface, new RenderTargetProperties(
                                  new PixelFormat(Format.Unknown, AlphaMode.Premultiplied)));
+            #endregion
 
-            //WEB_SOCKET
             _serverString = string.Empty;
+            _verticalSyncOn = 0;
             _serverString = System.Configuration.ConfigurationManager.AppSettings["server"];
             if (_serverString == null)
             {
                 _serverString = "ws://127.0.0.1:2000";
             }
-            
-            _guiObserverCore = new GuiObserverCore(_serverString, string.Empty);
-            _tokenSource = new System.Threading.CancellationTokenSource();
-            _spectatorClass = new GuiSpectator(_tokenSource.Token);
-            _connector = new Connector(_serverString);
-
-            _gameRender = new GameRender(_serverString, _renderForm, _factory2D, _renderTarget2D);
-
-            _directInput = new DirectInput();
-            _keyboard = new Keyboard(_directInput);
-            _keyboard.Properties.BufferSize = 128;
-            _keyboard.Acquire();
 
             _notifyIcon = new System.Windows.Forms.NotifyIcon();
             _notifyIcon.Icon = System.Drawing.SystemIcons.Exclamation;
@@ -112,6 +103,17 @@
             _notifyIcon.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
             _notifyIcon.Visible = true;
             _notifyIcon.ShowBalloonTip(500);
+            
+            _guiObserverCore = new GuiObserverCore(_serverString, string.Empty);
+            _tokenSource = new System.Threading.CancellationTokenSource();
+            _spectatorClass = new GuiSpectator(_tokenSource.Token);
+            _connector = new Connector(_serverString);
+            _gameRender = new GameRender(_serverString, _renderForm, _factory2D, _renderTarget2D);
+
+            _directInput = new DirectInput();
+            _keyboard = new Keyboard(_directInput);
+            _keyboard.Properties.BufferSize = 128;
+            _keyboard.Acquire();
         }
 
         public void RunGame()
@@ -170,69 +172,80 @@
                 {
                     System.Windows.Forms.MessageBox.Show("F1 - fullscreen\nF2 - windowed\nF - show fps\nH - help\nEsc - exit", "Help(me)");
                 }
-            }
-           
-            //Drawing a gama
-            _isWebSocketOpen = (_guiObserverCore.WebSocketProxy.State == WebSocket4Net.WebSocketState.Open);
-            if (!_isWebSocketOpen)
-            {
-                _isEnterPressed = false;
-                _gameRender.UIIsVisible = false;
-                _isClientThreadRunning = true;
-                _gameRender.DrawWaitingLogo();
-
-                _connector.IsServerRunning();
-                if (_connector.ServerRunning)
+                else if (key == Key.V)
                 {
-                    _isClientThreadRunning = false;
+                    if (_verticalSyncOn == 0)
+                    {
+                        _verticalSyncOn = 1;
+                    }
+                    else
+                    {
+                        _verticalSyncOn = 0;
+                    }
                 }
 
-                if (!_isClientThreadRunning)
+                //Drawing a gama
+                _isWebSocketOpen = (_guiObserverCore.WebSocketProxy.State == WebSocket4Net.WebSocketState.Open);
+                if (!_isWebSocketOpen)
                 {
-                    //_gameRender.Settings = _connector.Settings;
+                    _isEnterPressed = false;
+                    _gameRender.UIIsVisible = false;
                     _isClientThreadRunning = true;
-                    //_clientThread = new System.Threading.Thread(() => {
-                    //    _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
-                    //});
-                    //_clientThread.Start();
-                    new System.Threading.Thread(() => {
-                        _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
-                    }).Start();
+                    _gameRender.DrawWaitingLogo();
 
+                    _connector.IsServerRunning();
+                    if (_connector.ServerRunning)
+                    {
+                        _isClientThreadRunning = false;
+                    }
+
+                    if (!_isClientThreadRunning)
+                    {
+                        //_gameRender.Settings = _connector.Settings;
+                        _isClientThreadRunning = true;
+                        //_clientThread = new System.Threading.Thread(() => {
+                        //    _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
+                        //});
+                        //_clientThread.Start();
+                        new System.Threading.Thread(() =>
+                        {
+                            _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
+                        }).Start();
+
+                    }
                 }
-            }
 
-            if (_isEnterPressed && _isWebSocketOpen)
-            {
-                if (!_gameRender.UIIsVisible) { _gameRender.UIIsVisible = true; }
-                _gameRender.Map = _spectatorClass.Map;
-                //_gameRender.Settings = _spectatorClass.Settings;
-                _gameRender.DrawClientInfo();
-                _gameRender.DrawMap();
-                _gameRender.DrawTanks(_spectatorClass.Map.InteractObjects);
-                _gameRender.DrawGrass();
-                _gameRender.DrawInteractiveObjects(_spectatorClass.Map.InteractObjects);
-            }
-            else if (_spectatorClass.Map != null && _isWebSocketOpen)
-            {
-                _gameRender.DrawLogo();
-            }
-                
+                if (_isEnterPressed && _isWebSocketOpen)
+                {
+                    if (!_gameRender.UIIsVisible) { _gameRender.UIIsVisible = true; }
+                    _gameRender.Map = _spectatorClass.Map;
+                    //_gameRender.Settings = _spectatorClass.Settings;
+                    _gameRender.DrawClientInfo();
+                    _gameRender.DrawMap();
+                    _gameRender.DrawTanks(_spectatorClass.Map.InteractObjects);
+                    _gameRender.DrawGrass();
+                    _gameRender.DrawInteractiveObjects(_spectatorClass.Map.InteractObjects);
+                }
+                else if (_spectatorClass.Map != null && _isWebSocketOpen)
+                {
+                    _gameRender.DrawLogo();
+                }
 
-            if (_isFPressed)
-            {
-                _gameRender.DrawFPS();
-            }
+                if (_isFPressed)
+                {
+                    _gameRender.DrawFPS();
+                }
 
-            try
-            {
-                _renderTarget2D.EndDraw();
-            }
-            catch
-            {
-            }
+                try
+                {
+                    _renderTarget2D.EndDraw();
+                }
+                catch
+                {
+                }
 
-            _swapChain.Present(0, PresentFlags.None);
+                _swapChain.Present(0, PresentFlags.None);
+            }
         }
 
         public static Bitmap LoadFromFile(RenderTarget renderTarget, string file)

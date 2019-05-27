@@ -163,13 +163,15 @@
 
         int _mapWidth;
         int _mapHeight;
-        public Map Map { get; set; }
-        public TankCommon.TankSettings Settings { get; set; }
         RawColor4 _blackScreen;
         List<ImmutableObject> _immutableMapObjects;
         List<ImmutableObject> _immutableGrass;
         List<DestuctiveWalls> _destuctiveWallsObjects;
         SolidColorBrush[] _mapObjectsColors;
+
+        public Map Map { get; set; }
+        public TankCommon.TankSettings Settings { get; set; }
+        public int FPS => _fpsmsCounter.FPSCounter;
 
         //ClientInfo
         public bool UIIsVisible
@@ -415,7 +417,7 @@
         {
             RenderTarget2D.FillRectangle(rectangle, brush);
         }
-
+        
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawFPS()
         {
