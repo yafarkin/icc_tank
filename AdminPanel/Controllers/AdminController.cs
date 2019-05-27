@@ -45,7 +45,7 @@ namespace AdminPanel.Controllers
             try
             {
                 var server = new Server(serverSettings);
-
+                
                 var cancellationToken = new CancellationTokenSource();
 
                 Program.Servers.Add(new ServerEntity()
@@ -53,6 +53,7 @@ namespace AdminPanel.Controllers
                     Id = Program.Servers.Count == 0 ? 1 : Program.Servers.Count,
                     CancellationToken = cancellationToken,
                     Server = server,
+                    Port = (uint) port,
                     Task = server.Run(cancellationToken.Token)
                 });
             }
