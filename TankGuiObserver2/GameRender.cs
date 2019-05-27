@@ -148,11 +148,43 @@
         }
     }
 
+    public class CustomColorRenderer : SharpDX.DirectWrite.TextRendererBase
+    {
+        private RenderTarget renderTarget;
+        private SolidColorBrush defaultBrush;
+
+        public void AssignResources(RenderTarget renderTarget, SolidColorBrush defaultBrush)
+        {
+            this.renderTarget = renderTarget;
+            this.defaultBrush = defaultBrush;
+        }
+
+        public override Result DrawGlyphRun(object clientDrawingContext, float baselineOriginX, float baselineOriginY, MeasuringMode measuringMode, GlyphRun glyphRun, GlyphRunDescription glyphRunDescription, ComObject clientDrawingEffect)
+        {
+            SolidColorBrush sb = defaultBrush;
+            if (clientDrawingEffect != null && clientDrawingEffect is SolidColorBrush)
+            {
+                sb = (SolidColorBrush)clientDrawingEffect;
+            }
+
+            try
+            {
+                this.renderTarget.DrawGlyphRun(new Vector2(baselineOriginX, baselineOriginY), glyphRun, sb, measuringMode);
+                return Result.Ok;
+            }
+            catch
+            {
+                return Result.Fail;
+            }
+        }
+    }
+
     class GameRender : System.IDisposable
     {
         RenderForm RenderForm;
         RenderTarget RenderTarget2D;
         SharpDX.Direct2D1.Factory _factory2D;
+        SharpDX.DirectWrite.Factory _directFactory;
 
         //DrawMap
         bool _isMapSet;
@@ -192,7 +224,9 @@
         RectangleF _cleintInfo;
         RectangleF _clientInfoTextRect;
         TextFormat _clientInfoTextFormat;
-        
+        CustomColorRenderer _textRenderer;
+        TextLayout _textLayout;
+
         //Entry screen
         RectangleF _logoTextRect;
         RectangleF _enterTextRect;
@@ -286,7 +320,8 @@
             /*12*/ new SolidColorBrush(RenderTarget2D, Color.Green), //_greenBrush
             /*13*/ new SolidColorBrush(RenderTarget2D, new RawColor4(0.3f, 0.3f, 0.3f, 0.9f)), //_backgroundBrush
             /*14*/ new SolidColorBrush(RenderTarget2D, new RawColor4(1.0f, 1.0f, 1.0f, 1.0f)), //_logoBrush
-            /*15*/ new SolidColorBrush(RenderTarget2D, new RawColor4(0.28f, 0.88f, 0.23f, 1.0f)) //nickname
+            /*15*/ new SolidColorBrush(RenderTarget2D, new RawColor4(0.28f, 0.88f, 0.23f, 1.0f)), //nickname
+            /*16*/ new SolidColorBrush(RenderTarget2D, new RawColor4(0.0f, 0.0f, 0.0f, 0.0f)) //nickname
             };
 
             #endregion
@@ -319,16 +354,22 @@
             _nickBackRectangle = new RawRectangleF();
             _rawRectangleTemp = new RawRectangleF();
 
-            SharpDX.DirectWrite.Factory directFactory =
+            _directFactory =
                 new SharpDX.DirectWrite.Factory(SharpDX.DirectWrite.FactoryType.Shared);
-            _statusTextFormat = new TextFormat(directFactory, "Arial", FontWeight.Regular, FontStyle.Normal, 30.0f);
-            _fpsmsTextFormat = new TextFormat(directFactory, "Arial", FontWeight.Regular, FontStyle.Normal, 24.0f);
+            _statusTextFormat = new TextFormat(_directFactory, "Arial", FontWeight.Regular, FontStyle.Normal, 30.0f);
+            _fpsmsTextFormat = new TextFormat(_directFactory, "Arial", FontWeight.Regular, FontStyle.Normal, 24.0f);
             _logoBrushTextFormat =
-                new TextFormat(directFactory, "Arial", FontWeight.Normal, FontStyle.Italic, 180.0f);
+                new TextFormat(_directFactory, "Arial", FontWeight.Normal, FontStyle.Italic, 180.0f);
             _nicknameTextFormat =
-                new TextFormat(directFactory, "Times New Roman", FontWeight.Normal, FontStyle.Italic, 16.0f);
-            _clientInfoTextFormat = new TextFormat(directFactory, "Times New Roman", 
+                new TextFormat(_directFactory, "Times New Roman", FontWeight.Normal, FontStyle.Italic, 16.0f);
+            _clientInfoTextFormat = new TextFormat(_directFactory, "Times New Roman", 
                 FontWeight.Normal, FontStyle.Italic, 28.0f);
+
+            //advanced text renderer
+            _textRenderer = new CustomColorRenderer();
+            _textRenderer.AssignResources(RenderTarget2D, _mapObjectsColors[14]);
+            
+
             #endregion
 
             #region Animation
@@ -764,18 +805,15 @@
             int nickDifLen = 0;
             int scoreDifLen = 0;
             int hpDifLen = 0;
-            int livesDifLen = 0;
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
             sb.Append("Id Nickname                  Score          Hp     Lives\n");
             foreach (var tank in _clientInfoTanks)
             {
                 string score = tank.Score.ToString();
                 string hp = tank.Hp.ToString();
-                string lives = tank.Lives.ToString();
                 nickDifLen = 16 - tank.Nickname.Length;
                 scoreDifLen = 9 - score.Length;
                 hpDifLen = 7 - hp.Length;
-                livesDifLen = 1;
                 sb.AppendFormat("{0}  {1}  {2} {3} {4}\n", 
                     index.ToString(), 
                     (nickDifLen  <= 0) ? tank.Nickname : tank.Nickname + new string('_', nickDifLen),
@@ -785,9 +823,30 @@
                 ++index;
             }
             
-            RenderTarget2D.DrawText(
-                sb.ToString(), _clientInfoTextFormat,
-                _cleintInfo, _mapObjectsColors[14]);
+            _textLayout = new TextLayout(_directFactory, sb.ToString(), 
+                _clientInfoTextFormat, _cleintInfo.Width, _cleintInfo.Height);
+            bool setted = false;
+            int sbindex = 0;
+            for (int i = 0; i < (sb.Length-1); i++)
+            {
+                if (sb[i] == '_')
+                {
+                    if (!setted)
+                    {
+                        sbindex = i;
+                    }
+                    setted = true;
+
+                    if (setted && sb[i + 1] != '_')
+                    {
+                        _textLayout.SetDrawingEffect(_mapObjectsColors[16], new TextRange(sbindex, i));
+                        _textLayout.SetDrawingEffect(_mapObjectsColors[14], new TextRange(i+1, i+1));
+                        setted = false;
+                    }
+                }
+            }
+            _textLayout.Draw(_textRenderer, _cleintInfo.X, _cleintInfo.Y);
+            _textLayout.Dispose();
 
             _clientInfoTanks.Clear();
         }
@@ -870,6 +929,7 @@
                 _bitmaps[i].Dispose();
             }
 
+            _textLayout.Dispose();
             _tankUpBitmap.Dispose();
             _tankDownBitmap.Dispose();
             _tankLeftBitmap.Dispose();
