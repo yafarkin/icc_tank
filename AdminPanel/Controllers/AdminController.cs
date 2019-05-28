@@ -45,19 +45,18 @@ namespace AdminPanel.Controllers
                 }
             }
 
-            // TODO try-catch
-            var configuration = new ConfigurationBuilder()
-                .AddJsonFile("serversetting.json")
-                .Build();
-
-            serverSettings.ServerTickRate = Convert.ToInt32(configuration["ServerTickRate"]);
-            serverSettings.PlayerTickRate = Convert.ToInt32(configuration["PlayerTickRate"]);
-            serverSettings.SpectatorTickRate = Convert.ToInt32(configuration["SpectatorTickRate"]);
-
-            serverSettings.Port = port;
-
             try
             {
+                var configuration = new ConfigurationBuilder()
+                    .AddJsonFile("serversetting.json")
+                    .Build();
+
+                serverSettings.ServerTickRate = Convert.ToInt32(configuration["ServerTickRate"]);
+                serverSettings.PlayerTickRate = Convert.ToInt32(configuration["PlayerTickRate"]);
+                serverSettings.SpectatorTickRate = Convert.ToInt32(configuration["SpectatorTickRate"]);
+
+                serverSettings.Port = port;
+
                 var server = new Server(serverSettings, Program.Logger);
 
                 var cancellationToken = new CancellationTokenSource();
