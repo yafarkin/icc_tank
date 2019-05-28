@@ -105,9 +105,9 @@
                 _color = brush.Color;
 
                 if (_color.A > 1.0f)
-                    _incriment = -0.15f;
-                else if (_color.A < 0.0f)
-                    _incriment = 0.15f;
+                    _incriment = -0.05f;
+                else if (_color.A < 0.2f)
+                    _incriment = 0.05f;
 
                 _color.A += _incriment;
 
@@ -148,11 +148,43 @@
         }
     }
 
+    public class CustomColorRenderer : SharpDX.DirectWrite.TextRendererBase
+    {
+        private RenderTarget renderTarget;
+        private SolidColorBrush defaultBrush;
+
+        public void AssignResources(RenderTarget renderTarget, SolidColorBrush defaultBrush)
+        {
+            this.renderTarget = renderTarget;
+            this.defaultBrush = defaultBrush;
+        }
+
+        public override Result DrawGlyphRun(object clientDrawingContext, float baselineOriginX, float baselineOriginY, MeasuringMode measuringMode, GlyphRun glyphRun, GlyphRunDescription glyphRunDescription, ComObject clientDrawingEffect)
+        {
+            SolidColorBrush sb = defaultBrush;
+            if (clientDrawingEffect != null && clientDrawingEffect is SolidColorBrush)
+            {
+                sb = (SolidColorBrush)clientDrawingEffect;
+            }
+
+            try
+            {
+                this.renderTarget.DrawGlyphRun(new Vector2(baselineOriginX, baselineOriginY), glyphRun, sb, measuringMode);
+                return Result.Ok;
+            }
+            catch
+            {
+                return Result.Fail;
+            }
+        }
+    }
+
     class GameRender : System.IDisposable
     {
         RenderForm RenderForm;
         RenderTarget RenderTarget2D;
         SharpDX.Direct2D1.Factory _factory2D;
+        SharpDX.DirectWrite.Factory _directFactory;
 
         //DrawMap
         bool _isMapSet;
@@ -163,33 +195,37 @@
 
         int _mapWidth;
         int _mapHeight;
-        public Map Map { get; set; }
-        public TankCommon.TankSettings Settings { get; set; }
         RawColor4 _blackScreen;
         List<ImmutableObject> _immutableMapObjects;
         List<ImmutableObject> _immutableGrass;
         List<DestuctiveWalls> _destuctiveWallsObjects;
         SolidColorBrush[] _mapObjectsColors;
 
+        public Map Map { get; set; }
+        public TankCommon.TankSettings Settings { get; set; }
+        public int FPS => _fpsmsCounter.FPSCounter;
+
         //ClientInfo
         public bool UIIsVisible
         {
-            get => (_sessionTime.Visible && _clientInfoLabel.Visible && _dgv.Visible); 
+            get => (_sessionTime.Visible && _clientInfoLabel.Visible); 
             set
             {
                 _sessionTime.Visible = value;
                 _clientInfoLabel.Visible = value;
-                _dgv.Visible = value;
             }
         }
         Label _clientInfoLabel;
         Label _sessionTime;
-        DataGridView _dgv;
         List<TankObject> _clientInfoTanks;
         RawVector2 _clientInfoLeftPoint;
         RawVector2 _clientInfoRightPoint;
         RectangleF _clientInfoAreaRect;
+        RectangleF _cleintInfo;
         RectangleF _clientInfoTextRect;
+        TextFormat _clientInfoTextFormat;
+        CustomColorRenderer _textRenderer;
+        TextLayout _textLayout;
 
         //Entry screen
         RectangleF _logoTextRect;
@@ -243,6 +279,8 @@
             SharpDX.Direct2D1.Factory factory2D,
             RenderTarget renderTarget)
         {
+            #region Itialization
+
             RenderForm = renderForm;
             _factory2D = factory2D;
             RenderTarget2D = renderTarget;
@@ -282,9 +320,13 @@
             /*12*/ new SolidColorBrush(RenderTarget2D, Color.Green), //_greenBrush
             /*13*/ new SolidColorBrush(RenderTarget2D, new RawColor4(0.3f, 0.3f, 0.3f, 0.9f)), //_backgroundBrush
             /*14*/ new SolidColorBrush(RenderTarget2D, new RawColor4(1.0f, 1.0f, 1.0f, 1.0f)), //_logoBrush
-            /*15*/ new SolidColorBrush(RenderTarget2D, new RawColor4(0.28f, 0.88f, 0.23f, 1.0f)) //nickname
+            /*15*/ new SolidColorBrush(RenderTarget2D, new RawColor4(0.28f, 0.88f, 0.23f, 1.0f)), //nickname
+            /*16*/ new SolidColorBrush(RenderTarget2D, new RawColor4(0.0f, 0.0f, 0.0f, 0.0f)) //nickname
             };
 
+            #endregion
+
+            #region DirectUI
             _fpsmsTextRect = new RectangleF(25, 5, 150, 30);
             _fpsmsTextBackground = new RectangleF(
                 _fpsmsTextRect.Left, _fpsmsTextRect.Top,
@@ -297,6 +339,7 @@
                 _logoTextRect.X + 5*_logoTextRect.X/6,
                 RenderForm.Height - (RenderForm.Height - _logoTextRect.Bottom - 200), 800, 30);
             _clientInfoAreaRect = new RectangleF(1080, 0, 1920 - 1080, 1080);
+            _cleintInfo = new RectangleF(1080 + 50, 100 + 50, 700, 500);
             _clientInfoTextRect = new RectangleF(
                 _clientInfoAreaRect.X + 0.39f * _clientInfoAreaRect.X,
                 _clientInfoAreaRect.Y + 0.05f * _clientInfoAreaRect.Height, 300, 100);
@@ -305,32 +348,39 @@
             _clientInfoRightPoint = new RawVector2(
                 _clientInfoAreaRect.X + _clientInfoAreaRect.Width,
                 _clientInfoTextRect.Y + 0.6f * _clientInfoTextRect.Height);
-
+            
             _tankRectangle = new RawRectangleF();
             _nickRectangle = new RawRectangleF();
             _nickBackRectangle = new RawRectangleF();
             _rawRectangleTemp = new RawRectangleF();
 
-            SharpDX.DirectWrite.Factory directFactory =
+            _directFactory =
                 new SharpDX.DirectWrite.Factory(SharpDX.DirectWrite.FactoryType.Shared);
-            _statusTextFormat = new TextFormat(directFactory, "Arial", FontWeight.Regular, FontStyle.Normal, 30.0f);
-            _fpsmsTextFormat = new TextFormat(directFactory, "Arial", FontWeight.Regular, FontStyle.Normal, 24.0f);
+            _statusTextFormat = new TextFormat(_directFactory, "Arial", FontWeight.Regular, FontStyle.Normal, 30.0f);
+            _fpsmsTextFormat = new TextFormat(_directFactory, "Arial", FontWeight.Regular, FontStyle.Normal, 24.0f);
             _logoBrushTextFormat =
-                new TextFormat(directFactory, "Arial", FontWeight.Normal, FontStyle.Italic, 180.0f);
+                new TextFormat(_directFactory, "Arial", FontWeight.Normal, FontStyle.Italic, 180.0f);
             _nicknameTextFormat =
-                new TextFormat(directFactory, "Times New Roman", FontWeight.Normal, FontStyle.Italic, 16.0f);
+                new TextFormat(_directFactory, "Times New Roman", FontWeight.Normal, FontStyle.Italic, 16.0f);
+            _clientInfoTextFormat = new TextFormat(_directFactory, "Times New Roman", 
+                FontWeight.Normal, FontStyle.Italic, 28.0f);
 
+            //advanced text renderer
+            _textRenderer = new CustomColorRenderer();
+            _textRenderer.AssignResources(RenderTarget2D, _mapObjectsColors[14]);
+            
+
+            #endregion
+
+            #region Animation
             _textAnimation = new TextAnimation();
             _textAnimation.SetAnimatedString($"Waiting for connection to {server}");
             _textColorAnimation = new TextColorAnimation();
             _fpsmsCounter = new FpsCounter();
             _fpsmsCounter.FPSCounter = 1000;
-
-            /*
-              ##############
-              ##### UI #####
-              ##############
-             */
+            #endregion
+            
+            #region UI
             _clientInfoLabel = new Label();
             _clientInfoLabel.Text = "Client info";
             _clientInfoLabel.Font = new System.Drawing.Font("Cambria", 30);
@@ -349,50 +399,9 @@
             _sessionTime.AutoSize = true;
             _sessionTime.Visible = false;
             
-            _dgv = new DataGridView();
-            _dgv.Width = 800; //840 (1920)
-            _dgv.Height = 350; //1080
-            _dgv.AutoSize = true;
-            _dgv.Font = new System.Drawing.Font("Microsoft Sans Serif", 14F, 
-                System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            _dgv.Location = new System.Drawing.Point(1100, 150);
-            _dgv.Name = "dataTab";
-            _dgv.Text = "Статус:";
-            _dgv.Visible = false;
-            _dgv.Columns.Add("id", "Id");
-            _dgv.Columns.Add("nick", "Nickname");
-            _dgv.Columns.Add("score", "Score");
-            _dgv.Columns.Add("hp", "Hp");
-            _dgv.Columns.Add("lives", "Lives");
-            _dgv.Rows.Add(); _dgv.Rows.Add();
-            _dgv.Rows.Add(); _dgv.Rows.Add();
-            _dgv.Rows.Add(); _dgv.Rows.Add();
-            _dgv.Rows.Add(); _dgv.Rows.Add();
-            _dgv.Rows.Add(); _dgv.Rows.Add();
-            _dgv.Rows.Add(); _dgv.Rows.Add();
-            _dgv.Rows.Add(); _dgv.Rows.Add();
-            _dgv.AutoSize = false;
-            _dgv.ReadOnly = false;
-            _dgv.AllowUserToOrderColumns = false;
-            _dgv.AllowDrop = false;
-            _dgv.AllowUserToResizeColumns = false;
-            _dgv.AllowUserToResizeRows = false;
-            _dgv.AllowUserToDeleteRows = false;
-            _dgv.AllowUserToDeleteRows = false;
-            _dgv.AllowUserToOrderColumns = false;
-            _dgv.IsAccessible = false;
-            _dgv.ReadOnly = true;
-            _dgv.SelectionMode = DataGridViewSelectionMode.CellSelect;
-            _dgv.MultiSelect = false;
-            
-            for (int i = 0; i < _dgv.ColumnCount; i++)
-            {
-                _dgv.Columns[i].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-            }
-            
             RenderForm.Controls.Add(_sessionTime);
             RenderForm.Controls.Add(_clientInfoLabel);
-            RenderForm.Controls.Add(_dgv);
+            #endregion
 
             //Loading resources
             LoadResources();
@@ -410,7 +419,7 @@
         {
             RenderTarget2D.FillRectangle(rectangle, brush);
         }
-
+        
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawFPS()
         {
@@ -427,9 +436,9 @@
         public void DrawLogo()
         {
             RenderTarget2D.Clear(_blackScreen);
-            _textColorAnimation.AnimationStart(100, ref _mapObjectsColors[11]);
             RenderTarget2D.DrawText("Battle City v0.1",
                 _logoBrushTextFormat, _logoTextRect, _mapObjectsColors[14]);
+            _textColorAnimation.AnimationStart(100, ref _mapObjectsColors[11]);
             RenderTarget2D.DrawText("Press Enter to start a game",
                 _statusTextFormat, _enterTextRect, _mapObjectsColors[11]);
         }
@@ -438,12 +447,11 @@
         public void DrawWaitingLogo()
         {
             RenderTarget2D.Clear(_blackScreen);
-            _textColorAnimation.AnimationStart(600, ref _mapObjectsColors[11]);
             RenderTarget2D.DrawText("Battle City v0.1",
                 _logoBrushTextFormat, _logoTextRect, _mapObjectsColors[14]);
             _textAnimation.AnimationStart(300, ".");
             RenderTarget2D.DrawText(_textAnimation.GetAnimatedString(),
-                _statusTextFormat, _statusTextRect, _mapObjectsColors[11]);
+                _statusTextFormat, _statusTextRect, _mapObjectsColors[14]);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(256)]
@@ -748,16 +756,54 @@
             RenderTarget2D.DrawLine(_clientInfoLeftPoint, _clientInfoRightPoint, _mapObjectsColors[12], 10);
             _clientInfoTanks.AddRange(
                 Map.InteractObjects.OfType<TankObject>().OrderByDescending(t => t.Score).ToList());
-            
+
             int index = 0;
-            if (_dgv.Rows.Count > 0)
+            int nickDifLen = 0;
+            int scoreDifLen = 0;
+            int hpDifLen = 0;
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            sb.Append("Id Nickname                  Score          Hp     Lives\n");
+            foreach (var tank in _clientInfoTanks)
             {
-                foreach (var tank in _clientInfoTanks)
+                string score = tank.Score.ToString();
+                string hp = tank.Hp.ToString();
+                nickDifLen = 16 - tank.Nickname.Length;
+                scoreDifLen = 9 - score.Length;
+                hpDifLen = 7 - hp.Length;
+                sb.AppendFormat("{0}  {1}  {2} {3} {4}\n", 
+                    index.ToString(), 
+                    (nickDifLen  <= 0) ? tank.Nickname : tank.Nickname + new string('_', nickDifLen),
+                    (scoreDifLen <= 0) ? score : score + new string('_', scoreDifLen),
+                    (hpDifLen    <= 0) ? hp : hp + new string('_', hpDifLen),
+                    tank.Lives.ToString());
+                ++index;
+            }
+            
+            _textLayout = new TextLayout(_directFactory, sb.ToString(), 
+                _clientInfoTextFormat, _cleintInfo.Width, _cleintInfo.Height);
+            bool setted = false;
+            int sbindex = 0;
+            for (int i = 0; i < (sb.Length-1); i++)
+            {
+                if (sb[i] == '_')
                 {
-                    _dgv.Rows[index].SetValues(index, tank.Nickname, tank.Score, tank.Hp, tank.Lives);
-                    ++index;
+                    if (!setted)
+                    {
+                        sbindex = i;
+                    }
+                    setted = true;
+
+                    if (setted && sb[i + 1] != '_')
+                    {
+                        _textLayout.SetDrawingEffect(_mapObjectsColors[16], new TextRange(sbindex, i));
+                        _textLayout.SetDrawingEffect(_mapObjectsColors[14], new TextRange(i+1, i+1));
+                        setted = false;
+                    }
                 }
             }
+            _textLayout.Draw(_textRenderer, _cleintInfo.X, _cleintInfo.Y);
+            _textLayout.Dispose();
+
             _clientInfoTanks.Clear();
         }
 
@@ -839,6 +885,7 @@
                 _bitmaps[i].Dispose();
             }
 
+            if (_textLayout != null) _textLayout.Dispose();
             _tankUpBitmap.Dispose();
             _tankDownBitmap.Dispose();
             _tankLeftBitmap.Dispose();
