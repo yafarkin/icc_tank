@@ -27,7 +27,6 @@ namespace TankGuiObserver2
             if (_webSocketProxy.State == WebSocketState.Open)
             {
                 ServerRunning = true;
-                Thread.Sleep(200);
             }
             else
             {
