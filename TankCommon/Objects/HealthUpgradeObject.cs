@@ -4,7 +4,7 @@ namespace TankCommon.Objects
 {
     public class HealthUpgradeObject : UpgradeInteractObject
     {
-        public decimal RestHP { get; }
+        public decimal RestHP { get; set; }
 
         public HealthUpgradeObject()
         {

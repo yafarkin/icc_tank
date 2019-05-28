@@ -4,8 +4,14 @@ using System.ComponentModel;
 
 namespace TankCommon
 {
-    interface ISettings
+    public interface ISettings
     {
+        [Description("Начало игровой сессии")]
+        DateTime StartSesison { get; set; }
+
+        [Description("Конец игровой сессии")]
+        DateTime FinishSesison { get; set; }
+
         [Description("Скорость игры")]
         int GameSpeed { get; set; }
 

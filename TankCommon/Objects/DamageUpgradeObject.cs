@@ -4,7 +4,7 @@ namespace TankCommon.Objects
 {
     public class DamageUpgradeObject : UpgradeInteractObject
     {
-        public int IncreaseDamage { get; }
+        public int IncreaseDamage { get; set; }
 
         public DamageUpgradeObject()
         {

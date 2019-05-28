@@ -4,7 +4,7 @@ namespace TankCommon.Objects
 {
     public class MaxHpUpgradeObject : UpgradeInteractObject
     {
-        public decimal IncreaseHP { get; }
+        public decimal IncreaseHP { get; set; }
 
         public MaxHpUpgradeObject()
         {

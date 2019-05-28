@@ -6,6 +6,12 @@ namespace TankCommon.Objects
 {    
     public class TankSettings : ISettings
     {
+        [Description("Начало игровой сессии")]
+        public DateTime StartSesison { get; set; }
+
+        [Description("Конец игровой сессии")]
+        public DateTime FinishSesison { get; set; }
+
         [Description("Скорость игры")]
         public int GameSpeed { get; set; } = 1;
 

@@ -4,7 +4,7 @@ namespace TankCommon.Objects
 {
     public class SpeedUpgradeObject : UpgradeInteractObject
     {
-        public int IncreaseSpeed { get; }
+        public int IncreaseSpeed { get; set; }
 
         public SpeedUpgradeObject()
         {
