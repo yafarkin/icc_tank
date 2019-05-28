@@ -15,11 +15,13 @@ namespace TankGuiObserver2
         public TankSettings Settings { get; set; }
         private Uri _serverUri;
         private WebSocketProxy _webSocketProxy;
+        static NLog.Logger _logger;
 
         public Connector(string server)
         {
             _serverUri = new Uri(server);
             _webSocketProxy = new WebSocketProxy(_serverUri);
+            _logger = NLog.LogManager.GetCurrentClassLogger();
         }
 
         public void IsServerRunning()
@@ -50,7 +52,7 @@ namespace TankGuiObserver2
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"TankGuiSpectator2.Connector.IsServerRunning {DateTime.Now:T} Исключение во время выполнения: {e}");
+                    _logger.Info($"Исключение во время выполнения: {e}");
                 }
 
             }
@@ -72,6 +74,8 @@ namespace TankGuiObserver2
         protected int _msgCount;
         protected bool _wasUpdate;
 
+        static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
+
         public GuiSpectator(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
@@ -87,6 +91,7 @@ namespace TankGuiObserver2
                 await Task.Delay(100);
                 if (!_wasUpdate)
                 {
+                    _logger.Info("Ctor is working fiine.");
                     continue;
                 }
 
@@ -102,21 +107,27 @@ namespace TankGuiObserver2
             {
                 if (request.Map.Cells != null)
                 {
+                    _logger.Info("flag: request.Map.Cells != null");
                     Map = request.Map;
                     _lastMapUpdate = DateTime.Now;
                 }
                 else if (Map == null)
                 {
+                    _logger.Info("flag: Map == null");
                     return new ServerResponse { ClientCommand = ClientCommandType.UpdateMap };
                 }
 
                 if (request.Settings != null)
                 {
+                    _logger.Info("flag: request.Settings != null");
                     Settings = request.Settings;
                 }
 
+                _logger.Info("set: Map.InteractObjects");
                 Map.InteractObjects = request.Map.InteractObjects;
+                _logger.Info("set: _msgCount");
                 _msgCount = msgCount;
+                _logger.Info("set: _wasUpdate");
                 _wasUpdate = true;
 
                 return new ServerResponse { ClientCommand = ClientCommandType.None };
@@ -219,6 +230,7 @@ namespace TankGuiObserver2
 
         private WebSocketProxy _webSocketProxy;
         private AutoResetEvent _autoResetEvent;
+        static NLog.Logger _logger;
 
         public GuiObserverCore(string server, string nickname)
         {
@@ -226,9 +238,12 @@ namespace TankGuiObserver2
             _serverUri = new Uri(server);
             _nickName = nickname;
             Restart();
+            _logger = NLog.LogManager.GetCurrentClassLogger();
+            _logger.Info("Ctor is working fiine.");
             //_webSocketProxy = new WebSocketProxy(_serverUri);
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(256)]
         public void Restart()
         {
             _webSocketProxy?.Dispose();
@@ -237,8 +252,7 @@ namespace TankGuiObserver2
 
         public void Run(Func<int, ServerRequest, ServerResponse> bot, CancellationToken cancellationToken)
         {
-            Console.WriteLine($"Подсоединение к серверу {_serverUri} как {_nickName}...");
-
+            _logger.Info($"Подсоединение к серверу { _serverUri} как { _nickName}...");
             try
             {
                 if (_webSocketProxy.State != WebSocketState.Open &&
@@ -250,9 +264,9 @@ namespace TankGuiObserver2
                     CommandParameter = _nickName,
                     ClientCommand = ClientCommandType.Login
                 };
-                Console.WriteLine($"{DateTime.Now:T} Логин на сервер как {_nickName}");
+                _logger.Info($"Логин на сервер как {_nickName}");
                 _webSocketProxy.Send(loginResponse.ToJson(), cancellationToken);
-                Console.WriteLine($"{DateTime.Now:T} Логин успешно выполнен.");
+                _logger.Info("Логин успешно выполнен.");
 
                 CancellationTokenSource tokenSource = new CancellationTokenSource();
 
@@ -262,12 +276,14 @@ namespace TankGuiObserver2
                     if (string.IsNullOrWhiteSpace(inputData))
                     {
                         Thread.Sleep(10);
+                        _logger.Info("Run method: interupted [string.IsNullOrWhiteSpace(inputData)]");
                         continue;
                     }
 
                     var serverRequest = inputData.FromJson<ServerRequest>();
                     if (serverRequest?.Map == null)
                     {
+                        _logger.Info("Run method: interupted [serverRequest?.Map == null]");
                         continue;
                     }
 
@@ -281,12 +297,11 @@ namespace TankGuiObserver2
 
                 if (_webSocketProxy.State != WebSocketState.Open)
                 {
-                    Console.WriteLine($"{DateTime.Now:T} Закрыто соединение с сервером");
-                    
+                    _logger.Info($"Закрыто соединение с сервером [_webSocketProxy.State != WebSocketState.Open {cancellationToken.IsCancellationRequested}]");
                 }
                 else
                 {
-                    Console.WriteLine($"{DateTime.Now:T} Запрос на прекращение работы");
+                    _logger.Info($"Запрос на прекращение работы [_webSocketProxy.State == WebSocketState.Open] {cancellationToken.IsCancellationRequested}");
                     var logoutResponse = new ServerResponse
                     {
                         ClientCommand = ClientCommandType.Logout
@@ -297,18 +312,20 @@ namespace TankGuiObserver2
                     {
                         _webSocketProxy.Send(outputData, CancellationToken.None);
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        _logger.Info($"catch (Exception ex) [_webSocketProxy.Send(outputData, CancellationToken.None);]");
                     }
 
                     Thread.Sleep(1000);
                 }
 
                 tokenSource.Cancel();
+                _logger.Info("call: tokenSource.Cancel()");
             }
             catch (Exception e)
             {
-                Console.WriteLine($"{DateTime.Now:T} Исключение во время выполнения: {e}");
+                _logger.Info($"catch (Exception ex) [Run]");
             }
         }
 
