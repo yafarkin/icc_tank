@@ -31,17 +31,21 @@
         bool _isFPressed;
         bool _isEnterPressed;
         bool _isWebSocketOpen;
+        int _verticalSyncOn;
         DirectInput _directInput;
         Keyboard _keyboard;
         GameRender _gameRender;
 
         //UI
-        System.Windows.Forms.NotifyIcon _notifyIcon;
+        System.Windows.Forms.NotifyIcon _notifyHelp;
+        System.Windows.Forms.NotifyIcon _notifyVerticalSyncOn;
+        System.Windows.Forms.NotifyIcon _notifyVerticalSyncOff;
 
         public Game(string windowName,
             int windowWidth, int windowHeight,
             bool isFullscreen = false)
         {
+            #region Initialization
             _renderForm = new RenderForm(windowName);
             _renderForm.Width = windowWidth;
             _renderForm.Height = windowHeight;
@@ -84,42 +88,48 @@
 
             _renderTarget2D = new RenderTarget(_factory2D, _surface, new RenderTargetProperties(
                                  new PixelFormat(Format.Unknown, AlphaMode.Premultiplied)));
+            #endregion
 
-            //WEB_SOCKET
             _serverString = string.Empty;
-            if (!System.IO.Directory.Exists("config"))
+            _serverString = System.Configuration.ConfigurationManager.AppSettings["server"];
+            if (_serverString == null)
             {
-                System.IO.Directory.CreateDirectory("config");
-            }
-            if (!System.IO.File.Exists(@"config/config.txt"))
-            {
-                System.IO.File.WriteAllText(@"config/config.txt", @"server-ws://127.0.0.1:2000");
+                _serverString = "ws://127.0.0.1:2000";
             }
 
-            _serverString =
-                    System.IO.File.ReadAllText(@"config/config.txt")
-                    .Split(new char[] { '\n' })[0]
-                    .Split(new char[] { '-' })[1];
+            _notifyHelp = new System.Windows.Forms.NotifyIcon();
+            _notifyHelp.Icon = System.Drawing.SystemIcons.Exclamation;
+            _notifyHelp.BalloonTipTitle = "Подсказка";
+            _notifyHelp.BalloonTipText = "Чтобы узнать горячие клавиши GuiObserver, нажмите кнопку H";
+            _notifyHelp.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
+            _notifyHelp.Visible = true;
+            _notifyHelp.ShowBalloonTip(500);
+            _notifyHelp.Dispose();
+
+            _verticalSyncOn = 1;
+            _notifyVerticalSyncOn = new System.Windows.Forms.NotifyIcon();
+            _notifyVerticalSyncOn.Icon = System.Drawing.SystemIcons.Information;
+            _notifyVerticalSyncOn.BalloonTipTitle = "";
+            _notifyVerticalSyncOn.BalloonTipText = "Вертикальная синхронизация включена";
+            _notifyVerticalSyncOn.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
+
+            _notifyVerticalSyncOff = new System.Windows.Forms.NotifyIcon();
+            _notifyVerticalSyncOff.Icon = System.Drawing.SystemIcons.Information;
+            _notifyVerticalSyncOff.BalloonTipTitle = "";
+            _notifyVerticalSyncOff.BalloonTipText = "Вертикальная синхронизация отключена";
+            _notifyVerticalSyncOff.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
+            
 
             _guiObserverCore = new GuiObserverCore(_serverString, string.Empty);
             _tokenSource = new System.Threading.CancellationTokenSource();
             _spectatorClass = new GuiSpectator(_tokenSource.Token);
             _connector = new Connector(_serverString);
-
             _gameRender = new GameRender(_serverString, _renderForm, _factory2D, _renderTarget2D);
 
             _directInput = new DirectInput();
             _keyboard = new Keyboard(_directInput);
             _keyboard.Properties.BufferSize = 128;
             _keyboard.Acquire();
-
-            _notifyIcon = new System.Windows.Forms.NotifyIcon();
-            _notifyIcon.Icon = System.Drawing.SystemIcons.Exclamation;
-            _notifyIcon.BalloonTipTitle = "Подсказка";
-            _notifyIcon.BalloonTipText = "Чтобы узнать горячие клавиши GuiObserver, нажмите кнопку H";
-            _notifyIcon.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
-            _notifyIcon.Visible = true;
-            _notifyIcon.ShowBalloonTip(500);
         }
 
         public void RunGame()
@@ -135,8 +145,7 @@
             {
                 if (key == Key.F)
                 {
-                    bool canChange = _gameRender.GetElapsedMs() > 500;
-                    if (canChange)
+                    if (_gameRender.GetElapsedMs() > 500)
                     {
                         if (!_isFPressed)
                         {
@@ -179,22 +188,41 @@
                 {
                     System.Windows.Forms.MessageBox.Show("F1 - fullscreen\nF2 - windowed\nF - show fps\nH - help\nEsc - exit", "Help(me)");
                 }
+                else if (key == Key.V)
+                {
+                    if (_gameRender.GetElapsedMs() > 300)
+                    {
+                        if (_verticalSyncOn == 0)
+                        {
+                            _verticalSyncOn = 1;
+                            _notifyVerticalSyncOn.Visible = true;
+                            _notifyVerticalSyncOff.Visible = false;
+                            _notifyVerticalSyncOn.ShowBalloonTip(200);
+                        }
+                        else
+                        {
+                            _verticalSyncOn = 0;
+                            _notifyVerticalSyncOn.Visible = false;
+                            _notifyVerticalSyncOff.Visible = true;
+                            _notifyVerticalSyncOff.ShowBalloonTip(200);
+                        }
+                    }
+                }
             }
-           
             //Drawing a gama
             _isWebSocketOpen = (_guiObserverCore.WebSocketProxy.State == WebSocket4Net.WebSocketState.Open);
             if (!_isWebSocketOpen)
             {
                 _isEnterPressed = false;
+                _gameRender.UIIsVisible = false;
                 _isClientThreadRunning = true;
+
                 _connector.IsServerRunning();
                 if (_connector.ServerRunning)
                 {
                     _isClientThreadRunning = false;
                 }
-                _gameRender.UIIsVisible = false;
                 _gameRender.DrawWaitingLogo();
-                _connector.IsServerRunning();
 
                 if (!_isClientThreadRunning)
                 {
@@ -204,7 +232,8 @@
                     //    _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
                     //});
                     //_clientThread.Start();
-                    new System.Threading.Thread(() => {
+                    new System.Threading.Thread(() =>
+                    {
                         _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
                     }).Start();
 
@@ -226,7 +255,6 @@
             {
                 _gameRender.DrawLogo();
             }
-                
 
             if (_isFPressed)
             {
@@ -241,7 +269,8 @@
             {
             }
 
-            _swapChain.Present(0, PresentFlags.None);
+            _swapChain.Present(_verticalSyncOn, PresentFlags.None);
+            
         }
 
         public static Bitmap LoadFromFile(RenderTarget renderTarget, string file)
@@ -289,7 +318,9 @@
 
         public void Dispose()
         {
-            _renderForm.Dispose();
+            _notifyVerticalSyncOn.Dispose();
+            _notifyVerticalSyncOff.Dispose();
+            _connector.Dispose();
             _renderTarget2D.Dispose();
             _factory2D.Dispose();
             _surface.Dispose();
@@ -297,9 +328,8 @@
             _device.ImmediateContext.ClearState();
             _device.ImmediateContext.Flush();
             _device.Dispose();
-            _connector.Dispose();
             _gameRender.Dispose();
-            _notifyIcon.Dispose();
+            _renderForm.Dispose();
         }
 
     }

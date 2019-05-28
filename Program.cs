@@ -32,7 +32,7 @@ namespace ICC_Tank
         {
             // 50 на 50 ... Идеальный баланс... эталон гармонии
 
-            var map = MapManager.LoadMap(10, 10, CellMapType.Wall, 20, 20);
+            var map = MapManager.LoadMap(20, 20, CellMapType.Wall, 30, 30);
             Console.WriteLine($"Сгенерирована карта");
 
             var port = ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["port"], 2000);
@@ -52,7 +52,7 @@ namespace ICC_Tank
             Console.WriteLine("Нажмите Escape для выхода");
 
             var tokenSource = new CancellationTokenSource();
-            var server = new Server(new ServerSettings());
+            var server = new Server(new ServerSettings(), NLog.LogManager.GetCurrentClassLogger());
             var serverTask = server.Run(tokenSource.Token);
             
             try

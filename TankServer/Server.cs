@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
@@ -31,9 +31,9 @@ namespace TankServer
         public readonly Map Map;
         public Dictionary<IWebSocketConnection, ClientInfo> Clients;
 
-        public readonly Logger _logger;
+        protected readonly Logger _logger;
 
-        public Server(ServerSettings sSettings)
+        public Server(ServerSettings sSettings, Logger logger)
         {            
             Clients = new Dictionary<IWebSocketConnection, ClientInfo>();
             serverSettings = sSettings;
@@ -43,7 +43,7 @@ namespace TankServer
             _maxClientsCount = serverSettings.MaxClientCount;
 
             _random = new Random();
-            _logger = LogManager.GetCurrentClassLogger();
+            _logger = logger;
             //FleckLog.Level = LogLevel.Debug;
 
             _socketServer = new WebSocketServer($"ws://0.0.0.0:{serverSettings.Port}");
@@ -55,8 +55,7 @@ namespace TankServer
                     {
                         Console.WriteLine($"{DateTime.Now.ToShortTimeString()} [КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
                         _logger.Info($"[КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
-                        //добавляем клиента с заданными настройками и флагом об их обновлении
-                        Clients.Add(socket, new ClientInfo() { Request = new ServerRequest { Settings = serverSettings.TankSettings, IsSettingsChanged = true } });
+                        Clients.Add(socket, new ClientInfo() { Request = new ServerRequest { Settings = defaultTankSettings, IsSettingsChanged = true } });
                     }
                 };
                 socket.OnClose = () =>
@@ -189,9 +188,9 @@ namespace TankServer
         public BaseInteractObject AddTankBot(string nickname, string tag)
         {
             var rectangle = PastOnPassablePlace();
-            var tank = new TankObject(Guid.NewGuid(), rectangle, 2, false, 100, 100, 5, 5, nickname, tag, 40);
-            //При создании нового танка он бессмертен
-            CallInvulnerability(tank, 5);
+            var tank = new TankObject(Guid.NewGuid(), rectangle, defaultTankSettings.TankSpeed, false, defaultTankSettings.TankMaxHP, 100, 5, 5, nickname, tag, defaultTankSettings.TankDamage);
+            //При создании нового танка он бессмертен (передаём параметр длительности в миллисекундах)
+            CallInvulnerability(tank, defaultTankSettings.TimeOfInvulnerability);
             Map.InteractObjects.Add(tank);
 
             return tank;
@@ -246,20 +245,20 @@ namespace TankServer
                     ResetClientsData();
 
                     // высылаем всем состояние движка
-                    await SendUpdates(false, cancellationToken);
+                    await SendUpdates(false);
 
                     // в более частом цикле высылаем состояние движка для наблюдателей
-                    var botTimer = 250;
+                    var botTimer = serverSettings.PlayerTickRate;
                     while (botTimer > 0 && !cancellationToken.IsCancellationRequested)
                     {
-                        await Task.Delay(100);
+                        await Task.Delay(serverSettings.SpectatorTickRate);
                         if (cancellationToken.IsCancellationRequested)
                         {
                             break;
                         }
 
-                        botTimer -= 100;
-                        await SendUpdates(true, cancellationToken);
+                        botTimer -= serverSettings.SpectatorTickRate;
+                        await SendUpdates(true);
                     }
 
                     // обрабатываем команды от клиентов
@@ -395,7 +394,7 @@ namespace TankServer
 
         protected DateTime _lastSpectatorsUpd = DateTime.Now;
 
-        protected async Task SendUpdates(bool onlySpectators, CancellationToken cancellationToken)
+        protected async Task SendUpdates(bool onlySpectators)
         {
             List<BaseInteractObject> visibleObjects;
             List<BaseInteractObject> allObjects;
@@ -497,6 +496,7 @@ namespace TankServer
 
                 if (needSettings)
                 {
+                    // сброс флага об обновлении настроек
                     client.Value.NeedUpdateSettings = false;
                 }
             }
@@ -511,7 +511,7 @@ namespace TankServer
                 try
                 {
                     UpdateSettings();
-                    await Task.Delay(100);
+                    await Task.Delay(serverSettings.ServerTickRate);
                     if (cancellationToken.IsCancellationRequested)
                     {
                         break;
@@ -659,16 +659,23 @@ namespace TankServer
                                         }
                                         else if ((decimal)cells.Count(c => c.Value == CellMapType.Water) / cells.Count >= 0.5m)
                                         {
-                                            if (tankObject.IsInvulnerable == false)
+                                            if (tankObject.Lives > 0)
                                             {
+                                                Reborn(tankObject);
+                                            }
+                                            else { 
                                                 objsToRemove.Add(tankObject);
                                                 canMove = false;
                                             }
+                                            
                                         }
 
                                         if (intersectedObject is UpgradeInteractObject upgradeObject)
                                         {
                                             var tank = tankObject;
+
+                                            // Применяем эффект улудшения на танк время указывается в секундах
+                                            SetUpgrade(tank, upgradeObject, 5);
 
                                             // Применяем эффект улудшения на танк время указывается в секундах
                                             SetUpgrade(tank, upgradeObject, 5);
@@ -757,31 +764,24 @@ namespace TankServer
             }
         }
 
-        private async void Reborn(TankObject tank, int normalHP = 100)
+        private void Reborn(TankObject tank, int normalHP = 100)
         {
-            //говорим, что танк пока мёртв
-            tank.IsDead = true;
             //уменьшаем жизни
             tank.Lives--;
-            //Переносим на 0
-            tank.Rectangle.LeftCorner.Top = 0;
-            tank.Rectangle.LeftCorner.Left = 0;
-            var isFire = Map.InteractObjects.FirstOrDefault(x => (x as BulletObject)?.SourceId == tank.Id) != null;
-
-            //Ждём 5 секунд
-            await Task.Delay(5000);
-
-            //Говорим, что теперь танк жив
-            tank.IsDead = false;
             //Делаем танку здоровье нормальным(не увеличенным)
             tank.Hp = normalHP;
             tank.Rectangle = PastOnPassablePlace();
-            var bullet = Map.InteractObjects.FirstOrDefault(x => (x as BulletObject)?.SourceId == tank.Id);
-            if (!isFire && bullet != null)
+
+            lock (_syncObject)
             {
-                Map.InteractObjects.Remove(bullet);
+                var bullet = Map.InteractObjects.FirstOrDefault(x => (x as BulletObject)?.SourceId == tank.Id);
+                if (bullet != null)
+                {
+                    Map.InteractObjects.Remove(bullet);
+                }
             }
-            CallInvulnerability(tank,5);
+
+            CallInvulnerability(tank, defaultTankSettings.TimeOfInvulnerability);
 
         }
 
@@ -816,7 +816,7 @@ namespace TankServer
         protected void AddUpgrades()
         {
             var rnd = _random.NextDouble();
-            if (rnd <= 0.995)
+            if (rnd <= defaultTankSettings.ChanceSpawnUpgrades)
             {
                 return;
             }
@@ -840,22 +840,22 @@ namespace TankServer
             switch (rnd)
             {
                 case 1:
-                    result = new BulletSpeedUpgradeObject(objId, rectangle);
+                    result = new BulletSpeedUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseBulletSpeed);
                     break;
                 case 2:
-                    result = new DamageUpgradeObject(objId, rectangle);
+                    result = new DamageUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseDamage);
                     break;
                 case 3:
-                    result = new HealthUpgradeObject(objId, rectangle);
+                    result = new HealthUpgradeObject(objId, rectangle, defaultTankSettings.RestHP);
                     break;
                 case 4:
-                    result = new MaxHpUpgradeObject(objId, rectangle);
+                    result = new MaxHpUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseHP);
                     break;
                 case 5:
-                    result = new SpeedUpgradeObject(objId, rectangle);
+                    result = new SpeedUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseSpeed);
                     break;
                 case 6:
-                    result = new InvulnerabilityUpgradeObject(objId, rectangle);
+                    result = new InvulnerabilityUpgradeObject(objId, rectangle, defaultTankSettings.TimeOfInvulnerability);
                     break;
                 default:
                     throw new NotSupportedException("Incorrect object");
@@ -864,6 +864,7 @@ namespace TankServer
             return result;
         }
 
+        //в параметре передаётся танк и длительность неуязвимости в миллисекундах
         protected async void CallInvulnerability(TankObject tank, int sec)
         {
             await Task.Run(() => Invulnerability(tank, sec));
@@ -872,7 +873,7 @@ namespace TankServer
         protected void Invulnerability(TankObject tank, int sec)
         {
             tank.IsInvulnerable = true;
-            Thread.Sleep(int.TryParse($"{sec}000", out var value) ? value : 3000);
+            Thread.Sleep(sec);
             tank.IsInvulnerable = false;
         }
 
@@ -930,7 +931,7 @@ namespace TankServer
                 case UpgradeType.Invulnerability:
                 {
                     var upgrade = upgradeObj as InvulnerabilityUpgradeObject;
-                    CallInvulnerability(tank, 5);
+                    CallInvulnerability(tank, defaultTankSettings.TimeOfInvulnerability);
                     break;
                 }
             }
@@ -944,25 +945,56 @@ namespace TankServer
                 return;
             }
 
-            Map.InteractObjects.OfType<TankObject>().ToList().ForEach(x =>
+            lock (_syncObject)
             {
-                x.BulletSpeed = x.BulletSpeed == defaultTankSettings.BulletSpeed
-                    ? settings.BulletSpeed * settings.GameSpeed
-                    : settings.BulletSpeed * settings.GameSpeed + (x.BulletSpeed - defaultTankSettings.BulletSpeed);
-                x.Damage = x.Damage == settings.TankDamage
-                    ? settings.TankDamage
-                    : settings.TankDamage + (x.Damage - defaultTankSettings.TankDamage);
-                x.Speed = x.Speed == defaultTankSettings.TankSpeed * defaultTankSettings.GameSpeed
-                    ? settings.TankSpeed * settings.GameSpeed
-                    : settings.TankSpeed * settings.GameSpeed + (x.Speed - defaultTankSettings.TankSpeed * defaultTankSettings.GameSpeed);
-            });
+                Map.InteractObjects.OfType<TankObject>().ToList().ForEach(x =>
+                {
+                    x.BulletSpeed = x.BulletSpeed == defaultTankSettings.BulletSpeed
+                        ? settings.BulletSpeed * settings.GameSpeed
+                        : settings.BulletSpeed * settings.GameSpeed + (x.BulletSpeed - defaultTankSettings.BulletSpeed);
+                    x.Damage = x.Damage == settings.TankDamage
+                        ? settings.TankDamage
+                        : settings.TankDamage + (x.Damage - defaultTankSettings.TankDamage);
+                    x.Speed = x.Speed == defaultTankSettings.TankSpeed * defaultTankSettings.GameSpeed
+                        ? settings.TankSpeed * settings.GameSpeed
+                        : settings.TankSpeed * settings.GameSpeed + (x.Speed - defaultTankSettings.TankSpeed * defaultTankSettings.GameSpeed);
+                });
+
+                Map.InteractObjects.OfType<UpgradeInteractObject>().ToList().ForEach(x =>
+                {
+                    switch (x.Type)
+                    {
+                        case UpgradeType.BulletSpeed:
+                            (x as BulletSpeedUpgradeObject).IncreaseBulletSpeed = settings.IncreaseBulletSpeed;
+                            break;
+                        case UpgradeType.Damage:
+                            (x as DamageUpgradeObject).IncreaseDamage = settings.IncreaseDamage;
+                            break;
+                        case UpgradeType.Health:
+                            (x as HealthUpgradeObject).RestHP = settings.RestHP;
+                            break;
+                        case UpgradeType.Invulnerability:
+                            (x as InvulnerabilityUpgradeObject).ActionTime = settings.TimeOfInvulnerability;
+                            break;
+                        case UpgradeType.MaxHp:
+                            (x as MaxHpUpgradeObject).IncreaseHP = settings.IncreaseHP;
+                            break;
+                        case UpgradeType.Speed:
+                            (x as SpeedUpgradeObject).IncreaseSpeed = settings.IncreaseSpeed;
+                            break;
+                    }
+                });
+            }
 
             defaultTankSettings = settings;
             serverSettings.TankSettings = null;
 
-            foreach (var client in Clients)
+            lock (Clients)
             {
-                client.Value.NeedUpdateSettings = true;
+                foreach (var client in Clients)
+                {
+                    client.Value.NeedUpdateSettings = true;
+                }
             }
         }
     }
