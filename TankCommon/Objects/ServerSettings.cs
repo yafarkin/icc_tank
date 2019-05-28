@@ -26,7 +26,7 @@ namespace TankCommon.Objects
         public int CountOfLifes { get; set; } = 5;
 
         [Description("Время неуязвимости после перерождения")]
-        public int TimeOfInvulnerabilityAfterRespawn { get; set; } = 5;
+        public int TimeOfInvulnerabilityAfterRespawn { get; set; } = 5000;
 
         [Description("Максимальное количество бонусов на карте")]
         public int MaxCountOfUpgrade { get; set; } = 3;

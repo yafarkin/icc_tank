@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
@@ -931,7 +931,7 @@ namespace TankServer
                 case UpgradeType.Invulnerability:
                 {
                     var upgrade = upgradeObj as InvulnerabilityUpgradeObject;
-                    CallInvulnerability(tank, defaultTankSettings.TimeOfActionUpgrades);
+                    CallInvulnerability(tank, defaultTankSettings.TimeOfInvulnerability);
                     break;
                 }
             }
