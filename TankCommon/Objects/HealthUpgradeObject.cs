@@ -10,9 +10,9 @@ namespace TankCommon.Objects
         {
         }
 
-        public HealthUpgradeObject(Guid id, Rectangle rectangle) : base(id, rectangle)
+        public HealthUpgradeObject(Guid id, Rectangle rectangle, int restHP) : base(id, rectangle)
         {
-            RestHP = 25;
+            RestHP = restHP;
             Type = UpgradeType.Health;
         }
     }

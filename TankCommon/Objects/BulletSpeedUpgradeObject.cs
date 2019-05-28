@@ -10,9 +10,9 @@ namespace TankCommon.Objects
         {
         }
 
-        public BulletSpeedUpgradeObject(Guid id, Rectangle rectangle) : base(id, rectangle)
+        public BulletSpeedUpgradeObject(Guid id, Rectangle rectangle, int increaseBulletSpeed) : base(id, rectangle)
         {
-            IncreaseBulletSpeed = 1;
+            IncreaseBulletSpeed = increaseBulletSpeed;
             Type = UpgradeType.BulletSpeed;
         }
     }

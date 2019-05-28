@@ -10,9 +10,9 @@ namespace TankCommon.Objects
         {
         }
 
-        public DamageUpgradeObject(Guid id, Rectangle rectangle) : base(id, rectangle)
+        public DamageUpgradeObject(Guid id, Rectangle rectangle, int increaseDamage) : base(id, rectangle)
         {
-            IncreaseDamage = 20;
+            IncreaseDamage = increaseDamage;
             Type = UpgradeType.Damage;
         }
     }

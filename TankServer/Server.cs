@@ -190,7 +190,7 @@ namespace TankServer
             var rectangle = PastOnPassablePlace();
             var tank = new TankObject(Guid.NewGuid(), rectangle, defaultTankSettings.TankSpeed, false, defaultTankSettings.TankMaxHP, 100, 5, 5, nickname, tag, defaultTankSettings.TankDamage);
             //При создании нового танка он бессмертен (передаём параметр длительности в миллисекундах)
-            CallInvulnerability(tank, 5000);
+            CallInvulnerability(tank, defaultTankSettings.TimeOfInvulnerability);
             Map.InteractObjects.Add(tank);
 
             return tank;
@@ -781,7 +781,7 @@ namespace TankServer
                 }
             }
 
-            CallInvulnerability(tank,5);
+            CallInvulnerability(tank, defaultTankSettings.TimeOfInvulnerability);
 
         }
 
@@ -840,22 +840,22 @@ namespace TankServer
             switch (rnd)
             {
                 case 1:
-                    result = new BulletSpeedUpgradeObject(objId, rectangle);
+                    result = new BulletSpeedUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseBulletSpeed);
                     break;
                 case 2:
-                    result = new DamageUpgradeObject(objId, rectangle);
+                    result = new DamageUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseDamage);
                     break;
                 case 3:
-                    result = new HealthUpgradeObject(objId, rectangle);
+                    result = new HealthUpgradeObject(objId, rectangle, defaultTankSettings.RestHP);
                     break;
                 case 4:
-                    result = new MaxHpUpgradeObject(objId, rectangle);
+                    result = new MaxHpUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseHP);
                     break;
                 case 5:
-                    result = new SpeedUpgradeObject(objId, rectangle);
+                    result = new SpeedUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseSpeed);
                     break;
                 case 6:
-                    result = new InvulnerabilityUpgradeObject(objId, rectangle);
+                    result = new InvulnerabilityUpgradeObject(objId, rectangle, defaultTankSettings.TimeOfInvulnerability);
                     break;
                 default:
                     throw new NotSupportedException("Incorrect object");

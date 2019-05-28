@@ -10,9 +10,9 @@ namespace TankCommon.Objects
         {
         }
 
-        public MaxHpUpgradeObject(Guid id, Rectangle rectangle) : base(id, rectangle)
+        public MaxHpUpgradeObject(Guid id, Rectangle rectangle, int increaseHP) : base(id, rectangle)
         {
-            IncreaseHP = 25;
+            IncreaseHP = increaseHP;
             Type = UpgradeType.MaxHp;
         }
     }
