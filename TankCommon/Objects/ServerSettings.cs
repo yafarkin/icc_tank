@@ -20,5 +20,11 @@ namespace TankCommon.Objects
         public Enum.ServerType ServerType { get; set; }
         [Description("Класс настройки темпа игры")]
         public TankSettings TankSettings { get; set; } = new TankSettings();
+        [Description("Задержка прощетов на сервере в ms")]
+        public int ServerTickRate { get; set; } = 50;
+        [Description("Задержка отсылки данных клиентам в ms")]
+        public int PlayerTickRate { get; set; } = 250;
+        [Description("Задержка отсылки данных зрителям в ms")]
+        public int SpectatorTickRate { get; set; } = 100;
     }
 }

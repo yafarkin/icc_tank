@@ -249,16 +249,16 @@ namespace TankServer
                     await SendUpdates(false);
 
                     // в более частом цикле высылаем состояние движка для наблюдателей
-                    var botTimer = 250;
+                    var botTimer = serverSettings.PlayerTickRate;
                     while (botTimer > 0 && !cancellationToken.IsCancellationRequested)
                     {
-                        await Task.Delay(100);
+                        await Task.Delay(serverSettings.SpectatorTickRate);
                         if (cancellationToken.IsCancellationRequested)
                         {
                             break;
                         }
 
-                        botTimer -= 100;
+                        botTimer -= serverSettings.SpectatorTickRate;
                         await SendUpdates(true);
                     }
 
@@ -511,7 +511,7 @@ namespace TankServer
                 try
                 {
                     UpdateSettings();
-                    await Task.Delay(100);
+                    await Task.Delay(serverSettings.ServerTickRate);
                     if (cancellationToken.IsCancellationRequested)
                     {
                         break;
