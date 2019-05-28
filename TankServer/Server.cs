@@ -246,7 +246,7 @@ namespace TankServer
                     ResetClientsData();
 
                     // высылаем всем состояние движка
-                    await SendUpdates(false, cancellationToken);
+                    await SendUpdates(false);
 
                     // в более частом цикле высылаем состояние движка для наблюдателей
                     var botTimer = 250;
@@ -259,7 +259,7 @@ namespace TankServer
                         }
 
                         botTimer -= 100;
-                        await SendUpdates(true, cancellationToken);
+                        await SendUpdates(true);
                     }
 
                     // обрабатываем команды от клиентов
@@ -395,7 +395,7 @@ namespace TankServer
 
         protected DateTime _lastSpectatorsUpd = DateTime.Now;
 
-        protected async Task SendUpdates(bool onlySpectators, CancellationToken cancellationToken)
+        protected async Task SendUpdates(bool onlySpectators)
         {
             List<BaseInteractObject> visibleObjects;
             List<BaseInteractObject> allObjects;
