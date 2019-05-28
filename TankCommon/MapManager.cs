@@ -53,9 +53,11 @@ namespace TankCommon
             return new Map(cellArr);
         }
 
+
         public static Map ReadMap(MapType mapType)
         {
             string fileName;
+            //В зависимости от пришедшего типа карты выбираю файл карты
             switch (mapType)
             {
                 case MapType.Manual_Map_1:
@@ -85,9 +87,25 @@ namespace TankCommon
         private static Map TranslateFromTxt(string textFromFile)
         {
             var map = new Map();
+            var mapHeight = 0;
+            var mapWidth = 0;
+            var widthCount = 0;
 
-
-
+            foreach (var symbol in textFromFile)
+            {
+                if (symbol == '\n')
+                {
+                    mapHeight++;
+                }
+                else
+                {
+                    
+                }
+            }
+            map.MapHeight = mapHeight + 1;
+            map.MapWidth = (textFromFile.Length + 1 - (map.MapHeight * 2)) / map.MapHeight;
+            map.CellHeight = Constants.CellHeight;
+            map.CellWidth = Constants.CellWidth;
             return map;
         }
 
