@@ -52,7 +52,7 @@ namespace ICC_Tank
             Console.WriteLine("Нажмите Escape для выхода");
 
             var tokenSource = new CancellationTokenSource();
-            var server = new Server(new ServerSettings());
+            var server = new Server(new ServerSettings(), NLog.LogManager.GetCurrentClassLogger());
             var serverTask = server.Run(tokenSource.Token);
             
             try
