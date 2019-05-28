@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -51,8 +51,7 @@ namespace TankServer
                     lock (_syncObject)
                     {
                         _logger.Info($"[КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
-                        //добавляем клиента с заданными настройками и флагом об их обновлении
-                        Clients.Add(socket, new ClientInfo() { Request = new ServerRequest { Settings = serverSettings.TankSettings, IsSettingsChanged = true } });
+                        Clients.Add(socket, new ClientInfo() { Request = new ServerRequest { Settings = defaultTankSettings, IsSettingsChanged = true } });
                     }
                 };
                 socket.OnClose = () =>
@@ -182,9 +181,9 @@ namespace TankServer
         public BaseInteractObject AddTankBot(string nickname, string tag)
         {
             var rectangle = PastOnPassablePlace();
-            var tank = new TankObject(Guid.NewGuid(), rectangle, 2, false, 100, 100, 5, 5, nickname, tag, 40);
-            //При создании нового танка он бессмертен
-            CallInvulnerability(tank, 5);
+            var tank = new TankObject(Guid.NewGuid(), rectangle, defaultTankSettings.TankSpeed, false, defaultTankSettings.TankMaxHP, 100, 5, 5, nickname, tag, defaultTankSettings.TankDamage);
+            //При создании нового танка он бессмертен (передаём параметр длительности в миллисекундах)
+            CallInvulnerability(tank, defaultTankSettings.TimeOfInvulnerability);
             Map.InteractObjects.Add(tank);
 
             return tank;
@@ -236,22 +235,22 @@ namespace TankServer
                 // сбрасываем данные для клиентов и от клиентов
                 ResetClientsData();
 
-                // высылаем всем состояние движка
-                await SendUpdates(false, cancellationToken);
+                    // высылаем всем состояние движка
+                    await SendUpdates(false);
 
-                // в более частом цикле высылаем состояние движка для наблюдателей
-                var botTimer = 250;
-                while (botTimer > 0 && !cancellationToken.IsCancellationRequested)
-                {
-                    await Task.Delay(100);
-                    if (cancellationToken.IsCancellationRequested)
+                    // в более частом цикле высылаем состояние движка для наблюдателей
+                    var botTimer = serverSettings.PlayerTickRate;
+                    while (botTimer > 0 && !cancellationToken.IsCancellationRequested)
                     {
-                        break;
-                    }
+                        await Task.Delay(serverSettings.SpectatorTickRate);
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            break;
+                        }
 
-                    botTimer -= 100;
-                    await SendUpdates(true, cancellationToken);
-                }
+                        botTimer -= serverSettings.SpectatorTickRate;
+                        await SendUpdates(true);
+                    }
 
                 // обрабатываем команды от клиентов
                 ApplyClientsData();
@@ -380,7 +379,7 @@ namespace TankServer
 
         protected DateTime _lastSpectatorsUpd = DateTime.Now;
 
-        protected async Task SendUpdates(bool onlySpectators, CancellationToken cancellationToken)
+        protected async Task SendUpdates(bool onlySpectators)
         {
             List<BaseInteractObject> visibleObjects;
             List<BaseInteractObject> allObjects;
@@ -472,6 +471,7 @@ namespace TankServer
 
                 if (needSettings)
                 {
+                    // сброс флага об обновлении настроек
                     client.Value.NeedUpdateSettings = false;
                 }
             }
@@ -484,7 +484,7 @@ namespace TankServer
             while (!cancellationToken.IsCancellationRequested)
             {
                 UpdateSettings();
-                await Task.Delay(100);
+                await Task.Delay(serverSettings.ServerTickRate);
                 if (cancellationToken.IsCancellationRequested)
                 {
                     break;
@@ -748,7 +748,7 @@ namespace TankServer
                 }
             }
 
-            CallInvulnerability(tank,5);
+            CallInvulnerability(tank, defaultTankSettings.TimeOfInvulnerability);
 
         }
 
@@ -783,7 +783,7 @@ namespace TankServer
         protected void AddUpgrades()
         {
             var rnd = _random.NextDouble();
-            if (rnd <= 0.995)
+            if (rnd <= defaultTankSettings.ChanceSpawnUpgrades)
             {
                 return;
             }
@@ -807,22 +807,22 @@ namespace TankServer
             switch (rnd)
             {
                 case 1:
-                    result = new BulletSpeedUpgradeObject(objId, rectangle);
+                    result = new BulletSpeedUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseBulletSpeed);
                     break;
                 case 2:
-                    result = new DamageUpgradeObject(objId, rectangle);
+                    result = new DamageUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseDamage);
                     break;
                 case 3:
-                    result = new HealthUpgradeObject(objId, rectangle);
+                    result = new HealthUpgradeObject(objId, rectangle, defaultTankSettings.RestHP);
                     break;
                 case 4:
-                    result = new MaxHpUpgradeObject(objId, rectangle);
+                    result = new MaxHpUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseHP);
                     break;
                 case 5:
-                    result = new SpeedUpgradeObject(objId, rectangle);
+                    result = new SpeedUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseSpeed);
                     break;
                 case 6:
-                    result = new InvulnerabilityUpgradeObject(objId, rectangle);
+                    result = new InvulnerabilityUpgradeObject(objId, rectangle, defaultTankSettings.TimeOfInvulnerability);
                     break;
                 default:
                     throw new NotSupportedException("Incorrect object");
@@ -831,6 +831,7 @@ namespace TankServer
             return result;
         }
 
+        //в параметре передаётся танк и длительность неуязвимости в миллисекундах
         protected async void CallInvulnerability(TankObject tank, int sec)
         {
             await Task.Run(() => Invulnerability(tank, sec));
@@ -839,7 +840,7 @@ namespace TankServer
         protected void Invulnerability(TankObject tank, int sec)
         {
             tank.IsInvulnerable = true;
-            Thread.Sleep(int.TryParse($"{sec}000", out var value) ? value : 3000);
+            Thread.Sleep(sec);
             tank.IsInvulnerable = false;
         }
 
@@ -897,7 +898,7 @@ namespace TankServer
                 case UpgradeType.Invulnerability:
                 {
                     var upgrade = upgradeObj as InvulnerabilityUpgradeObject;
-                    CallInvulnerability(tank, 5);
+                    CallInvulnerability(tank, defaultTankSettings.TimeOfInvulnerability);
                     break;
                 }
             }
@@ -924,6 +925,31 @@ namespace TankServer
                     x.Speed = x.Speed == defaultTankSettings.TankSpeed * defaultTankSettings.GameSpeed
                         ? settings.TankSpeed * settings.GameSpeed
                         : settings.TankSpeed * settings.GameSpeed + (x.Speed - defaultTankSettings.TankSpeed * defaultTankSettings.GameSpeed);
+                });
+
+                Map.InteractObjects.OfType<UpgradeInteractObject>().ToList().ForEach(x =>
+                {
+                    switch (x.Type)
+                    {
+                        case UpgradeType.BulletSpeed:
+                            (x as BulletSpeedUpgradeObject).IncreaseBulletSpeed = settings.IncreaseBulletSpeed;
+                            break;
+                        case UpgradeType.Damage:
+                            (x as DamageUpgradeObject).IncreaseDamage = settings.IncreaseDamage;
+                            break;
+                        case UpgradeType.Health:
+                            (x as HealthUpgradeObject).RestHP = settings.RestHP;
+                            break;
+                        case UpgradeType.Invulnerability:
+                            (x as InvulnerabilityUpgradeObject).ActionTime = settings.TimeOfInvulnerability;
+                            break;
+                        case UpgradeType.MaxHp:
+                            (x as MaxHpUpgradeObject).IncreaseHP = settings.IncreaseHP;
+                            break;
+                        case UpgradeType.Speed:
+                            (x as SpeedUpgradeObject).IncreaseSpeed = settings.IncreaseSpeed;
+                            break;
+                    }
                 });
             }
 
