@@ -53,6 +53,40 @@ namespace TankCommon
             return new Map(cellArr);
         }
 
+        public static Map ReadMap(MapType mapType)
+        {
+            string fileName;
+            switch (mapType)
+            {
+                case MapType.Manual_Map_1:
+                    fileName = "Manual_Map_1.txt";
+                break;
+                case MapType.Manual_Map_2:
+                    fileName = "Manual_Map_2.txt";
+                    break;
+                case MapType.Manual_Map_3:
+                    fileName = "Manual_Map_3.txt";
+                    break;
+                default:
+                    throw new InvalidDataException("Неизвестный тип карты");
+            }
+            using (FileStream fstream = File.OpenRead(@"../maps/" + fileName))
+            {
+                // Преобразуем строку в байты
+                byte[] array = new byte[fstream.Length];
+                // считываем данные
+                fstream.Read(array, 0, array.Length);
+                // Декодируем байты в строку
+                string textFromFile = System.Text.Encoding.Default.GetString(array);
+                return TranslateFromTxt(textFromFile);
+            }
+        }
+
+        private static Map TranslateFromTxt(string textFromFile)
+        {
+            
+        }
+
         public static List<KeyValuePair<Point, CellMapType>> WhatOnMap(Rectangle rectangle, Map map)
         {
             var left = rectangle.LeftCorner.LeftInt;

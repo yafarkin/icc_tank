@@ -48,7 +48,7 @@ namespace TankServer
                     Map = MapManager.LoadMap(serverSettings.Height, serverSettings.Width, CellMapType.Wall, 0, 0);
                     break;
                 case MapType.Manual_Map_1:
-                    Console.WriteLine("Вы нажали букву N");
+                    Map = MapManager.ReadMap(MapType.Manual_Map_1);
                     break;
                 case MapType.Manual_Map_2:
                     Console.WriteLine("Вы нажали букву N");
