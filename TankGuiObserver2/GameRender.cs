@@ -215,6 +215,7 @@
                 _clientInfoLabel.Visible = value;
             }
         }
+        bool _centeredCI;
         Label _clientInfoLabel;
         Label _sessionTime;
         List<TankObject> _clientInfoTanks;
@@ -331,15 +332,18 @@
             _fpsmsTextBackground = new RectangleF(
                 _fpsmsTextRect.Left, _fpsmsTextRect.Top,
                 _fpsmsTextRect.Width, _fpsmsTextRect.Height);
-            _logoTextRect = new RectangleF((float)RenderForm.Width / 5, (float)RenderForm.Height / 3, 1500, 100);
+            _logoTextRect = new RectangleF((float)RenderForm.Width / 5, (float)RenderForm.Height / 3,
+                RenderForm.Width-400, 100);
             _enterTextRect = new RectangleF(
                 _logoTextRect.X + 8*_logoTextRect.X/7,
-                RenderForm.Height - (RenderForm.Height - _logoTextRect.Bottom - 200), 800, 30);
+                RenderForm.Height - (RenderForm.Height - _logoTextRect.Bottom - 200), 
+                RenderForm.Width - RenderForm.Height, 30);
             _statusTextRect = new RectangleF(
                 _logoTextRect.X + 5*_logoTextRect.X/6,
-                RenderForm.Height - (RenderForm.Height - _logoTextRect.Bottom - 200), 800, 30);
-            _clientInfoAreaRect = new RectangleF(1080, 0, 1920 - 1080, 1080);
-            _cleintInfo = new RectangleF(1080 + 50, 100 + 50, 700, 500);
+                RenderForm.Height - (RenderForm.Height - _logoTextRect.Bottom - 200),
+                RenderForm.Width - RenderForm.Height, 30);
+            _clientInfoAreaRect = new RectangleF(RenderForm.Height, 0, RenderForm.Width - RenderForm.Height, RenderForm.Height);
+            _cleintInfo = new RectangleF(RenderForm.Height + 50, 100 + 50, RenderForm.Width-RenderForm.Height-100, 500);
             _clientInfoTextRect = new RectangleF(
                 _clientInfoAreaRect.X + 0.39f * _clientInfoAreaRect.X,
                 _clientInfoAreaRect.Y + 0.05f * _clientInfoAreaRect.Height, 300, 100);
@@ -368,7 +372,8 @@
             //advanced text renderer
             _textRenderer = new CustomColorRenderer();
             _textRenderer.AssignResources(RenderTarget2D, _mapObjectsColors[14]);
-            
+
+            _centeredCI = true;
 
             #endregion
 
@@ -386,7 +391,7 @@
             _clientInfoLabel.Font = new System.Drawing.Font("Cambria", 30);
             _clientInfoLabel.BackColor = System.Drawing.Color.Green;
             _clientInfoLabel.ForeColor = System.Drawing.Color.White;
-            _clientInfoLabel.Location = new System.Drawing.Point(1380, 30);
+            _clientInfoLabel.Location = new System.Drawing.Point(RenderForm.Height+250, 30);
             _clientInfoLabel.AutoSize = true;
             _clientInfoLabel.Visible = false;
 
@@ -395,10 +400,10 @@
             _sessionTime.Font = new System.Drawing.Font("Cambria", 16);
             _sessionTime.BackColor = System.Drawing.Color.Green;
             _sessionTime.ForeColor = System.Drawing.Color.White;
-            _sessionTime.Location = new System.Drawing.Point(1100, 40);
+            _sessionTime.Location = new System.Drawing.Point(RenderForm.Height + 20, 40);
             _sessionTime.AutoSize = true;
             _sessionTime.Visible = false;
-            
+
             RenderForm.Controls.Add(_sessionTime);
             RenderForm.Controls.Add(_clientInfoLabel);
             #endregion
@@ -467,7 +472,7 @@
                 
                 _mapWidth  = Map.MapWidth /*Map.Cells.GetLength(0)*/;
                 _mapHeight = Map.MapHeight/*Map.Cells.GetLength(1)*/;
-                _zoomWidth = (float)1080 / _mapWidth;
+                _zoomWidth = RenderTarget2D.Size.Height / _mapWidth;
                 _zoomHeight = RenderTarget2D.Size.Height / _mapHeight;
             }
 
@@ -605,14 +610,14 @@
             {
                 if (obj is UpgradeInteractObject upgradeObject)
                 {
-                    //if (DateTime.Now > upgradeObject.SpawnTime.AddSeconds(27))
-                    //{
-                    //    if (_upgradesOpacities[upgradeIndex] >= 1.0f)
-                    //        _upgradesIncriments[upgradeIndex] = -0.01f;
-                    //    else if (_upgradesOpacities[upgradeIndex] < 0.0f)
-                    //        _upgradesIncriments[upgradeIndex] = 0.01f;
-                    //    _upgradesOpacities[upgradeIndex] += _upgradesIncriments[upgradeIndex];
-                    //}
+                    if (DateTime.Now >= upgradeObject.SpawnTime.AddSeconds(27))
+                    {
+                        if (_upgradesOpacities[upgradeIndex] >= 1.0f)
+                            _upgradesIncriments[upgradeIndex] = -0.01f;
+                        else if (_upgradesOpacities[upgradeIndex] < 0.0f)
+                            _upgradesIncriments[upgradeIndex] = 0.01f;
+                        _upgradesOpacities[upgradeIndex] += _upgradesIncriments[upgradeIndex];
+                    }
 
                     switch (upgradeObject.Type)
                     {
@@ -748,6 +753,47 @@
             }
         }
         
+        [System.Runtime.CompilerServices.MethodImpl(256)]
+        public void CenterClientInfo()
+        {
+            if (_centeredCI)
+            {
+                _centeredCI = false;
+                _sessionTime.Location = new System.Drawing.Point(50, 40);
+                _clientInfoLabel.Location = new System.Drawing.Point(
+                    RenderForm.Width / 2-150, 30);
+                _clientInfoAreaRect = new RectangleF(0, 0, 
+                    RenderForm.Width, RenderForm.Height);
+                _clientInfoLeftPoint =
+                    new RawVector2(0,
+                                   _clientInfoTextRect.Y + 0.6f * _clientInfoTextRect.Height);
+                _clientInfoRightPoint = new RawVector2(
+                                    RenderForm.Width,
+                                    _clientInfoTextRect.Y + 0.6f * _clientInfoTextRect.Height);
+                _cleintInfo = new RectangleF(
+                    (float)RenderForm.Width / 3,
+                    100 + 50, 
+                    RenderForm.Width - RenderForm.Height - 100, 500);
+            }
+            else
+            {
+                _centeredCI = true;
+                _sessionTime.Location = new System.Drawing.Point(RenderForm.Height + 20, 40);
+                _clientInfoLabel.Location = new System.Drawing.Point(RenderForm.Height + 250, 30);
+                _clientInfoAreaRect = new RectangleF(RenderForm.Height, 0, 
+                    RenderForm.Width - RenderForm.Height, RenderForm.Height);
+                _clientInfoLeftPoint = 
+                    new RawVector2(_clientInfoAreaRect.X,
+                                    _clientInfoTextRect.Y + 0.6f * _clientInfoTextRect.Height);
+                _clientInfoRightPoint = new RawVector2(
+                                    _clientInfoAreaRect.X + _clientInfoAreaRect.Width,
+                                    _clientInfoTextRect.Y + 0.6f * _clientInfoTextRect.Height);
+                _cleintInfo = new RectangleF(RenderForm.Height + 50, 
+                    100 + 50, 
+                    RenderForm.Width - RenderForm.Height - 100, 500);
+            }
+        }
+
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawClientInfo()
         {

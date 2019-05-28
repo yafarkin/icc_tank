@@ -115,7 +115,6 @@ namespace TankGuiObserver2
                     Settings = request.Settings;
                 }
 
-
                 Map.InteractObjects = request.Map.InteractObjects;
                 _msgCount = msgCount;
                 _wasUpdate = true;
@@ -226,6 +225,13 @@ namespace TankGuiObserver2
             _autoResetEvent = new AutoResetEvent(true);
             _serverUri = new Uri(server);
             _nickName = nickname;
+            Restart();
+            //_webSocketProxy = new WebSocketProxy(_serverUri);
+        }
+
+        public void Restart()
+        {
+            _webSocketProxy?.Dispose();
             _webSocketProxy = new WebSocketProxy(_serverUri);
         }
 
