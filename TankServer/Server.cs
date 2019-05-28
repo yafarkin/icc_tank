@@ -20,12 +20,9 @@ namespace TankServer
 
         protected readonly object _syncObject = new object();
         protected DateTime _lastCoreUpdate;
-
-        protected readonly uint _maxClientsCount;
-
-        public ServerSettings serverSettings;
-        public string ConfigPath;
-
+        
+        public readonly ServerSettings serverSettings;
+        
         public readonly Map Map;
         public Dictionary<IWebSocketConnection, ClientInfo> Clients;
 
@@ -37,8 +34,6 @@ namespace TankServer
             serverSettings = sSettings;
             defaultTankSettings = sSettings.TankSettings;
             Map = MapManager.LoadMap(serverSettings.Height, serverSettings.Width, CellMapType.Wall, 50, 50);
-
-            _maxClientsCount = serverSettings.MaxClientCount;
 
             _random = new Random();
             _logger = logger;
