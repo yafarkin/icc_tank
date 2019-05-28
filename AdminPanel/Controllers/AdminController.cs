@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AdminPanel.Entity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using TankCommon.Objects;
 using TankServer;
 using TankCommon;
@@ -40,6 +41,15 @@ namespace AdminPanel.Controllers
                     break;
                 }
             }
+
+            // TODO try-catch
+            var configuration = new ConfigurationBuilder()
+                .AddJsonFile("serversetting.json")
+                .Build();
+
+            serverSettings.ServerTickRate = Convert.ToInt32(configuration["ServerTickRate"]);
+            serverSettings.PlayerTickRate = Convert.ToInt32(configuration["PlayerTickRate"]);
+            serverSettings.SpectatorTickRate = Convert.ToInt32(configuration["SpectatorTickRate"]);
 
             serverSettings.Port = port;
 /*
