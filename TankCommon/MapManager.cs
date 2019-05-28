@@ -84,7 +84,11 @@ namespace TankCommon
 
         private static Map TranslateFromTxt(string textFromFile)
         {
-            
+            var map = new Map();
+
+
+
+            return map;
         }
 
         public static List<KeyValuePair<Point, CellMapType>> WhatOnMap(Rectangle rectangle, Map map)
