@@ -38,7 +38,30 @@ namespace TankServer
             Clients = new Dictionary<IWebSocketConnection, ClientInfo>();
             serverSettings = sSettings;
             defaultTankSettings = sSettings.TankSettings;
-            Map = MapManager.LoadMap(serverSettings.Height, serverSettings.Width, CellMapType.Wall, 50, 50);
+            var mapType = serverSettings.MapType;
+            switch (mapType)
+            {
+                case MapType.Default_map:
+                    Map = MapManager.LoadMap(serverSettings.Height, serverSettings.Width, CellMapType.Wall, 50, 50);
+                    break;
+                case MapType.Emty_map:
+                    Map = MapManager.LoadMap(serverSettings.Height, serverSettings.Width, CellMapType.Wall, 0, 0);
+                    break;
+                case MapType.Manual_Map_1:
+                    Console.WriteLine("Вы нажали букву N");
+                    break;
+                case MapType.Manual_Map_2:
+                    Console.WriteLine("Вы нажали букву N");
+                    break;
+                case MapType.Manual_Map_3:
+                    Console.WriteLine("Вы нажали букву N");
+                    break;
+                case MapType.Water_map:
+                    Map = MapManager.LoadMap(serverSettings.Height, serverSettings.Width, CellMapType.Water, 40, 0);
+                    break;
+                default:
+                    throw new InvalidDataException("Неизвестный тип карты");
+            }
 
             _maxClientsCount = serverSettings.MaxClientCount;
 
