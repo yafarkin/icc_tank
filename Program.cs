@@ -35,24 +35,40 @@ namespace ICC_Tank
             var map = MapManager.LoadMap(20, 20, CellMapType.Wall, 30, 30);
             Console.WriteLine($"Сгенерирована карта");
 
-            var port = ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["port"], 2000);
-            var maxBotsCount = ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["maxBotsCount"], 1000);
-
+            var serverSetting = new ServerSettings()
+            {
+                Height = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["height"], 20),
+                Width = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["width"], 20),
+                CountOfLifes = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["countOfLifes"], 5),
+                MapType = MapType.Base,
+                MaxClientCount = ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["maxClientsCount"], 1000),
+                MaxCountOfUpgrade = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["maxCountOfUpgrade"], 3),
+                PlayerTickRate = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["playerTickRate"], 1000),
+                Port = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["port"], 2000),
+                ServerTickRate = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["serverTickRate"], 50),
+                ServerType = ServerType.BattleCity,
+                SessionName = "ICC_TANK",
+                TimeOfInvulnerabilityAfterRespawn = 5000,
+                SpectatorTickRate = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["spectatorTickRate"], 150),
+                TankSettings = new TankSettings()
+            };
+            
             var strHostName = Dns.GetHostName();
             var ipEntry = Dns.GetHostEntry(strHostName);
             var ipAddresses = ipEntry.AddressList;
 
-            Console.WriteLine($"Соединение по имени: ws://{strHostName}:{port}");
+            Console.WriteLine($"Соединение по имени: ws://{strHostName}:{serverSetting.Port}");
             Console.WriteLine("Или по IP адресу(ам):");
             foreach (var ipAddress in ipAddresses)
             {
-                Console.WriteLine($"\tws://{ipAddress}:{port}");
+                Console.WriteLine($"\tws://{ipAddress}:{serverSetting.Port}");
             }
             
             Console.WriteLine("Нажмите Escape для выхода");
 
             var tokenSource = new CancellationTokenSource();
-            var server = new Server(new ServerSettings(), NLog.LogManager.GetCurrentClassLogger());
+
+            var server = new Server(serverSetting, NLog.LogManager.GetCurrentClassLogger());
             var serverTask = server.Run(tokenSource.Token);
             
             try

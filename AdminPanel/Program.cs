@@ -11,14 +11,6 @@ namespace AdminPanel
         public static List<Entity.ServerEntity> Servers = new List<Entity.ServerEntity>();
         public static Logger Logger = LogManager.GetCurrentClassLogger();
 
-        public static bool ServerStatusIsRun(int id)
-        {
-            var status = (Servers.FirstOrDefault(x => x.Id == id)?.Task.Status
-                ?? System.Threading.Tasks.TaskStatus.Faulted) == System.Threading.Tasks.TaskStatus.Running;
-
-            return status;
-        }
-
         public static void Main(string[] args)
         {
             CreateWebHostBuilder(args).Build().Run();
