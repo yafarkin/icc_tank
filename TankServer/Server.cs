@@ -132,7 +132,7 @@ namespace TankServer
                                 //если настройки изменились, клиенту отправится новая версия и флаг об обновлении настроек
                                 clientInfo.Request = new ServerRequest { IsSettingsChanged = true, Settings = defaultTankSettings };
 
-                                if (string.IsNullOrWhiteSpace(response.CommandParameter))
+                                if (string.IsNullOrWhiteSpace(response.CommandParameter) || Clients.Where(x => x.Value.IsSpecator == false).Count() == serverSettings.MaxClientCount)
                                 {
                                     var spectator = AddSpectator();
                                     clientInfo.IsSpecator = true;
