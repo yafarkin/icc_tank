@@ -274,6 +274,17 @@
         Bitmap _bulletUpBitmap;
         Bitmap[] _bitmaps;
 
+        public void GameSet()
+        {
+            _isMapSet = false;
+            _isImmutableObjectsInitialized = false;
+            _isDestructiveObjectsInitialized = false;
+
+            _immutableMapObjects.Clear();
+            _immutableGrass.Clear();
+            _destuctiveWallsObjects.Clear();
+        }
+
         public GameRender(
             string server,
             RenderForm renderForm,

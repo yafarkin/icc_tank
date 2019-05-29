@@ -237,9 +237,9 @@ namespace TankGuiObserver2
             _autoResetEvent = new AutoResetEvent(true);
             _serverUri = new Uri(server);
             _nickName = nickname;
-            Restart();
             _logger = NLog.LogManager.GetCurrentClassLogger();
-            _logger.Info("Ctor is working fiine.");
+            Restart();
+            _logger.Info("Ctor is working fiine. [GuiObserverCore]");
             //_webSocketProxy = new WebSocketProxy(_serverUri);
         }
 

@@ -129,10 +129,16 @@
             _notifyVerticalSyncOff.BalloonTipTitle = "";
             _notifyVerticalSyncOff.BalloonTipText = "Вертикальная синхронизация отключена";
             _notifyVerticalSyncOff.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
-            
 
+            _tokenSource = new System.Threading.CancellationTokenSource();
+            _guiObserverCore = new GuiObserverCore(_serverString, string.Empty);
+            _spectatorClass = new GuiSpectator(_tokenSource.Token);
             _connector = new Connector(_serverString);
             _gameRender = new GameRender(_serverString, _renderForm, _factory2D, _renderTarget2D);
+            _clientThread = new System.Threading.Thread(() => {
+                _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
+            });
+            _clientThread.Start();
 
             _keyboardDelay = new System.Diagnostics.Stopwatch();
             _keyboardDelay.Start();
@@ -142,7 +148,7 @@
             _keyboard.Acquire();
 
             _logger = NLog.LogManager.GetCurrentClassLogger();
-            _logger.Info("Ctor is working fine.");
+            _logger.Info("Ctor is working fine. [Game]");
         }
 
         public void RunGame()
@@ -285,20 +291,6 @@
                     _isClientThreadRunning = false;
                 }
 
-                //if (_serverStartupIndex > 0)
-                //{
-                //    if (!_isClientInfoWasCentered)
-                //    {
-                //        _isTabPressed = true;
-                //        _isClientInfoWasCentered = true;
-                //        _gameRender.CenterClientInfo();
-                //    }
-                //}
-                //else
-                //{
-                //_gameRender.CenterClientInfo();
-                //}
-
                 _gameRender.DrawWaitingLogo();
                 _logger.Debug("call: DrawWaitingLogo()");
                 if (!_isClientThreadRunning)
@@ -310,6 +302,10 @@
                     //_isClientInfoWasCentered = false;
                     //_gameRender.Settings = _connector.Settings;
 
+                    _tokenSource?.Dispose();
+                    _tokenSource = new System.Threading.CancellationTokenSource();
+                    _guiObserverCore.Restart();
+
                     try
                     {
                         _clientThread?.Interrupt();
@@ -319,23 +315,11 @@
                         _logger.Error("exception: _clientThread.Interrupt()");
                         _logger.Error($"exception: {ex.Message}");
                     }
-
-                    _guiObserverCore = new GuiObserverCore(_serverString, string.Empty);
-                    _tokenSource = new System.Threading.CancellationTokenSource();
-                    _spectatorClass = new GuiSpectator(_tokenSource.Token);
-
+                    _gameRender.GameSet();
                     _clientThread = new System.Threading.Thread(() => {
                         _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
                     });
                     _clientThread.Start();
-
-                    //_spectatorClass = new GuiSpectator(_tokenSource.Token);
-                    //_guiObserverCore.Restart();
-                    //new System.Threading.Thread(() =>
-                    //{
-                    //    _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
-                    //}).Start();
-
                 }
             }
 
@@ -350,12 +334,7 @@
                     _logger.Debug("flag: !UIIsVisible");
                     _logger.Debug("flag: !_isTabPressed");
                 }
-
-                /*
-                ################################################## 
-                ### TODO: старая карта весит в _gameRender.Map ###
-                ##################################################
-                */
+                
                 _gameRender.Map = _spectatorClass?.Map;
                 //_gameRender.Settings = _spectatorClass.Settings;
                 _gameRender.DrawClientInfo();
