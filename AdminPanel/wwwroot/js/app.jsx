@@ -18,7 +18,7 @@ class UserForm extends React.Component {
         var requestType = { method: "POST", body: form };
         var url = `admin/${method}`;
 
-        return fetch(url, requestType).then((x) => { if(x) return x.json(); });
+        return fetch(url, requestType).then((x) => { if(x.status === 200) return x.json(); });
     }
 
     getHelper(method) {
@@ -85,7 +85,7 @@ class UserForm extends React.Component {
         this.openModal();
 
         this.postHelper("CreateServer", result).then(x => {
-            if (x.error) {
+            if (x && x.error) {
                 console.log(x.error);
             }
         });
