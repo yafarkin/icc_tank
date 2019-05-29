@@ -33,6 +33,11 @@ namespace AdminPanel.Controllers
                 return message.ToJson();
             }
 
+            if(serverSettings.TimeOfInvulnerabilityAfterRespawn < 100)
+            {
+                serverSettings.TimeOfInvulnerabilityAfterRespawn *= 1000;
+            }
+
             var port = 2000;
             while (true)
             {

@@ -135,12 +135,13 @@ class UserForm extends React.Component {
                         );
                     })}</tbody>
                 </table>
-                <select type="text" defaultValue="0" id="ServerId">{this.state.serverList.map(e => {
+                <select className="custom-select" type="text" defaultValue="0" id="ServerId">{this.state.serverList.map(e => {
                     if (e)
                     return <option value={e.Id}>{e.Name}</option>;
                 })}</select>
-                <button className={this.state.viewModal ? 'btn btn-primary invisible' : 'btn btn-primary visible'} disabled={!this.state.serverList[0]} id="AddServer" onClick={this.viewTankSettings}>{this.state.viewTankSettings ? 'Cancel' : 'Edit'}</button>
-                <button className={this.state.viewTankSettings ? 'btn btn-primary invisible' : 'btn btn-primary visible'} disabled={!this.state.serverList[0]} id="AddServer" onClick={this.stopServer}>Stop Server</button>
+                <button className={this.state.viewModal ? 'btn btn-primary invisible' : 'btn btn-primary visible'} disabled={!this.state.serverList[0]} id="ChangeServer" onClick={this.viewTankSettings}>{this.state.viewTankSettings ? 'Cancel' : 'Edit'}</button>
+                <button className={this.state.viewTankSettings ? 'btn btn-primary invisible' : 'btn btn-primary visible'} disabled={!this.state.serverList[0]} id="StopServer" onClick={this.stopServer}>Stop Server</button>
+                <br/>
                 <button className={this.state.viewModal === this.state.viewTankSettings ? 'btn btn-primary visible' : 'btn btn-primary invisible'} id="AddServer" onClick={this.openModal}>{this.state.viewModal ? 'Close' : 'Add'}</button>
                 <div id="modal">
                     <div id="SessionName" className={this.state.viewModal ? 'visible' : 'invisible'}>
@@ -149,7 +150,7 @@ class UserForm extends React.Component {
                     </div>
                     <div id="MapType" className={this.state.viewModal ? 'visible' : 'invisible'}>
                         <label>Тип шаблона карты</label>
-                        <select type="text" defaultValue="0" id="Value">{mapTypeList.map(e => {
+                        <select className="custom-select" type="text" defaultValue="0" id="Value">{mapTypeList.map(e => {
                             return <option value={e.id}>{e.name}</option>;
                         })}</select>
                     </div>
@@ -179,7 +180,7 @@ class UserForm extends React.Component {
                     </div>
                     <div id="ServerType" className={this.state.viewModal ? 'visible' : 'invisible'}>
                         <label>Тип сервера</label>
-                        <select type="text" defaultValue="0" id="Value">{serverTypeList.map(e => {
+                        <select className="custom-select" type="text" defaultValue="0" id="Value">{serverTypeList.map(e => {
                             return <option value={e.id}>{e.name}</option>;
                         })}</select>
                     </div>
@@ -244,10 +245,10 @@ class UserForm extends React.Component {
                             <label>Показатели бонуса увеличения скорости танка</label>
                             <input type="number" defaultValue="1" id="Value" />
                         </div>
-                        <button className={this.state.viewTankSettings !== this.state.viewModal ? 'btn btn-primary visible' : 'btn btn-primary invisible'} onClick={this.editTankSettings}>Change</button>
                     </div>
-                    <button className={this.state.viewModal ? 'btn btn-primary visible' : 'btn btn-primary invisible'} onClick={this.doTestStart}>Create</button>
                 </div>
+                <button id="AddServer" className={this.state.viewTankSettings !== this.state.viewModal ? 'btn btn-primary visible' : 'btn btn-primary invisible'} onClick={this.editTankSettings}>Change</button>
+                <button id="AddServer" className={this.state.viewModal ? 'btn btn-primary visible' : 'btn btn-primary invisible'} onClick={this.doTestStart}>Create</button>
             </div >
         );
     }

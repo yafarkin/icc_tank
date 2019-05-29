@@ -631,15 +631,14 @@ namespace TankServer
                                                 //Уменьшить здоровье танка на урон пули
                                                 tankIntersectedObject.Hp -= hpToRemove;
                                                 //Если здоровье танка меньше нуля и у него ещё есть жизни
-                                                if (tankIntersectedObject.Hp <= 0 && tankIntersectedObject.Lives > 0)
+                                                if (tankIntersectedObject.Hp <= 0)
                                                 {
-                                                    Reborn(tankIntersectedObject);
-                                                    isFrag = true;
-                                                }
-                                                else
-                                                {
-                                                    if (tankIntersectedObject.Hp <= 0 &&
-                                                        tankIntersectedObject.Lives <= 0)
+                                                    if (tankIntersectedObject.Lives != 1)
+                                                    {
+                                                        Reborn(tankIntersectedObject);
+                                                        isFrag = true;
+                                                    }
+                                                    else
                                                     {
                                                         objsToRemove.Add(tankIntersectedObject);
                                                     }
@@ -675,7 +674,7 @@ namespace TankServer
                                         else if ((decimal) cells.Count(c => c.Value == CellMapType.Water) /
                                                  cells.Count >= 0.5m)
                                         {
-                                            if (tankObject.Lives > 0)
+                                            if (tankObject.Lives != 1)
                                             {
                                                 Reborn(tankObject);
                                             }
@@ -692,10 +691,10 @@ namespace TankServer
                                             var tank = tankObject;
 
                                             // Применяем эффект улудшения на танк время указывается в секундах
-                                            SetUpgrade(tank, upgradeObject, 5);
+                                            SetUpgrade(tank, upgradeObject);
 
                                             // Применяем эффект улудшения на танк время указывается в секундах
-                                            SetUpgrade(tank, upgradeObject, 5);
+                                            SetUpgrade(tank, upgradeObject);
 
                                             objsToRemove.Add(intersectedObject);
                                         }
@@ -806,7 +805,11 @@ namespace TankServer
         private void Reborn(TankObject tank, int normalHP = 100)
         {
             //уменьшаем жизни
-            tank.Lives--;
+            if (tank.Lives > 0)
+            {
+                tank.Lives--;
+            }
+
             //Делаем танку здоровье нормальным(не увеличенным)
             tank.Hp = normalHP;
             tank.Rectangle = PastOnPassablePlace();
@@ -916,9 +919,9 @@ namespace TankServer
             tank.IsInvulnerable = false;
         }
 
-        private async void SetUpgrade(TankObject tank, UpgradeInteractObject upgradeObj, int time)
+        private async void SetUpgrade(TankObject tank, UpgradeInteractObject upgradeObj)
         {
-            time *= 1000;
+            var time = defaultTankSettings.TimeOfActionUpgrades;
 
             switch (upgradeObj.Type)
             {
@@ -982,6 +985,21 @@ namespace TankServer
             if (settings == null || settings == defaultTankSettings)
             {
                 return;
+            }
+
+            if (settings.TimeOfActionUpgrades < 100)
+            {
+                settings.TimeOfActionUpgrades *= 1000;
+            }
+
+            if (settings.TimeOfInvulnerability < 100)
+            {
+                settings.TimeOfInvulnerability *= 1000;
+            }
+
+            if (settings.ChanceSpawnUpgrades > 1)
+            {
+                settings.ChanceSpawnUpgrades /= 100;
             }
 
             lock (_syncObject)
