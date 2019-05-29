@@ -88,8 +88,8 @@ namespace TankCommon
         {
             var map = new Map();
             var mapHeight = 0;
-            var mapWidth = 0;
-            var widthCount = 0;
+            //var mapWidth = 0;
+            //var widthCount = 0;
 
             foreach (var symbol in textFromFile)
             {
@@ -102,10 +102,86 @@ namespace TankCommon
                     
                 }
             }
+            //ВЫчисляю из файла ширину и высоту карты, не считаю символы(\n и \r)
             map.MapHeight = mapHeight + 1;
             map.MapWidth = (textFromFile.Length + 1 - (map.MapHeight * 2)) / map.MapHeight;
             map.CellHeight = Constants.CellHeight;
             map.CellWidth = Constants.CellWidth;
+
+            map = ConvertFromMap(map, textFromFile);
+            map.InteractObjects = new List<BaseInteractObject>();
+            return map;
+        }
+
+        /// <summary>
+        /// Прочитанную карту переводит в CellMapType
+        /// </summary>
+        /// <param name="map"></param>
+        /// <param name="textMap"></param>
+        /// <returns></returns>
+        private static Map ConvertFromMap(Map map, string textMap)
+        {
+            var x = 0;
+            var y = 0;
+            var mapData = new CellMapType[map.MapHeight, map.MapWidth];
+            for (var i = 1; i < textMap.Length; i++)
+            {
+                var symbol = textMap[i];
+                switch (symbol)
+                {
+                    case 'с':
+                        mapData[y, x] = CellMapType.Wall;
+                        x++;
+                        break;
+                    case 'т':
+                        mapData[y, x] = CellMapType.Grass;
+                        x++;
+                        break;
+                    case 'в':
+                        mapData[y, x] = CellMapType.Water;
+                        x++;
+                        break;
+                    case ' ':
+                        mapData[y, x] = CellMapType.Void;
+                        x++;
+                        break;
+                    case 'д':
+                        mapData[y, x] = CellMapType.DestructiveWall;
+                        x++;
+                        break;
+                    default:
+                        if (symbol.Equals('\n') || symbol.Equals('\r'))
+                        {
+                            Console.Write("");
+                            break;
+                        }
+                        throw new InvalidDataException("Неизвестный символ");
+                }
+                if (x == map.MapWidth)
+                {
+                    y++;
+                    x = 0;
+                }
+            }
+
+            //Финальный массив должен быть умножен на ширину и длинну константных клеток
+            var cellArr = new CellMapType[map.MapHeight * Constants.CellHeight, map.MapWidth * Constants.CellWidth];
+            var cellArrHeight = cellArr.GetLength(0);
+            var cellArrWidth = cellArr.GetLength(1);
+            //Масштабирую карту исходя из констант
+            for (var height = 0; height < cellArrHeight; height++)
+            {
+                for (var width = 0; width < cellArrWidth; width++)
+                {
+                    var oldHeight = (int)Math.Ceiling((decimal)(height / Constants.CellHeight));
+                    var oldWidth = (int)Math.Ceiling((decimal)(width / Constants.CellHeight));
+                    cellArr[height, width] = mapData[oldHeight, oldWidth];
+                }
+            }
+
+            map.Cells = cellArr;
+            map.MapHeight = map.Cells.GetLength(0);
+            map.MapWidth = map.Cells.GetLength(1);
             return map;
         }
 

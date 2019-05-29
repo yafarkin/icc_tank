@@ -51,10 +51,10 @@ namespace TankServer
                     Map = MapManager.ReadMap(MapType.Manual_Map_1);
                     break;
                 case MapType.Manual_Map_2:
-                    Console.WriteLine("Вы нажали букву N");
+                    Map = MapManager.ReadMap(MapType.Manual_Map_2);
                     break;
                 case MapType.Manual_Map_3:
-                    Console.WriteLine("Вы нажали букву N");
+                    Map = MapManager.ReadMap(MapType.Manual_Map_3);
                     break;
                 case MapType.Water_map:
                     Map = MapManager.LoadMap(serverSettings.Height, serverSettings.Width, CellMapType.Water, 40, 0);
