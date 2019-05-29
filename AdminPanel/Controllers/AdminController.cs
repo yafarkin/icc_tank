@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AdminPanel.Entity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using TankCommon.Objects;
 using TankServer;
 using TankCommon;
@@ -24,8 +25,9 @@ namespace AdminPanel.Controllers
         /// </summary>
         /// <param name="serverSettings">Класс настроек сервера и темпа игры</param>
         [HttpPost]
-        public void CreateServer([FromForm] ServerSettings serverSettings)
+        public void CreateServer([FromForm] string request)
         {
+            var serverSettings = request.FromJson<ServerSettings>();
             if (string.IsNullOrWhiteSpace(serverSettings.SessionName)) return;
 
             var port = 2000;
@@ -40,6 +42,15 @@ namespace AdminPanel.Controllers
                     break;
                 }
             }
+
+            // TODO try-catch
+            var configuration = new ConfigurationBuilder()
+                .AddJsonFile("serversetting.json")
+                .Build();
+
+            serverSettings.ServerTickRate = Convert.ToInt32(configuration["ServerTickRate"]);
+            serverSettings.PlayerTickRate = Convert.ToInt32(configuration["PlayerTickRate"]);
+            serverSettings.SpectatorTickRate = Convert.ToInt32(configuration["SpectatorTickRate"]);
 
             serverSettings.Port = port;
 /*
@@ -93,7 +104,7 @@ namespace AdminPanel.Controllers
             {
                 result.Add(new
                 {
-                    Name = Enum.GetName(typeof(MapType), item),
+                    Name = ((MapType) item).GetDescription(),
                     Id = item
                 });
             }
@@ -109,7 +120,7 @@ namespace AdminPanel.Controllers
             {
                 result.Add(new
                 {
-                    Name = Enum.GetName(typeof(ServerType), item),
+                    Name = ((ServerType) item).GetDescription(),
                     Id = item
                 });
             }
@@ -118,18 +129,21 @@ namespace AdminPanel.Controllers
         }
 
         [HttpGet]
-        public IEnumerable<object> GetServerList()
+        public string GetServerList()
         {
+            var ips = Dns.GetHostEntry(Dns.GetHostName()).AddressList.Where(z => z.AddressFamily == AddressFamily.InterNetwork);
             Task.Delay(250);
-            return Program.Servers.Select(x => new
+            var result = Program.Servers.Select(x => new
             {
                 Id = x.Id,
                 Name = x.Server.serverSettings.SessionName,
-                Ip = Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(z => z.AddressFamily == AddressFamily.InterNetwork)?.ToString(),
+                Ip = string.Join(", ", ips),
                 Port = x.Server.serverSettings.Port,
                 Type = x.Server.serverSettings.ServerType.GetDescription(),
                 People = x.Server.Clients.Count(z => !z.Value.IsSpecator) + " / " + x.Server.serverSettings.MaxClientCount
             });
+
+            return result.ToJson();
         }
 
         /// <summary>
@@ -141,40 +155,20 @@ namespace AdminPanel.Controllers
         /// <param name="bulletSpeed">Скорость Пули</param>
         /// <param name="tankDamage">Урон танков</param>
         [HttpPost]
-        public void ChangeServerSettings([FromForm] int id, [FromForm] decimal? gameSpeed, [FromForm] decimal? tankSpeed, [FromForm] decimal? bulletSpeed, [FromForm] decimal? tankDamage)
+        public void ChangeServerSettings(int id, [FromForm] string request)
         {
-            if (id == 0 || (gameSpeed ?? 0) != 0 && (tankSpeed ?? 0) != 0 && (bulletSpeed ?? 0) != 0 && (tankDamage ?? 0) != 0)
-            {
-                return;
-            }
+            var tankSettings = request.FromJson<TankSettings>();
+            if (tankSettings == null) return;
 
             if (Program.ServerStatusIsRun(id))
             {
-                var newSettings = new TankSettings();
                 var server = Program.Servers.FirstOrDefault(x => x.Id == id);
                 if (server == null)
                 {
                     return;
                 }
 
-                if ((gameSpeed ?? 0) != 0)
-                {
-                    newSettings.GameSpeed = (int)gameSpeed;
-                }
-                if ((tankSpeed ?? 0) != 0)
-                {
-                    newSettings.TankSpeed = (decimal)tankSpeed;
-                }
-                if ((bulletSpeed ?? 0) != 0)
-                {
-                    newSettings.BulletSpeed = (decimal)bulletSpeed;
-                }
-                if ((tankDamage ?? 0) != 0)
-                {
-                    newSettings.TankDamage = (decimal)tankDamage;
-                }
-
-                server.Server.serverSettings.TankSettings = newSettings;
+                server.Server.serverSettings.TankSettings = tankSettings;
             }
         }
         

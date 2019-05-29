@@ -36,5 +36,11 @@ namespace TankCommon.Objects
 
         [Description("Класс настройки темпа игры")]
         public TankSettings TankSettings { get; set; } = new TankSettings();
+        [Description("Задержка прощетов на сервере в ms")]
+        public int ServerTickRate { get; set; }
+        [Description("Задержка отсылки данных клиентам в ms")]
+        public int PlayerTickRate { get; set; }
+        [Description("Задержка отсылки данных зрителям в ms")]
+        public int SpectatorTickRate { get; set; }
     }
 }
