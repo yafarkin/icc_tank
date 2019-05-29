@@ -24,10 +24,14 @@ namespace AdminPanel.Controllers
         /// </summary>
         /// <param name="serverSettings">Класс настроек сервера и темпа игры</param>
         [HttpPost]
-        public void CreateServer([FromForm] string request)
+        public string CreateServer([FromForm] string request)
         {
             var serverSettings = request.FromJson<ServerSettings>();
-            if (string.IsNullOrWhiteSpace(serverSettings.SessionName)) return;
+            if (string.IsNullOrWhiteSpace(serverSettings.SessionName))
+            {
+                var message = new {error = "Имя не должно быть пустым"};
+                return message.ToJson();
+            }
 
             var port = 2000;
             while (true)
@@ -59,25 +63,23 @@ namespace AdminPanel.Controllers
 
                 var server = new Server(serverSettings, Program.Logger);
 
-                var cancellationToken = new CancellationTokenSource();
                 lock (Program.Servers)
                 {
                     Program.Servers.Add(new ServerEntity()
                     {
                         Id = Program.Servers.Count == 0 ? 1 : Program.Servers.Count + 1,
-                        CancellationToken = cancellationToken,
                         Server = server,
                         Port = (uint) port,
-                        Task = server.Run(cancellationToken.Token)
+                        Task = server.Run(new CancellationTokenSource().Token)
                     });
                 }
 
-                Program.Servers.Last().Task.Wait();
+                Program.Servers.Last().Task.Start();
             }
             catch (Exception ex)
             {
                 Program.Logger.Error($"Ошибка во время работы: {ex}");
-                return ex.Message;
+                return (new {error = ex.Message}).ToJson();
             }
 
             return string.Empty;
@@ -170,13 +172,14 @@ namespace AdminPanel.Controllers
         /// </summary>
         /// <param name="id">Номер сервера</param>
         [HttpPost]
-        public void StopServer([FromForm] int id)
+        public void StopServer(int id)
         {
             var server = Program.Servers.FirstOrDefault(x => x.Id == id && !x.Task.IsCanceled);
                 
             if (server != null)
             {
-                server.CancellationToken.Cancel();
+                server.Server.Dispose();
+                Task.Delay(150);
                 Program.Servers.Remove(server);
             }
         }

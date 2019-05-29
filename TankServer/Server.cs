@@ -778,7 +778,7 @@ namespace TankServer
         protected void AddUpgrades()
         {
             var rnd = _random.NextDouble();
-            if (rnd <= defaultTankSettings.ChanceSpawnUpgrades)
+            if (rnd >= defaultTankSettings.ChanceSpawnUpgrades)
             {
                 return;
             }
@@ -933,22 +933,22 @@ namespace TankServer
                     switch (x.Type)
                     {
                         case UpgradeType.BulletSpeed:
-                            (x as BulletSpeedUpgradeObject).IncreaseBulletSpeed = settings.IncreaseBulletSpeed;
+                            ((BulletSpeedUpgradeObject) x).IncreaseBulletSpeed = settings.IncreaseBulletSpeed;
                             break;
                         case UpgradeType.Damage:
-                            (x as DamageUpgradeObject).IncreaseDamage = settings.IncreaseDamage;
+                            ((DamageUpgradeObject) x).IncreaseDamage = settings.IncreaseDamage;
                             break;
                         case UpgradeType.Health:
-                            (x as HealthUpgradeObject).RestHP = settings.RestHP;
+                            ((HealthUpgradeObject) x).RestHP = settings.RestHP;
                             break;
                         case UpgradeType.Invulnerability:
-                            (x as InvulnerabilityUpgradeObject).ActionTime = settings.TimeOfInvulnerability;
+                            ((InvulnerabilityUpgradeObject) x).ActionTime = settings.TimeOfInvulnerability;
                             break;
                         case UpgradeType.MaxHp:
-                            (x as MaxHpUpgradeObject).IncreaseHP = settings.IncreaseHP;
+                            ((MaxHpUpgradeObject) x).IncreaseHP = settings.IncreaseHP;
                             break;
                         case UpgradeType.Speed:
-                            (x as SpeedUpgradeObject).IncreaseSpeed = settings.IncreaseSpeed;
+                            ((SpeedUpgradeObject) x).IncreaseSpeed = settings.IncreaseSpeed;
                             break;
                     }
                 });
