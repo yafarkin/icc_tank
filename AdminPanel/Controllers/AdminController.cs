@@ -23,11 +23,11 @@ namespace AdminPanel.Controllers
         /// Создание сервера
         /// </summary>
         /// <param name="serverSettings">Класс настроек сервера и темпа игры</param>
-        [HttpGet]
-        public string CreateServer([FromForm] ServerSettings serverSettings)
+        [HttpPost]
+        public void CreateServer([FromForm] string request)
         {
-            if (string.IsNullOrWhiteSpace(serverSettings.SessionName))
-                return "SessionName не должен быть пустым";
+            var serverSettings = request.FromJson<ServerSettings>();
+            if (string.IsNullOrWhiteSpace(serverSettings.SessionName)) return;
 
             var port = 2000;
             while (true)
@@ -100,7 +100,7 @@ namespace AdminPanel.Controllers
             {
                 result.Add(new
                 {
-                    Name = Enum.GetName(typeof(MapType), item),
+                    Name = ((MapType) item).GetDescription(),
                     Id = item
                 });
             }
@@ -116,7 +116,7 @@ namespace AdminPanel.Controllers
             {
                 result.Add(new
                 {
-                    Name = Enum.GetName(typeof(ServerType), item),
+                    Name = ((ServerType) item).GetDescription(),
                     Id = item
                 });
             }
@@ -125,23 +125,21 @@ namespace AdminPanel.Controllers
         }
 
         [HttpGet]
-        public IEnumerable<object> GetServerList()
+        public string GetServerList()
         {
+            var ips = Dns.GetHostEntry(Dns.GetHostName()).AddressList.Where(z => z.AddressFamily == AddressFamily.InterNetwork);
             Task.Delay(150);
-            lock (Program.Servers)
+            var result = Program.Servers.Select(x => new
             {
-                return Program.Servers.Select(x => new
-                {
-                    Id = x.Id,
-                    Name = x.Server.serverSettings.SessionName,
-                    Ip = Dns.GetHostEntry(Dns.GetHostName()).AddressList
-                        .FirstOrDefault(z => z.AddressFamily == AddressFamily.InterNetwork)?.ToString(),
-                    Port = x.Server.serverSettings.Port,
-                    Type = x.Server.serverSettings.ServerType.GetDescription(),
-                    People = x.Server.Clients.Count(z => !z.Value.IsSpecator) + " / " +
-                             x.Server.serverSettings.MaxClientCount
-                });
-            }
+                Id = x.Id,
+                Name = x.Server.serverSettings.SessionName,
+                Ip = string.Join(", ", ips),
+                Port = x.Server.serverSettings.Port,
+                Type = x.Server.serverSettings.ServerType.GetDescription(),
+                People = x.Server.Clients.Count(z => !string.IsNullOrWhiteSpace(z.Value.Nickname)) + " / " + x.Server.serverSettings.MaxClientCount
+            });
+
+            return result.ToJson();
         }
 
         /// <summary>
@@ -153,43 +151,20 @@ namespace AdminPanel.Controllers
         /// <param name="bulletSpeed">Скорость Пули</param>
         /// <param name="tankDamage">Урон танков</param>
         [HttpPost]
-        public void ChangeServerSettings([FromForm] int id, [FromForm] decimal? gameSpeed, [FromForm] decimal? tankSpeed, [FromForm] decimal? bulletSpeed, [FromForm] decimal? tankDamage)
+        public void ChangeServerSettings(int id, [FromForm] string request)
         {
-            if (id == 0 || (gameSpeed ?? 0) != 0 && (tankSpeed ?? 0) != 0 && (bulletSpeed ?? 0) != 0 && (tankDamage ?? 0) != 0)
+            var tankSettings = request.FromJson<TankSettings>();
+            if (tankSettings == null) return;
+            var server = Program.Servers.FirstOrDefault(x => x.Id == id && !x.Task.IsCanceled);
+
+            if (server == null)
             {
                 return;
             }
 
-            if (Program.ServerStatusIsRun(id))
-            {
-                var newSettings = new TankSettings();
-                var server = Program.Servers.FirstOrDefault(x => x.Id == id);
-                if (server == null)
-                {
-                    return;
-                }
-
-                if ((gameSpeed ?? 0) != 0)
-                {
-                    newSettings.GameSpeed = (int)gameSpeed;
-                }
-                if ((tankSpeed ?? 0) != 0)
-                {
-                    newSettings.TankSpeed = (decimal)tankSpeed;
-                }
-                if ((bulletSpeed ?? 0) != 0)
-                {
-                    newSettings.BulletSpeed = (decimal)bulletSpeed;
-                }
-                if ((tankDamage ?? 0) != 0)
-                {
-                    newSettings.TankDamage = (decimal)tankDamage;
-                }
-
-                server.Server.serverSettings.TankSettings = newSettings;
-            }
+            server.Server.serverSettings.TankSettings = tankSettings;
         }
-        
+
         /// <summary>
         /// Останавливает сервер
         /// </summary>
@@ -197,11 +172,10 @@ namespace AdminPanel.Controllers
         [HttpPost]
         public void StopServer([FromForm] int id)
         {
-            var status = Program.ServerStatusIsRun(id);
+            var server = Program.Servers.FirstOrDefault(x => x.Id == id && !x.Task.IsCanceled);
                 
-            if (status)
+            if (server != null)
             {
-                var server = Program.Servers[id - 1];
                 server.CancellationToken.Cancel();
                 Program.Servers.Remove(server);
             }
