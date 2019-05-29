@@ -102,11 +102,8 @@
             _serverStartupIndex = 0;
             _serverString = string.Empty;
             _serverString = System.Configuration.ConfigurationManager.AppSettings["server"];
-            if (_serverString == null)
-            {
-                _serverString = "ws://127.0.0.1:2000";
-            }
 
+            #region UI
             _notifyHelp = new System.Windows.Forms.NotifyIcon();
             _notifyHelp.Icon = System.Drawing.SystemIcons.Exclamation;
             _notifyHelp.BalloonTipTitle = "Подсказка";
@@ -129,6 +126,7 @@
             _notifyVerticalSyncOff.BalloonTipTitle = "";
             _notifyVerticalSyncOff.BalloonTipText = "Вертикальная синхронизация отключена";
             _notifyVerticalSyncOff.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
+            #endregion
 
             _tokenSource = new System.Threading.CancellationTokenSource();
             _guiObserverCore = new GuiObserverCore(_serverString, string.Empty);
@@ -140,15 +138,20 @@
             });
             _clientThread.Start();
 
+            #region Keyboard
             _keyboardDelay = new System.Diagnostics.Stopwatch();
             _keyboardDelay.Start();
             _directInput = new DirectInput();
             _keyboard = new Keyboard(_directInput);
             _keyboard.Properties.BufferSize = 128;
             _keyboard.Acquire();
+            #endregion
 
+            #region Logger
             _logger = NLog.LogManager.GetCurrentClassLogger();
             _logger.Info("Ctor is working fine. [Game]");
+            #endregion
+
         }
 
         public void RunGame()
@@ -210,9 +213,12 @@
                 else if (key == Key.H)
                 {
                     System.Windows.Forms.MessageBox.Show(
-                        "F1 - fullscreen\nF2 - windowed\n" +
-                        "F - show fps\nH - help\n" +
+                        "F1 - fullscreen\n" +
+                        "F2 - windowed\n" +
+                        "F - show fps\n" +
+                        "H - help\n" +
                         "V - vertical sync\n" +
+                        "Tab - show players\n" +
                         "Esc - exit\n", "Help(me)");
                 }
                 else if (key == Key.V)
@@ -300,7 +306,7 @@
                     //_spectatorClass.Map = null;
                     ++_serverStartupIndex;
                     //_isClientInfoWasCentered = false;
-                    //_gameRender.Settings = _connector.Settings;
+                    _gameRender.Settings = _connector.Settings;
 
                     _tokenSource?.Dispose();
                     _tokenSource = new System.Threading.CancellationTokenSource();

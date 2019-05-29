@@ -1,21 +1,18 @@
 ﻿namespace TankGuiObserver2
 {
-    using System;
-    using System.Windows.Forms;
-    using System.Collections.Generic;
-
     using SharpDX;
-    using SharpDX.Windows;
     using SharpDX.Direct2D1;
     using SharpDX.DirectWrite;
+    using SharpDX.DXGI;
     using SharpDX.Mathematics.Interop;
-
-    using TankCommon.Enum;
-    using TankCommon.Objects;
+    using SharpDX.Windows;
+    using System;
+    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
-    using SharpDX.DXGI;
-
+    using System.Windows.Forms;
+    using TankCommon.Enum;
+    using TankCommon.Objects;
     using AlphaMode = SharpDX.Direct2D1.AlphaMode;
 
     struct ImmutableObject
@@ -150,18 +147,18 @@
 
     public class CustomColorRenderer : SharpDX.DirectWrite.TextRendererBase
     {
-        private RenderTarget renderTarget;
-        private SolidColorBrush defaultBrush;
+        private RenderTarget _renderTarget;
+        private SolidColorBrush _defaultBrush;
 
         public void AssignResources(RenderTarget renderTarget, SolidColorBrush defaultBrush)
         {
-            this.renderTarget = renderTarget;
-            this.defaultBrush = defaultBrush;
+            _renderTarget = renderTarget;
+            _defaultBrush = defaultBrush;
         }
 
         public override Result DrawGlyphRun(object clientDrawingContext, float baselineOriginX, float baselineOriginY, MeasuringMode measuringMode, GlyphRun glyphRun, GlyphRunDescription glyphRunDescription, ComObject clientDrawingEffect)
         {
-            SolidColorBrush sb = defaultBrush;
+            SolidColorBrush sb = _defaultBrush;
             if (clientDrawingEffect != null && clientDrawingEffect is SolidColorBrush)
             {
                 sb = (SolidColorBrush)clientDrawingEffect;
@@ -169,7 +166,7 @@
 
             try
             {
-                this.renderTarget.DrawGlyphRun(new Vector2(baselineOriginX, baselineOriginY), glyphRun, sb, measuringMode);
+                _renderTarget.DrawGlyphRun(new Vector2(baselineOriginX, baselineOriginY), glyphRun, sb, measuringMode);
                 return Result.Ok;
             }
             catch
@@ -181,52 +178,51 @@
 
     class GameRender : System.IDisposable
     {
-        RenderForm RenderForm;
-        RenderTarget RenderTarget2D;
+        //Game
+        RenderForm _renderForm;
+        RenderTarget _renderTarget2D;
         SharpDX.Direct2D1.Factory _factory2D;
         SharpDX.DirectWrite.Factory _directFactory;
-
-        //DrawMap
-        bool _isMapSet;
-        float _zoomWidth;
-        float _zoomHeight;
-        bool _isImmutableObjectsInitialized;
-        bool _isDestructiveObjectsInitialized;
-
-        int _mapWidth;
-        int _mapHeight;
-        RawColor4 _blackScreen;
-        List<ImmutableObject> _immutableMapObjects;
-        List<ImmutableObject> _immutableGrass;
-        List<DestuctiveWalls> _destuctiveWallsObjects;
-        SolidColorBrush[] _mapObjectsColors;
 
         public Map Map { get; set; }
         public TankCommon.TankSettings Settings { get; set; }
         public int FPS => _fpsmsCounter.FPSCounter;
 
+        //DrawMap
+        bool _isMapSet;
+        bool _isImmutableObjectsInitialized;
+        bool _isDestructiveObjectsInitialized;
+        int _mapWidth;
+        int _mapHeight;
+        float _zoomWidth;
+        float _zoomHeight;
+        RawColor4 _blackScreen;
+        SolidColorBrush[] _mapObjectsColors;
+        List<ImmutableObject> _immutableMapObjects;
+        List<ImmutableObject> _immutableGrass;
+        List<DestuctiveWalls> _destuctiveWallsObjects;
+
         //ClientInfo
-        public bool UIIsVisible
-        {
-            get => (_sessionTime.Visible && _clientInfoLabel.Visible); 
-            set
-            {
-                _sessionTime.Visible = value;
-                _clientInfoLabel.Visible = value;
-            }
-        }
+        bool _setted;
         bool _centeredCI;
-        Label _clientInfoLabel;
-        Label _sessionTime;
-        List<TankObject> _clientInfoTanks;
+        int _index;
+        int _nickDifLen;
+        int _scoreDifLen;
+        int _hpDifLen;
         RawVector2 _clientInfoLeftPoint;
         RawVector2 _clientInfoRightPoint;
         RectangleF _clientInfoAreaRect;
         RectangleF _cleintInfo;
         RectangleF _clientInfoTextRect;
+        System.Text.StringBuilder _clientInfoStringBuilder;
+        Label _clientInfoLabel;
+        Label _clientInfoSessionTime;
+        Label _clientInfoSessionServer;
         TextFormat _clientInfoTextFormat;
-        CustomColorRenderer _textRenderer;
         TextLayout _textLayout;
+        CustomColorRenderer _textRenderer;
+        List<string> _paddingStrings;
+        List<TankObject> _clientInfoTanks;
 
         //Entry screen
         RectangleF _logoTextRect;
@@ -256,12 +252,11 @@
         RawRectangleF _rawRectangleTemp;
 
         //Bitmap
-        RawRectangleF dstinationRectangle;
+        RawRectangleF _destinationRectangle;
         List<float> _tanksIncriments;
         List<float> _tanksOpacities;
         List<float> _upgradesIncriments;
         List<float> _upgradesOpacities;
-        BitmapInterpolationMode interpolationMode;
         Bitmap _tankUpBitmap;
         Bitmap _tankDownBitmap;
         Bitmap _tankLeftBitmap;
@@ -273,6 +268,18 @@
         Bitmap _speedUpgradeBitmap;
         Bitmap _bulletUpBitmap;
         Bitmap[] _bitmaps;
+        Bitmap[] _bricksBitmaps;
+
+        public bool UIIsVisible
+        {
+            get => (_clientInfoSessionServer.Visible && _clientInfoLabel.Visible && _clientInfoSessionTime.Visible);
+            set
+            {
+                _clientInfoSessionServer.Visible = value;
+                _clientInfoLabel.Visible = value;
+                _clientInfoSessionTime.Visible = false;
+            }
+        }
 
         public void GameSet()
         {
@@ -293,9 +300,9 @@
         {
             #region Itialization
 
-            RenderForm = renderForm;
+            _renderForm = renderForm;
             _factory2D = factory2D;
-            RenderTarget2D = renderTarget;
+            _renderTarget2D = renderTarget;
 
             _immutableMapObjects = new List<ImmutableObject>();
             _immutableGrass = new List<ImmutableObject>();
@@ -317,23 +324,23 @@
             _blackScreen = new RawColor4(0.0f, 0.0f, 0.0f, 1.0f);
 
             _mapObjectsColors = new SolidColorBrush[] {
-            /*0*/ new SolidColorBrush(RenderTarget2D, Color.White),
-            /*1*/ new SolidColorBrush(RenderTarget2D, Color.DarkRed),
-            /*2*/ new SolidColorBrush(RenderTarget2D, Color.DarkBlue),
-            /*3*/ new SolidColorBrush(RenderTarget2D, Color.GreenYellow),
-            /*4*/ new SolidColorBrush(RenderTarget2D, Color.SandyBrown),
-            /*5*/ new SolidColorBrush(RenderTarget2D, Color.Yellow), //bullet speed
-            /*6*/ new SolidColorBrush(RenderTarget2D, Color.Red), //Damage
-            /*7*/ new SolidColorBrush(RenderTarget2D, Color.Aquamarine), //Health
-            /*8*/ new SolidColorBrush(RenderTarget2D, Color.Blue), //MaxHP
-            /*9*/ new SolidColorBrush(RenderTarget2D, Color.CornflowerBlue),//Speed
-            /*10*/ new SolidColorBrush(RenderTarget2D, Color.LightYellow), //Bullet
-            /*11*/ new SolidColorBrush(RenderTarget2D, Color.White), //_defaultBrush
-            /*12*/ new SolidColorBrush(RenderTarget2D, Color.Green), //_greenBrush
-            /*13*/ new SolidColorBrush(RenderTarget2D, new RawColor4(0.3f, 0.3f, 0.3f, 0.9f)), //_backgroundBrush
-            /*14*/ new SolidColorBrush(RenderTarget2D, new RawColor4(1.0f, 1.0f, 1.0f, 1.0f)), //_logoBrush
-            /*15*/ new SolidColorBrush(RenderTarget2D, new RawColor4(0.28f, 0.88f, 0.23f, 1.0f)), //nickname
-            /*16*/ new SolidColorBrush(RenderTarget2D, new RawColor4(0.0f, 0.0f, 0.0f, 0.0f)) //nickname
+            /*0*/ new SolidColorBrush(_renderTarget2D, Color.White),
+            /*1*/ new SolidColorBrush(_renderTarget2D, Color.DarkRed),
+            /*2*/ new SolidColorBrush(_renderTarget2D, Color.DarkBlue),
+            /*3*/ new SolidColorBrush(_renderTarget2D, Color.GreenYellow),
+            /*4*/ new SolidColorBrush(_renderTarget2D, Color.SandyBrown),
+            /*5*/ new SolidColorBrush(_renderTarget2D, Color.Yellow), //bullet speed
+            /*6*/ new SolidColorBrush(_renderTarget2D, Color.Red), //Damage
+            /*7*/ new SolidColorBrush(_renderTarget2D, Color.Aquamarine), //Health
+            /*8*/ new SolidColorBrush(_renderTarget2D, Color.Blue), //MaxHP
+            /*9*/ new SolidColorBrush(_renderTarget2D, Color.CornflowerBlue),//Speed
+            /*10*/ new SolidColorBrush(_renderTarget2D, Color.LightYellow), //Bullet
+            /*11*/ new SolidColorBrush(_renderTarget2D, Color.White), //_defaultBrush
+            /*12*/ new SolidColorBrush(_renderTarget2D, Color.Green), //_greenBrush
+            /*13*/ new SolidColorBrush(_renderTarget2D, new RawColor4(0.3f, 0.3f, 0.3f, 0.9f)), //_backgroundBrush
+            /*14*/ new SolidColorBrush(_renderTarget2D, new RawColor4(1.0f, 1.0f, 1.0f, 1.0f)), //_logoBrush
+            /*15*/ new SolidColorBrush(_renderTarget2D, new RawColor4(0.28f, 0.88f, 0.23f, 1.0f)), //nickname
+            /*16*/ new SolidColorBrush(_renderTarget2D, new RawColor4(0.0f, 0.0f, 0.0f, 0.0f)) //nickname
             };
 
             #endregion
@@ -343,18 +350,18 @@
             _fpsmsTextBackground = new RectangleF(
                 _fpsmsTextRect.Left, _fpsmsTextRect.Top,
                 _fpsmsTextRect.Width, _fpsmsTextRect.Height);
-            _logoTextRect = new RectangleF((float)RenderForm.Width / 5, (float)RenderForm.Height / 3,
-                RenderForm.Width-400, 100);
+            _logoTextRect = new RectangleF((float)_renderForm.Width / 5, (float)_renderForm.Height / 3,
+                _renderForm.Width-400, 100);
             _enterTextRect = new RectangleF(
                 _logoTextRect.X + 8*_logoTextRect.X/7,
-                RenderForm.Height - (RenderForm.Height - _logoTextRect.Bottom - 200), 
-                RenderForm.Width - RenderForm.Height, 30);
+                _renderForm.Height - (_renderForm.Height - _logoTextRect.Bottom - 200), 
+                _renderForm.Width - _renderForm.Height, 30);
             _statusTextRect = new RectangleF(
                 _logoTextRect.X + 5*_logoTextRect.X/6,
-                RenderForm.Height - (RenderForm.Height - _logoTextRect.Bottom - 200),
-                RenderForm.Width - RenderForm.Height, 30);
-            _clientInfoAreaRect = new RectangleF(RenderForm.Height, 0, RenderForm.Width - RenderForm.Height, RenderForm.Height);
-            _cleintInfo = new RectangleF(RenderForm.Height + 50, 100 + 50, RenderForm.Width-RenderForm.Height-100, 500);
+                _renderForm.Height - (_renderForm.Height - _logoTextRect.Bottom - 200),
+                _renderForm.Width - _renderForm.Height, 30);
+            _clientInfoAreaRect = new RectangleF(_renderForm.Height, 0, _renderForm.Width - _renderForm.Height, _renderForm.Height);
+            _cleintInfo = new RectangleF(_renderForm.Height + 50, 100 + 50, _renderForm.Width-_renderForm.Height-100, 500);
             _clientInfoTextRect = new RectangleF(
                 _clientInfoAreaRect.X + 0.39f * _clientInfoAreaRect.X,
                 _clientInfoAreaRect.Y + 0.05f * _clientInfoAreaRect.Height, 300, 100);
@@ -382,7 +389,7 @@
 
             //advanced text renderer
             _textRenderer = new CustomColorRenderer();
-            _textRenderer.AssignResources(RenderTarget2D, _mapObjectsColors[14]);
+            _textRenderer.AssignResources(_renderTarget2D, _mapObjectsColors[14]);
 
             _centeredCI = true;
 
@@ -395,35 +402,80 @@
             _fpsmsCounter = new FpsCounter();
             _fpsmsCounter.FPSCounter = 1000;
             #endregion
-            
+
             #region UI
+            _clientInfoStringBuilder = new System.Text.StringBuilder();
+            _paddingStrings = new List<string>();
+            {
+                for (int i = 1; i < 30; i++)
+                {
+                    _paddingStrings.Add(new string('_', i));
+                }
+            }
+
             _clientInfoLabel = new Label();
             _clientInfoLabel.Text = "Client info";
             _clientInfoLabel.Font = new System.Drawing.Font("Cambria", 30);
             _clientInfoLabel.BackColor = System.Drawing.Color.Green;
             _clientInfoLabel.ForeColor = System.Drawing.Color.White;
-            _clientInfoLabel.Location = new System.Drawing.Point(RenderForm.Height+250, 30);
+            _clientInfoLabel.Location = new System.Drawing.Point(_renderForm.Height + 250, 30);
             _clientInfoLabel.AutoSize = true;
             _clientInfoLabel.Visible = false;
 
-            _sessionTime = new Label();
-            _sessionTime.Text = server;
-            _sessionTime.Font = new System.Drawing.Font("Cambria", 16);
-            _sessionTime.BackColor = System.Drawing.Color.Green;
-            _sessionTime.ForeColor = System.Drawing.Color.White;
-            _sessionTime.Location = new System.Drawing.Point(RenderForm.Height + 20, 40);
-            _sessionTime.AutoSize = true;
-            _sessionTime.Visible = false;
+            _clientInfoSessionTime = new Label();
+            _clientInfoSessionTime.Text = "Session time: ";
+            _clientInfoSessionTime.Font = new System.Drawing.Font("Cambria", 16);
+            _clientInfoSessionTime.BackColor = System.Drawing.Color.Green;
+            _clientInfoSessionTime.ForeColor = System.Drawing.Color.White;
+            _clientInfoSessionTime.Location = new System.Drawing.Point(_renderForm.Height + 250, 30);
+            _clientInfoSessionTime.AutoSize = true;
+            _clientInfoSessionTime.Visible = false;
 
-            RenderForm.Controls.Add(_sessionTime);
-            RenderForm.Controls.Add(_clientInfoLabel);
+            _clientInfoSessionServer = new Label();
+            _clientInfoSessionServer.Text = server;
+            _clientInfoSessionServer.Font = new System.Drawing.Font("Cambria", 16);
+            _clientInfoSessionServer.BackColor = System.Drawing.Color.Green;
+            _clientInfoSessionServer.ForeColor = System.Drawing.Color.White;
+            _clientInfoSessionServer.Location = new System.Drawing.Point(_renderForm.Height + 20, 40);
+            _clientInfoSessionServer.AutoSize = true;
+            _clientInfoSessionServer.Visible = false;
+
+            _renderForm.Controls.Add(_clientInfoSessionServer);
+            _renderForm.Controls.Add(_clientInfoSessionTime);
+            _renderForm.Controls.Add(_clientInfoLabel);
             #endregion
 
-            //Loading resources
-            LoadResources();
+            #region BitmapLoading
+
+            _destinationRectangle = new RawRectangleF(0, 0, 100, 100);
+            _bitmaps = new Bitmap[4];
+
+            _bitmaps[0] = LoadFromFile(_renderTarget2D, @"img\wall.png");
+            _bitmaps[1] = LoadFromFile(_renderTarget2D, @"img\water2.png");
+            _bitmaps[2] = LoadFromFile(_renderTarget2D, @"img\Grass_T.png");
+            _bitmaps[3] = LoadFromFile(_renderTarget2D, @"img\brick4k.png");
+
+            _bricksBitmaps = new Bitmap[25];
+            for (int i = 0; i < 25; i++)
+            {
+                _bricksBitmaps[i] = LoadFromFile(_renderTarget2D, @"img\bricks\"+i+".png");
+            }
+
+            _tankUpBitmap = LoadFromFile(_renderTarget2D, @"img\tank\tankUp.png");
+            _tankDownBitmap = LoadFromFile(_renderTarget2D, @"img\tank\tankDown.png");
+            _tankLeftBitmap = LoadFromFile(_renderTarget2D, @"img\tank\tankLeft.png");
+            _tankRightBitmap = LoadFromFile(_renderTarget2D, @"img\tank\tankRight.png");
+
+            _bulletSpeedUpgradeBitmap = LoadFromFile(_renderTarget2D, @"img\upgrade\BulletSpeed.png");
+            _damageUpgradeBitmap = LoadFromFile(_renderTarget2D, @"img\upgrade\Damage.png");
+            _healthUpgradeBitmap = LoadFromFile(_renderTarget2D, @"img\upgrade\Health.png");
+            _maxHpUpgradeBitmap = LoadFromFile(_renderTarget2D, @"img\upgrade\MaxHp.png");
+            _speedUpgradeBitmap = LoadFromFile(_renderTarget2D, @"img\upgrade\Speed.png");
+
+            #endregion
 
         }
-        
+
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public long GetElapsedMs()
         {
@@ -433,7 +485,7 @@
         [System.Runtime.CompilerServices.MethodImpl(256)]
         protected void FillBlock(RawRectangleF rectangle, SolidColorBrush brush)
         {
-            RenderTarget2D.FillRectangle(rectangle, brush);
+            _renderTarget2D.FillRectangle(rectangle, brush);
         }
         
         [System.Runtime.CompilerServices.MethodImpl(256)]
@@ -444,29 +496,29 @@
             {
                 _fpsmsCounter.CalculateFpsMs();
             }
-            RenderTarget2D.FillRectangle(_fpsmsTextBackground, _mapObjectsColors[13]);
-            RenderTarget2D.DrawText(_fpsmsCounter.ToString(), _fpsmsTextFormat, _fpsmsTextRect, _mapObjectsColors[12]);
+            _renderTarget2D.FillRectangle(_fpsmsTextBackground, _mapObjectsColors[13]);
+            _renderTarget2D.DrawText(_fpsmsCounter.ToString(), _fpsmsTextFormat, _fpsmsTextRect, _mapObjectsColors[12]);
         }
         
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawLogo()
         {
-            RenderTarget2D.Clear(_blackScreen);
-            RenderTarget2D.DrawText("Battle City v0.1",
+            _renderTarget2D.Clear(_blackScreen);
+            _renderTarget2D.DrawText("Battle City v0.1",
                 _logoBrushTextFormat, _logoTextRect, _mapObjectsColors[14]);
             _textColorAnimation.AnimationStart(100, ref _mapObjectsColors[11]);
-            RenderTarget2D.DrawText("Press Enter to start a game",
+            _renderTarget2D.DrawText("Press Enter to start a game",
                 _statusTextFormat, _enterTextRect, _mapObjectsColors[11]);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawWaitingLogo()
         {
-            RenderTarget2D.Clear(_blackScreen);
-            RenderTarget2D.DrawText("Battle City v0.1",
+            _renderTarget2D.Clear(_blackScreen);
+            _renderTarget2D.DrawText("Battle City v0.1",
                 _logoBrushTextFormat, _logoTextRect, _mapObjectsColors[14]);
             _textAnimation.AnimationStart(300, ".");
-            RenderTarget2D.DrawText(_textAnimation.GetAnimatedString(),
+            _renderTarget2D.DrawText(_textAnimation.GetAnimatedString(),
                 _statusTextFormat, _statusTextRect, _mapObjectsColors[14]);
         }
 
@@ -483,8 +535,8 @@
                 
                 _mapWidth  = Map.MapWidth /*Map.Cells.GetLength(0)*/;
                 _mapHeight = Map.MapHeight/*Map.Cells.GetLength(1)*/;
-                _zoomWidth = RenderTarget2D.Size.Height / _mapWidth;
-                _zoomHeight = RenderTarget2D.Size.Height / _mapHeight;
+                _zoomWidth = _renderTarget2D.Size.Height / _mapWidth;
+                _zoomHeight = _renderTarget2D.Size.Height / _mapHeight;
             }
 
             //неизменяемые
@@ -562,7 +614,7 @@
             {
                 foreach (var obj in _immutableMapObjects)
                 {
-                    RenderTarget2D.DrawBitmap(_bitmaps[obj.BitmapIndex], obj.Rectangle, 
+                    _renderTarget2D.DrawBitmap(_bitmaps[obj.BitmapIndex], obj.Rectangle, 
                         1.0f, BitmapInterpolationMode.Linear);
                 }
             }
@@ -570,6 +622,7 @@
             if (!_isDestructiveObjectsInitialized)
             {
                 _isDestructiveObjectsInitialized = true;
+                int index = 0;
                 for (var i = 5; i < (_mapHeight - 5); i++)
                 {
                     for (var j = 5; j < (_mapWidth - 5); j++)
@@ -582,20 +635,23 @@
                             _rawRectangleTemp.Right = j * _zoomWidth + _zoomWidth;
                             _rawRectangleTemp.Bottom = i * _zoomHeight + _zoomHeight;
                             _destuctiveWallsObjects.Add(new DestuctiveWalls((char)1, i, j, _rawRectangleTemp));
-                            RenderTarget2D.DrawBitmap(_bitmaps[3], _rawRectangleTemp, 
+                            _renderTarget2D.DrawBitmap(_bricksBitmaps[index%25], _rawRectangleTemp, 
                                 1.0f, BitmapInterpolationMode.Linear);
+                            ++index;
                         }
                     }
                 }
             }
             else
             {
+                int index = 0;
                 foreach (var obj in _destuctiveWallsObjects)
                 {
                     if (Map[obj.RowIndex, obj.ColumnIndex] == CellMapType.DestructiveWall)
                     {
-                        RenderTarget2D.DrawBitmap(_bitmaps[3], obj.Rectangle, 
+                        _renderTarget2D.DrawBitmap(_bricksBitmaps[index%25], obj.Rectangle, 
                             1.0f, BitmapInterpolationMode.Linear);
+                        ++index;
                     }
                 }
             }
@@ -606,7 +662,7 @@
         {
             foreach (var obj in _immutableGrass)
             {
-                RenderTarget2D.DrawBitmap(
+                _renderTarget2D.DrawBitmap(
                     _bitmaps[obj.BitmapIndex], 
                     obj.Rectangle, 
                     1.0f, BitmapInterpolationMode.Linear);
@@ -638,8 +694,8 @@
                                 _rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
                                 _rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
                                 _rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
-                                RenderTarget2D.DrawBitmap(_bulletSpeedUpgradeBitmap, _rawRectangleTemp, 
-                                    _upgradesOpacities[upgradeIndex], interpolationMode);
+                                _renderTarget2D.DrawBitmap(_bulletSpeedUpgradeBitmap, _rawRectangleTemp, 
+                                    _upgradesOpacities[upgradeIndex], BitmapInterpolationMode.Linear);
                             }
                             break;
                         case UpgradeType.Damage:
@@ -648,8 +704,8 @@
                                 _rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
                                 _rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
                                 _rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
-                                RenderTarget2D.DrawBitmap(_damageUpgradeBitmap, _rawRectangleTemp,
-                                    _upgradesOpacities[upgradeIndex], interpolationMode);
+                                _renderTarget2D.DrawBitmap(_damageUpgradeBitmap, _rawRectangleTemp,
+                                    _upgradesOpacities[upgradeIndex], BitmapInterpolationMode.Linear);
                             }
                             break;
                         case UpgradeType.Health:
@@ -658,8 +714,8 @@
                                 _rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
                                 _rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
                                 _rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
-                                RenderTarget2D.DrawBitmap(_healthUpgradeBitmap, _rawRectangleTemp,
-                                    _upgradesOpacities[upgradeIndex], interpolationMode);
+                                _renderTarget2D.DrawBitmap(_healthUpgradeBitmap, _rawRectangleTemp,
+                                    _upgradesOpacities[upgradeIndex], BitmapInterpolationMode.Linear);
                             }
                             break;
                         case UpgradeType.MaxHp:
@@ -668,8 +724,8 @@
                                 _rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
                                 _rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
                                 _rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
-                                RenderTarget2D.DrawBitmap(_maxHpUpgradeBitmap, _rawRectangleTemp,
-                                    _upgradesOpacities[upgradeIndex], interpolationMode);
+                                _renderTarget2D.DrawBitmap(_maxHpUpgradeBitmap, _rawRectangleTemp,
+                                    _upgradesOpacities[upgradeIndex], BitmapInterpolationMode.Linear);
                             }
                             break;
                         case UpgradeType.Speed:
@@ -678,8 +734,8 @@
                                 _rawRectangleTemp.Top = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top) * _zoomHeight;
                                 _rawRectangleTemp.Right = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Left + upgradeObject.Rectangle.Width) * _zoomWidth;
                                 _rawRectangleTemp.Bottom = Convert.ToSingle(upgradeObject.Rectangle.LeftCorner.Top + upgradeObject.Rectangle.Height) * _zoomHeight;
-                                RenderTarget2D.DrawBitmap(_speedUpgradeBitmap, _rawRectangleTemp,
-                                    _upgradesOpacities[upgradeIndex], interpolationMode);
+                                _renderTarget2D.DrawBitmap(_speedUpgradeBitmap, _rawRectangleTemp,
+                                    _upgradesOpacities[upgradeIndex], BitmapInterpolationMode.Linear);
                             }
                             break;
                     }
@@ -692,7 +748,6 @@
                     _rawRectangleTemp.Right = Convert.ToSingle(bulletObject.Rectangle.LeftCorner.Left + bulletObject.Rectangle.Width) * _zoomWidth;
                     _rawRectangleTemp.Bottom = Convert.ToSingle(bulletObject.Rectangle.LeftCorner.Top + bulletObject.Rectangle.Height) * _zoomHeight;
                     FillBlock(_rawRectangleTemp, _mapObjectsColors[10]);
-                    //RenderTarget2D.DrawBitmap(_bulletUpBitmap, rawRectangleTemp, 1.0f, interpolationMode);
                 }
             }
         }
@@ -725,8 +780,8 @@
                         _nickBackRectangle.Top = _nickRectangle.Top - 3;
                         _nickBackRectangle.Bottom = _nickRectangle.Bottom + 5;
 
-                        RenderTarget2D.FillRectangle(_nickBackRectangle, _mapObjectsColors[13]);
-                        RenderTarget2D.DrawText(tankObject.Nickname,
+                        _renderTarget2D.FillRectangle(_nickBackRectangle, _mapObjectsColors[13]);
+                        _renderTarget2D.DrawText(tankObject.Nickname,
                             _nicknameTextFormat, _nickRectangle, _mapObjectsColors[15]);
 
                         if (tankObject.IsInvulnerable)
@@ -744,19 +799,19 @@
                         
                         if (tankObject.Direction == DirectionType.Up)
                         {
-                            RenderTarget2D.DrawBitmap(_tankUpBitmap, _tankRectangle, _tanksOpacities[tankIndex], interpolationMode);
+                            _renderTarget2D.DrawBitmap(_tankUpBitmap, _tankRectangle, _tanksOpacities[tankIndex], BitmapInterpolationMode.Linear);
                         }
                         else if (tankObject.Direction == DirectionType.Down)
                         {
-                            RenderTarget2D.DrawBitmap(_tankDownBitmap, _tankRectangle, _tanksOpacities[tankIndex], interpolationMode);
+                            _renderTarget2D.DrawBitmap(_tankDownBitmap, _tankRectangle, _tanksOpacities[tankIndex], BitmapInterpolationMode.Linear);
                         }
                         else if (tankObject.Direction == DirectionType.Left)
                         {
-                            RenderTarget2D.DrawBitmap(_tankLeftBitmap, _tankRectangle, _tanksOpacities[tankIndex], interpolationMode);
+                            _renderTarget2D.DrawBitmap(_tankLeftBitmap, _tankRectangle, _tanksOpacities[tankIndex], BitmapInterpolationMode.Linear);
                         }
                         else if (tankObject.Direction == DirectionType.Right)
                         {
-                            RenderTarget2D.DrawBitmap(_tankRightBitmap, _tankRectangle, _tanksOpacities[tankIndex], interpolationMode);
+                            _renderTarget2D.DrawBitmap(_tankRightBitmap, _tankRectangle, _tanksOpacities[tankIndex], BitmapInterpolationMode.Linear);
                         }
                     }
                     ++tankIndex;
@@ -770,123 +825,107 @@
             if (_centeredCI)
             {
                 _centeredCI = false;
-                _sessionTime.Location = new System.Drawing.Point(50, 40);
+                _clientInfoSessionServer.Location = new System.Drawing.Point(50, 40);
                 _clientInfoLabel.Location = new System.Drawing.Point(
-                    RenderForm.Width / 2-150, 30);
+                    _renderForm.Width / 2-150, 30);
                 _clientInfoAreaRect = new RectangleF(0, 0, 
-                    RenderForm.Width, RenderForm.Height);
+                    _renderForm.Width, _renderForm.Height);
                 _clientInfoLeftPoint =
                     new RawVector2(0,
                                    _clientInfoTextRect.Y + 0.6f * _clientInfoTextRect.Height);
                 _clientInfoRightPoint = new RawVector2(
-                                    RenderForm.Width,
+                                    _renderForm.Width,
                                     _clientInfoTextRect.Y + 0.6f * _clientInfoTextRect.Height);
                 _cleintInfo = new RectangleF(
-                    (float)RenderForm.Width / 3,
+                    (float)_renderForm.Width / 3,
                     100 + 50, 
-                    RenderForm.Width - RenderForm.Height - 100, 500);
+                    _renderForm.Width - _renderForm.Height - 100, 500);
             }
             else
             {
                 _centeredCI = true;
-                _sessionTime.Location = new System.Drawing.Point(RenderForm.Height + 20, 40);
-                _clientInfoLabel.Location = new System.Drawing.Point(RenderForm.Height + 250, 30);
-                _clientInfoAreaRect = new RectangleF(RenderForm.Height, 0, 
-                    RenderForm.Width - RenderForm.Height, RenderForm.Height);
+                _clientInfoSessionServer.Location = new System.Drawing.Point(_renderForm.Height + 20, 40);
+                _clientInfoLabel.Location = new System.Drawing.Point(_renderForm.Height + 250, 30);
+                _clientInfoAreaRect = new RectangleF(_renderForm.Height, 0, 
+                    _renderForm.Width - _renderForm.Height, _renderForm.Height);
                 _clientInfoLeftPoint = 
                     new RawVector2(_clientInfoAreaRect.X,
                                     _clientInfoTextRect.Y + 0.6f * _clientInfoTextRect.Height);
                 _clientInfoRightPoint = new RawVector2(
                                     _clientInfoAreaRect.X + _clientInfoAreaRect.Width,
                                     _clientInfoTextRect.Y + 0.6f * _clientInfoTextRect.Height);
-                _cleintInfo = new RectangleF(RenderForm.Height + 50, 
+                _cleintInfo = new RectangleF(_renderForm.Height + 50, 
                     100 + 50, 
-                    RenderForm.Width - RenderForm.Height - 100, 500);
+                    _renderForm.Width - _renderForm.Height - 100, 500);
             }
         }
 
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawClientInfo()
         {
-            RenderTarget2D.Clear(_blackScreen);
-            RenderTarget2D.FillRectangle(_clientInfoAreaRect, _mapObjectsColors[13]);
-            RenderTarget2D.DrawLine(_clientInfoLeftPoint, _clientInfoRightPoint, _mapObjectsColors[12], 10);
+            _renderTarget2D.Clear(_blackScreen);
+            _renderTarget2D.FillRectangle(_clientInfoAreaRect, _mapObjectsColors[13]);
+            _renderTarget2D.DrawLine(_clientInfoLeftPoint, _clientInfoRightPoint, _mapObjectsColors[12], 10);
+            _clientInfoSessionTime.Text = $"Session tome: {Settings?.SessionTime}";
             _clientInfoTanks.AddRange(
                 Map.InteractObjects.OfType<TankObject>().OrderByDescending(t => t.Score).ToList());
 
-            int index = 0;
-            int nickDifLen = 0;
-            int scoreDifLen = 0;
-            int hpDifLen = 0;
-            System.Text.StringBuilder sb = new System.Text.StringBuilder();
-            sb.Append("Id Nickname                  Score          Hp     Lives\n");
+            _index = 0;
+            _nickDifLen = 0;
+            _scoreDifLen = 0;
+            _hpDifLen = 0;
+            _clientInfoStringBuilder.Append("Id Nickname                  Score          Hp     Lives\n");
             foreach (var tank in _clientInfoTanks)
             {
                 string score = tank.Score.ToString();
                 string hp = tank.Hp.ToString();
-                nickDifLen = 16 - tank.Nickname.Length;
-                scoreDifLen = 9 - score.Length;
-                hpDifLen = 7 - hp.Length;
-                sb.AppendFormat("{0}  {1}  {2} {3} {4}\n", 
-                    index.ToString(), 
-                    (nickDifLen  <= 0) ? tank.Nickname : tank.Nickname + new string('_', nickDifLen),
-                    (scoreDifLen <= 0) ? score : score + new string('_', scoreDifLen),
-                    (hpDifLen    <= 0) ? hp : hp + new string('_', hpDifLen),
+                _nickDifLen = 16 - tank.Nickname.Length;
+                _scoreDifLen = 9 - score.Length;
+                _hpDifLen = 7 - hp.Length;
+                _clientInfoStringBuilder.AppendFormat("{0}  {1}  {2} {3} {4}\n", 
+                    _index.ToString(), 
+                    (_nickDifLen <= 0) ? tank.Nickname : tank.Nickname + _paddingStrings[_nickDifLen],
+                    (_scoreDifLen <= 0) ? score         : score         + _paddingStrings[_scoreDifLen],
+                    (_hpDifLen <= 0) ? hp            : hp            + _paddingStrings[_hpDifLen],
                     tank.Lives.ToString());
-                ++index;
+                ++_index;
             }
             
-            _textLayout = new TextLayout(_directFactory, sb.ToString(), 
-                _clientInfoTextFormat, _cleintInfo.Width, _cleintInfo.Height);
-            bool setted = false;
-            int sbindex = 0;
-            for (int i = 0; i < (sb.Length-1); i++)
+            //Deleting '_' (made them invisible)
+            _setted = false;
+            _index = 0;
+            _textLayout = new TextLayout(
+                _directFactory, 
+                _clientInfoStringBuilder.ToString(), 
+                _clientInfoTextFormat, 
+                _cleintInfo.Width, _cleintInfo.Height);
+            for (int i = 0; i < (_clientInfoStringBuilder.Length-1); i++)
             {
-                if (sb[i] == '_')
+                if (_clientInfoStringBuilder[i] == '_')
                 {
-                    if (!setted)
+                    if (!_setted)
                     {
-                        sbindex = i;
+                        _index = i;
                     }
-                    setted = true;
+                    _setted = true;
 
-                    if (setted && sb[i + 1] != '_')
+                    if (_setted && _clientInfoStringBuilder[i + 1] != '_')
                     {
-                        _textLayout.SetDrawingEffect(_mapObjectsColors[16], new TextRange(sbindex, i));
-                        _textLayout.SetDrawingEffect(_mapObjectsColors[14], new TextRange(i+1, i+1));
-                        setted = false;
+                        _textLayout?.SetDrawingEffect(_mapObjectsColors[16], new TextRange(_index, i));
+                        _textLayout?.SetDrawingEffect(_mapObjectsColors[14], new TextRange(i+1, i+1));
+                        _setted = false;
                     }
                 }
             }
+
+            //Draw
             _textLayout.Draw(_textRenderer, _cleintInfo.X, _cleintInfo.Y);
             _textLayout.Dispose();
 
+            _clientInfoStringBuilder.Clear();
             _clientInfoTanks.Clear();
         }
-
-        public void LoadResources()
-        {
-            dstinationRectangle = new RawRectangleF(0, 0, 100, 100);
-            interpolationMode = BitmapInterpolationMode.Linear;
-            _bitmaps = new Bitmap[4];
-
-            _bitmaps[0] = LoadFromFile(RenderTarget2D, @"img\wall.png");
-            _bitmaps[1] = LoadFromFile(RenderTarget2D, @"img\water2.png");
-            _bitmaps[2] = LoadFromFile(RenderTarget2D, @"img\Grass_T.png");
-            _bitmaps[3] = LoadFromFile(RenderTarget2D, @"img\brick4k.png");
-
-            _tankUpBitmap = LoadFromFile(RenderTarget2D, @"img\tank\tankUp.png");
-            _tankDownBitmap = LoadFromFile(RenderTarget2D, @"img\tank\tankDown.png");
-            _tankLeftBitmap = LoadFromFile(RenderTarget2D, @"img\tank\tankLeft.png");
-            _tankRightBitmap = LoadFromFile(RenderTarget2D, @"img\tank\tankRight.png");
-
-            _bulletSpeedUpgradeBitmap = LoadFromFile(RenderTarget2D, @"img\upgrade\BulletSpeed.png");
-            _damageUpgradeBitmap = LoadFromFile(RenderTarget2D, @"img\upgrade\Damage.png");
-            _healthUpgradeBitmap = LoadFromFile(RenderTarget2D, @"img\upgrade\Health.png");
-            _maxHpUpgradeBitmap = LoadFromFile(RenderTarget2D, @"img\upgrade\MaxHp.png");
-            _speedUpgradeBitmap = LoadFromFile(RenderTarget2D, @"img\upgrade\Speed.png");
-        }
-
+        
         public static Bitmap LoadFromFile(RenderTarget renderTarget, string file)
         {
             // Loads from file using System.Drawing.Image
