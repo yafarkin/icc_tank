@@ -958,6 +958,12 @@ namespace TankServer
                     x.Speed = x.Speed == defaultTankSettings.TankSpeed * defaultTankSettings.GameSpeed
                         ? settings.TankSpeed * settings.GameSpeed
                         : settings.TankSpeed * settings.GameSpeed + (x.Speed - defaultTankSettings.TankSpeed * defaultTankSettings.GameSpeed);
+                    x.Hp = x.Hp > settings.TankMaxHP + (x.MaximumHp - defaultTankSettings.TankMaxHP)
+                        ? settings.TankMaxHP + (x.MaximumHp - defaultTankSettings.TankMaxHP)
+                        : x.Hp;
+                    x.MaximumHp = x.MaximumHp == defaultTankSettings.TankMaxHP
+                        ? settings.TankMaxHP
+                        : settings.TankMaxHP + (x.MaximumHp - defaultTankSettings.TankMaxHP);
                 });
 
                 Map.InteractObjects.OfType<UpgradeInteractObject>().ToList().ForEach(x =>

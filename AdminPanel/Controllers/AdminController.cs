@@ -140,7 +140,7 @@ namespace AdminPanel.Controllers
                 Ip = string.Join(", ", ips),
                 Port = x.Server.serverSettings.Port,
                 Type = x.Server.serverSettings.ServerType.GetDescription(),
-                People = x.Server.Clients.Count(z => !z.Value.IsSpecator) + " / " + x.Server.serverSettings.MaxClientCount
+                People = x.Server.Clients.Count(z => !string.IsNullOrWhiteSpace(z.Value.Nickname)) + " / " + x.Server.serverSettings.MaxClientCount
             });
 
             return result.ToJson();
@@ -159,19 +159,16 @@ namespace AdminPanel.Controllers
         {
             var tankSettings = request.FromJson<TankSettings>();
             if (tankSettings == null) return;
+            var server = Program.Servers.FirstOrDefault(x => x.Id == id && !x.Task.IsCanceled);
 
-            if (Program.ServerStatusIsRun(id))
+            if (server == null)
             {
-                var server = Program.Servers.FirstOrDefault(x => x.Id == id);
-                if (server == null)
-                {
-                    return;
-                }
-
-                server.Server.serverSettings.TankSettings = tankSettings;
+                return;
             }
+
+            server.Server.serverSettings.TankSettings = tankSettings;
         }
-        
+
         /// <summary>
         /// Останавливает сервер
         /// </summary>
@@ -179,11 +176,10 @@ namespace AdminPanel.Controllers
         [HttpPost]
         public void StopServer([FromForm] int id)
         {
-            var status = Program.ServerStatusIsRun(id);
+            var server = Program.Servers.FirstOrDefault(x => x.Id == id && !x.Task.IsCanceled);
                 
-            if (status)
+            if (server != null)
             {
-                var server = Program.Servers[id - 1];
                 server.CancellationToken.Cancel();
                 Program.Servers.Remove(server);
             }
