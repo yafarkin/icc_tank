@@ -44,7 +44,7 @@ namespace TankServer
                 case MapType.Default_map:
                     Map = MapManager.LoadMap(serverSettings.Height, serverSettings.Width, CellMapType.Wall, 50, 50);
                     break;
-                case MapType.Emty_map:
+                case MapType.Empty_map:
                     Map = MapManager.LoadMap(serverSettings.Height, serverSettings.Width, CellMapType.Wall, 0, 0);
                     break;
                 case MapType.Manual_Map_1:
