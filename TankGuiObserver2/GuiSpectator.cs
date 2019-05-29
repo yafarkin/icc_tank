@@ -1,4 +1,4 @@
-﻿#define LOGGED_CONNECTOR
+﻿//#define LOGGED_CONNECTOR
 #define LOGGED_GUI_SPECTATOR
 #define LOGGED_GUI_OBSERVER_CORE
 
@@ -108,7 +108,7 @@ namespace TankGuiObserver2
         {
             while (!_cancellationToken.IsCancellationRequested)
             {
-                await Task.Delay(100);
+                await Task.Delay(400);
                 if (!_wasUpdate)
                 {
                     LogInfo("flag: !_wasUpdate [GuiSpectator]");
@@ -298,7 +298,8 @@ namespace TankGuiObserver2
 
                 CancellationTokenSource tokenSource = new CancellationTokenSource();
 
-                while (!cancellationToken.IsCancellationRequested && _webSocketProxy.State == WebSocketState.Open)
+                while (!cancellationToken.IsCancellationRequested && 
+                    _webSocketProxy.State == WebSocketState.Open)
                 {
                     var inputData = _webSocketProxy.GetMessage();
                     if (string.IsNullOrWhiteSpace(inputData))
