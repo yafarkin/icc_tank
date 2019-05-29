@@ -12,11 +12,13 @@ var serverTypeList = [];
 class UserForm extends React.Component {
     postHelper(method, data) {
         var form = new FormData();
-        form.append('request', data);
+        if (data)
+            form.append('request', data);
+
         var requestType = { method: "POST", body: form };
         var url = `admin/${method}`;
 
-        fetch(url, requestType);
+        return fetch(url, requestType).then((x) => { if(x) return x.json(); });
     }
 
     getHelper(method) {
@@ -31,7 +33,8 @@ class UserForm extends React.Component {
         this.state = {
             viewModal: false,
             serverList: [],
-            viewTankSettings: false
+            viewTankSettings: false,
+            error: ""
         };
 
         this.openModal = this.openModal.bind(this);
@@ -41,11 +44,16 @@ class UserForm extends React.Component {
         this.updateServerList = this.updateServerList.bind(this);
         this.editTankSettings = this.editTankSettings.bind(this);
         this.viewTankSettings = this.viewTankSettings.bind(this);
+        this.stopServer = this.stopServer.bind(this);
     }
 
     getList(method) {
         var list = [];
-        this.getHelper(method).then(x => list.push(x[0]));
+        this.getHelper(method).then(x => {
+            if (x.length > 1) x.forEach(z => list.push(z));
+            else
+                list.push(x[0]);
+        });
         return list;
     }
 
@@ -76,7 +84,11 @@ class UserForm extends React.Component {
         var result = this.getText(document.getElementById('modal'));
         this.openModal();
 
-        this.postHelper("CreateServer", result);
+        this.postHelper("CreateServer", result).then(x => {
+            if (x.error) {
+                console.log(x.error);
+            }
+        });
     }
 
     openModal() {
@@ -86,7 +98,6 @@ class UserForm extends React.Component {
 
     editTankSettings() {
         var id = document.getElementById('ServerId').value;
-        console.log(id);
         var result = this.getText(document.getElementById('TankSettings'));
         this.viewTankSettings();
 
@@ -95,6 +106,11 @@ class UserForm extends React.Component {
 
     viewTankSettings() {
         this.setState({ viewTankSettings: !this.state.viewTankSettings });
+    }
+
+    stopServer() {
+        var id = document.getElementById('ServerId').value;
+        this.postHelper(`StopServer?id=${id}`);
     }
 
     render() {
@@ -123,7 +139,8 @@ class UserForm extends React.Component {
                     if (e)
                     return <option value={e.Id}>{e.Name}</option>;
                 })}</select>
-                <button className={this.state.viewModal ? 'btn btn-primary invisible' : 'btn btn-primary visible'} id="AddServer" onClick={this.viewTankSettings}>{this.state.viewTankSettings ? 'Cancel' : 'Edit'}</button>
+                <button className={this.state.viewModal ? 'btn btn-primary invisible' : 'btn btn-primary visible'} disabled={!this.state.serverList[0]} id="AddServer" onClick={this.viewTankSettings}>{this.state.viewTankSettings ? 'Cancel' : 'Edit'}</button>
+                <button className={this.state.viewTankSettings ? 'btn btn-primary invisible' : 'btn btn-primary visible'} disabled={!this.state.serverList[0]} id="AddServer" onClick={this.stopServer}>Stop Server</button>
                 <button className={this.state.viewModal === this.state.viewTankSettings ? 'btn btn-primary visible' : 'btn btn-primary invisible'} id="AddServer" onClick={this.openModal}>{this.state.viewModal ? 'Close' : 'Add'}</button>
                 <div id="modal">
                     <div id="SessionName" className={this.state.viewModal ? 'visible' : 'invisible'}>

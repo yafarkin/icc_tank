@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -25,66 +24,65 @@ namespace AdminPanel.Controllers
         /// </summary>
         /// <param name="serverSettings">Класс настроек сервера и темпа игры</param>
         [HttpPost]
-        public void CreateServer([FromForm] string request)
+        public string CreateServer([FromForm] string request)
         {
             var serverSettings = request.FromJson<ServerSettings>();
-            if (string.IsNullOrWhiteSpace(serverSettings.SessionName)) return;
+            if (string.IsNullOrWhiteSpace(serverSettings.SessionName))
+            {
+                var message = new {error = "Имя не должно быть пустым"};
+                return message.ToJson();
+            }
 
             var port = 2000;
             while (true)
             {
-                if (Program.Servers.Any(x => x.Port == port))
+                lock (Program.Servers)
                 {
-                    port += 10;
-                }
-                else
-                {
-                    break;
+                    if (Program.Servers.Any(x => x.Port == port))
+                    {
+                        port += 10;
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
             }
 
-            // TODO try-catch
-            var configuration = new ConfigurationBuilder()
-                .AddJsonFile("serversetting.json")
-                .Build();
-
-            serverSettings.ServerTickRate = Convert.ToInt32(configuration["ServerTickRate"]);
-            serverSettings.PlayerTickRate = Convert.ToInt32(configuration["PlayerTickRate"]);
-            serverSettings.SpectatorTickRate = Convert.ToInt32(configuration["SpectatorTickRate"]);
-
-            serverSettings.Port = port;
-/*
-            var tankSettings = new TankSettings()
+            try
             {
-                Version = 1,
-                gameSpeed = (int)gameSpeed,
-                tankSpeed = (int)tankSpeed,
-                bulletSpeed = (int)bulletSpeed,
-                tankDamage = (int)tankDamage
-            };
+                var configuration = new ConfigurationBuilder()
+                    .AddJsonFile("serversetting.json")
+                    .Build();
 
-            var serverSettings = new ServerSettings()
+                serverSettings.ServerTickRate = Convert.ToInt32(configuration["ServerTickRate"]);
+                serverSettings.PlayerTickRate = Convert.ToInt32(configuration["PlayerTickRate"]);
+                serverSettings.SpectatorTickRate = Convert.ToInt32(configuration["SpectatorTickRate"]);
+
+                serverSettings.Port = port;
+
+                var server = new Server(serverSettings, Program.Logger);
+
+                lock (Program.Servers)
+                {
+                    Program.Servers.Add(new ServerEntity()
+                    {
+                        Id = Program.Servers.Count == 0 ? 1 : Program.Servers.Count + 1,
+                        Server = server,
+                        Port = (uint) port,
+                        Task = server.Run(new CancellationTokenSource().Token)
+                    });
+                }
+
+                Program.Servers.Last().Task.Start();
+            }
+            catch (Exception ex)
             {
-                SessionName = nameSession,
-                MapType = (TankCommon.Enum.MapType)1,
-                Width = (int)width,
-                Height = (int)height,
-                MaxClientCount = (uint)maxClientsCount,
-                Port = port,
-                ServerType = TankCommon.Enum.ServerType.BattleCity,
-                TankSettings = tankSettings
-            };    */        
+                Program.Logger.Error($"Ошибка во время работы: {ex}");
+                return (new {error = ex.Message}).ToJson();
+            }
 
-            var server = new Server(serverSettings, Program.Logger);
-            var cancellationToken = new CancellationTokenSource();
-
-            Program.Servers.Add(new ServerEntity()
-            {
-                Id = Program.Servers.Count == 0 ? 1 : Program.Servers.Count,
-                CancellationToken = cancellationToken,
-                Server = server,
-                Task = server.Run(cancellationToken.Token)
-            });                        
+            return string.Empty;
         }
 
         /// <summary>
@@ -132,7 +130,7 @@ namespace AdminPanel.Controllers
         public string GetServerList()
         {
             var ips = Dns.GetHostEntry(Dns.GetHostName()).AddressList.Where(z => z.AddressFamily == AddressFamily.InterNetwork);
-            Task.Delay(250);
+            Task.Delay(150);
             var result = Program.Servers.Select(x => new
             {
                 Id = x.Id,
@@ -140,7 +138,7 @@ namespace AdminPanel.Controllers
                 Ip = string.Join(", ", ips),
                 Port = x.Server.serverSettings.Port,
                 Type = x.Server.serverSettings.ServerType.GetDescription(),
-                People = x.Server.Clients.Count(z => !z.Value.IsSpecator) + " / " + x.Server.serverSettings.MaxClientCount
+                People = x.Server.Clients.Count(z => !string.IsNullOrWhiteSpace(z.Value.Nickname)) + " / " + x.Server.serverSettings.MaxClientCount
             });
 
             return result.ToJson();
@@ -159,32 +157,29 @@ namespace AdminPanel.Controllers
         {
             var tankSettings = request.FromJson<TankSettings>();
             if (tankSettings == null) return;
+            var server = Program.Servers.FirstOrDefault(x => x.Id == id && !x.Task.IsCanceled);
 
-            if (Program.ServerStatusIsRun(id))
+            if (server == null)
             {
-                var server = Program.Servers.FirstOrDefault(x => x.Id == id);
-                if (server == null)
-                {
-                    return;
-                }
-
-                server.Server.serverSettings.TankSettings = tankSettings;
+                return;
             }
+
+            server.Server.serverSettings.TankSettings = tankSettings;
         }
-        
+
         /// <summary>
         /// Останавливает сервер
         /// </summary>
         /// <param name="id">Номер сервера</param>
         [HttpPost]
-        public void StopServer([FromForm] int id)
+        public void StopServer(int id)
         {
-            var status = Program.ServerStatusIsRun(id);
+            var server = Program.Servers.FirstOrDefault(x => x.Id == id && !x.Task.IsCanceled);
                 
-            if (status)
+            if (server != null)
             {
-                var server = Program.Servers[id - 1];
-                server.CancellationToken.Cancel();
+                server.Server.Dispose();
+                Task.Delay(150);
                 Program.Servers.Remove(server);
             }
         }

@@ -8,7 +8,6 @@ namespace AdminPanel.Entity
     {
         public int Id { get; set; }
         public uint Port { get; set; }
-        public CancellationTokenSource CancellationToken { get; set; }
         public Task Task { get; set; }
         public TankServer.Server Server { get; set; }
     }
