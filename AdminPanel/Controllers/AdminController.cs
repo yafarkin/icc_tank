@@ -33,6 +33,12 @@ namespace AdminPanel.Controllers
                 return message.ToJson();
             }
 
+            if (serverSettings.TankSettings.FinishSesison < serverSettings.TankSettings.StartSesison && serverSettings.TankSettings.FinishSesison < DateTime.Now)
+            {
+                var message = new {error = "Время окончания сессии меньше времени старта или текущего времени"};
+                return message.ToJson();
+            }
+
             if(serverSettings.TimeOfInvulnerabilityAfterRespawn < 100)
             {
                 serverSettings.TimeOfInvulnerabilityAfterRespawn *= 1000;
@@ -80,7 +86,8 @@ namespace AdminPanel.Controllers
             catch (Exception ex)
             {
                 Program.Logger.Error($"Ошибка во время работы: {ex}");
-                return (new {error = ex.Message}).ToJson();
+                var message = new {error = ex.Message};
+                return message.ToJson();
             }
 
             return null;
