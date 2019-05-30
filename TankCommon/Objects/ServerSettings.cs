@@ -34,6 +34,9 @@ namespace TankCommon.Objects
         [Description("Тип сервера")]
         public Enum.ServerType ServerType { get; set; } = Enum.ServerType.BattleCity;
 
+        [Description("Время до деспауна бонусов")]
+        public int SecondsToDespawn { get; set; } = 30;
+
         [Description("Класс настройки темпа игры")]
         public TankSettings TankSettings { get; set; } = new TankSettings();
         [Description("Задержка прощетов на сервере в ms")]

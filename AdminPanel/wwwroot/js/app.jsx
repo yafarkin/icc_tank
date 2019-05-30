@@ -184,14 +184,18 @@ class UserForm extends React.Component {
                             return <option value={e.id}>{e.name}</option>;
                         })}</select>
                     </div>
+                    <div id="SecondsToDespawn" className={this.state.viewModal ? 'visible' : 'invisible'}>
+                        <label>Время до деспауна бонусов</label>
+                        <input type="number" defaultValue="30" id="Value" />
+                    </div>
                     <div id="TankSettings" className={this.state.viewTankSettings ? 'visible' : 'invisible'}>
                         <div id="StartSesison">
                             <label>Начало игровой сессии</label>
-                            <input type="datetime-local" defaultValue="2019-06-01T08:30" id="Value" />
+                            <input type="datetime-local" defaultValue="2019-05-31T16:00" id="Value" />
                         </div>
                         <div id="FinishSesison">
                             <label>Конец игровой сессии</label>
-                            <input type="datetime-local" defaultValue="2017-06-01T08:40" id="Value" />
+                            <input type="datetime-local" defaultValue="2019-05-31T17:30" id="Value" />
                         </div>
                         <div id="GameSpeed">
                             <label>Скорость игры</label>

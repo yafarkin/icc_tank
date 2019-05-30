@@ -274,6 +274,12 @@ namespace TankServer
                     // сбрасываем данные для клиентов и от клиентов
                     ResetClientsData();
 
+                    if (defaultTankSettings.FinishSesison <= DateTime.Now)
+                    {
+                        await SendUpdates(false);
+                        break;
+                    }
+
                     // высылаем всем состояние движка
                     await SendUpdates(false);
 
@@ -421,7 +427,6 @@ namespace TankServer
             }
         }
 
-        protected DateTime _lastSpectatorsUpd = DateTime.Now;
 
         protected async Task SendUpdates(bool onlySpectators)
         {
@@ -536,10 +541,22 @@ namespace TankServer
             {
                 try
                 {
-
                     UpdateSettings();
                     await Task.Delay(serverSettings.ServerTickRate);
+
                     if (cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
+
+                    if (defaultTankSettings.StartSesison > DateTime.Now)
+                    {
+                        await Task.Delay(serverSettings.ServerTickRate > 1000
+                            ? serverSettings.ServerTickRate
+                            : 1000 - serverSettings.ServerTickRate);
+                        continue;
+                    }
+                    else if(defaultTankSettings.FinishSesison <= DateTime.Now)
                     {
                         break;
                     }
@@ -653,6 +670,7 @@ namespace TankServer
 
                                                 //Уменьшить здоровье танка на урон пули
                                                 tankIntersectedObject.Hp -= hpToRemove;
+
                                                 //Если здоровье танка меньше нуля и у него ещё есть жизни
                                                 if (tankIntersectedObject.Hp <= 0)
                                                 {
@@ -665,6 +683,8 @@ namespace TankServer
                                                     {
                                                         objsToRemove.Add(tankIntersectedObject);
                                                     }
+
+                                                    break;
                                                 }
 
                                                 var sourceTank = Map.InteractObjects.OfType<TankObject>()
@@ -694,8 +714,7 @@ namespace TankServer
                                         {
                                             canMove = false;
                                         }
-                                        else if ((decimal) cells.Count(c => c.Value == CellMapType.Water) /
-                                                 cells.Count >= 0.5m)
+                                        else if ((decimal)cells.Count(c => c.Value == CellMapType.Water) / cells.Count >= 0.5m)
                                         {
                                             if (tankObject.Lives != 1)
                                             {
@@ -707,14 +726,12 @@ namespace TankServer
                                                 canMove = false;
                                             }
 
+                                            break;
                                         }
 
                                         if (intersectedObject is UpgradeInteractObject upgradeObject)
                                         {
                                             var tank = tankObject;
-
-                                            // Применяем эффект улудшения на танк время указывается в секундах
-                                            SetUpgrade(tank, upgradeObject);
 
                                             // Применяем эффект улудшения на танк время указывается в секундах
                                             SetUpgrade(tank, upgradeObject);
@@ -828,7 +845,7 @@ namespace TankServer
         private void Reborn(TankObject tank, int normalHP = 100)
         {
             //уменьшаем жизни
-            if (tank.Lives > 0)
+            if (tank.Lives > 1)
             {
                 tank.Lives--;
             }
@@ -847,7 +864,6 @@ namespace TankServer
             }
 
             CallInvulnerability(tank, defaultTankSettings.TimeOfInvulnerability);
-
         }
 
         private Rectangle PastOnPassablePlace()
@@ -886,7 +902,7 @@ namespace TankServer
                 return;
             }
 
-            if (Map.InteractObjects.OfType<UpgradeInteractObject>().Count() >= 3)
+            if (Map.InteractObjects.OfType<UpgradeInteractObject>().Count() >= serverSettings.MaxCountOfUpgrade)
             {
                 return;
             }
@@ -905,22 +921,22 @@ namespace TankServer
             switch (rnd)
             {
                 case 1:
-                    result = new BulletSpeedUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseBulletSpeed);
+                    result = new BulletSpeedUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseBulletSpeed, serverSettings.SecondsToDespawn);
                     break;
                 case 2:
-                    result = new DamageUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseDamage);
+                    result = new DamageUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseDamage, serverSettings.SecondsToDespawn);
                     break;
                 case 3:
-                    result = new HealthUpgradeObject(objId, rectangle, defaultTankSettings.RestHP);
+                    result = new HealthUpgradeObject(objId, rectangle, defaultTankSettings.RestHP, serverSettings.SecondsToDespawn);
                     break;
                 case 4:
-                    result = new MaxHpUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseHP);
+                    result = new MaxHpUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseHP, serverSettings.SecondsToDespawn);
                     break;
                 case 5:
-                    result = new SpeedUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseSpeed);
+                    result = new SpeedUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseSpeed, serverSettings.SecondsToDespawn);
                     break;
                 case 6:
-                    result = new InvulnerabilityUpgradeObject(objId, rectangle, defaultTankSettings.TimeOfInvulnerability);
+                    result = new InvulnerabilityUpgradeObject(objId, rectangle, defaultTankSettings.TimeOfInvulnerability, serverSettings.SecondsToDespawn);
                     break;
                 default:
                     throw new NotSupportedException("Incorrect object");
@@ -982,14 +998,17 @@ namespace TankServer
                 case UpgradeType.MaxHp:
                 {
                     var upgrade = upgradeObj as MaxHpUpgradeObject;
-                    await Task.Run((() =>
-                    {
-                        tank.MaximumHp += upgrade.IncreaseHP;
-                        tank.Hp += upgrade.IncreaseHP;
-                        Thread.Sleep(time);
-                        tank.MaximumHp -= upgrade.IncreaseHP;
-                        tank.Hp -= upgrade.IncreaseHP;
-                    }));
+                    await Task.Run(() =>
+                        {
+                            tank.MaximumHp += upgrade.IncreaseHP;
+                            tank.Hp += upgrade.IncreaseHP;
+                            Thread.Sleep(time);
+                            tank.MaximumHp -= upgrade.IncreaseHP;
+                            if (tank.Hp > tank.MaximumHp)
+                            {
+                                tank.Hp = tank.MaximumHp;
+                            }
+                        });
                         
                     break;
                 }

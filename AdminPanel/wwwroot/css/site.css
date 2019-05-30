@@ -15,6 +15,19 @@ app {
     margin-left: 20px;
 }
 
+.bottom {
+    position: fixed;
+    text-align: center;
+    bottom: 0;
+    width: 100%;
+    height: 50px;
+    background: #f9f9f9;
+    color: #bbb;
+    line-height: 50px;
+    font-family: "Source Sans Pro", "Hiragino Sans GB", "Microsoft JhengHei", arial, helvetica, sans-serif;
+    font-size: smaller;
+}
+
 #modal {
     height: 600px;
     overflow-x: auto;
