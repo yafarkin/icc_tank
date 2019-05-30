@@ -33,6 +33,11 @@ namespace AdminPanel.Controllers
                 return message.ToJson();
             }
 
+            if(serverSettings.TimeOfInvulnerabilityAfterRespawn < 100)
+            {
+                serverSettings.TimeOfInvulnerabilityAfterRespawn *= 1000;
+            }
+
             var port = 2000;
             while (true)
             {
@@ -73,8 +78,6 @@ namespace AdminPanel.Controllers
                         Task = server.Run(new CancellationTokenSource().Token)
                     });
                 }
-
-                Program.Servers.Last().Task.Start();
             }
             catch (Exception ex)
             {
@@ -82,7 +85,7 @@ namespace AdminPanel.Controllers
                 return (new {error = ex.Message}).ToJson();
             }
 
-            return string.Empty;
+            return null;
         }
 
         /// <summary>
@@ -172,7 +175,7 @@ namespace AdminPanel.Controllers
         /// </summary>
         /// <param name="id">Номер сервера</param>
         [HttpPost]
-        public void StopServer(int id)
+        public string StopServer(int id)
         {
             var server = Program.Servers.FirstOrDefault(x => x.Id == id && !x.Task.IsCanceled);
                 
@@ -182,6 +185,8 @@ namespace AdminPanel.Controllers
                 Task.Delay(150);
                 Program.Servers.Remove(server);
             }
+
+            return null;
         }
     }
 }

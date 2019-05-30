@@ -8,10 +8,10 @@ namespace TankCommon.Objects
         public string SessionName { get; set; }
 
         [Description("Порт")]
-        public int Port { get; set; } = 1000;
+        public int Port { get; set; } = 2000;
 
         [Description("Тип шаблона карты")]
-        public Enum.MapType MapType { get; set; }
+        public Enum.MapType MapType { get; set; } = Enum.MapType.Base;
 
         [Description("Ширина карты")]
         public int Width { get; set; } = 20;
@@ -32,7 +32,10 @@ namespace TankCommon.Objects
         public int MaxCountOfUpgrade { get; set; } = 3;
 
         [Description("Тип сервера")]
-        public Enum.ServerType ServerType { get; set; }
+        public Enum.ServerType ServerType { get; set; } = Enum.ServerType.BattleCity;
+
+        [Description("Время до деспауна бонусов")]
+        public int SecondsToDespawn { get; set; } = 30;
 
         [Description("Класс настройки темпа игры")]
         public TankSettings TankSettings { get; set; } = new TankSettings();

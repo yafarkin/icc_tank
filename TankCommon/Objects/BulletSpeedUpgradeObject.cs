@@ -10,7 +10,7 @@ namespace TankCommon.Objects
         {
         }
 
-        public BulletSpeedUpgradeObject(Guid id, Rectangle rectangle, int increaseBulletSpeed) : base(id, rectangle)
+        public BulletSpeedUpgradeObject(Guid id, Rectangle rectangle, int increaseBulletSpeed, int secondsToDespawn) : base(id, rectangle, secondsToDespawn)
         {
             IncreaseBulletSpeed = increaseBulletSpeed;
             Type = UpgradeType.BulletSpeed;

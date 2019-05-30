@@ -68,6 +68,25 @@ namespace TankServer
                         }
                     }
                 };
+                socket.OnError = err =>
+                {
+                    lock (_syncObject)
+                    {
+                        _logger.Info($"[КЛИЕНТ-]: {socket.ConnectionInfo.ClientIpAddress}");
+                        if (Clients.ContainsKey(socket))
+                        {
+                            Clients[socket].NeedRemove = true;
+                        }
+
+                        var firstInQueue = Clients.Values.FirstOrDefault(c => c.IsInQueue);
+                        if (firstInQueue != null)
+                        {
+                            var bot = AddTankBot(firstInQueue.Nickname, firstInQueue.Tag);
+                            firstInQueue.IsInQueue = false;
+                            firstInQueue.InteractObject = bot;
+                        }
+                    }
+                };
                 socket.OnMessage = msg =>
                 {
                     lock (_syncObject)
@@ -113,7 +132,7 @@ namespace TankServer
                                 //если настройки изменились, клиенту отправится новая версия и флаг об обновлении настроек
                                 clientInfo.Request = new ServerRequest { IsSettingsChanged = true, Settings = defaultTankSettings };
 
-                                if (string.IsNullOrWhiteSpace(response.CommandParameter))
+                                if (string.IsNullOrWhiteSpace(response.CommandParameter) || Clients.Where(x => x.Value.IsSpecator == false).Count() == serverSettings.MaxClientCount)
                                 {
                                     var spectator = AddSpectator();
                                     clientInfo.IsSpecator = true;
@@ -220,15 +239,23 @@ namespace TankServer
 
         public async Task Run(CancellationToken cancellationToken)
         {
-            // запускаем фоновую задачу на изменение игровой карты
+            try
+            {
+                // запускаем фоновую задачу на изменение игровой карты
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-            UpdateEngine(cancellationToken);
+                UpdateEngine(cancellationToken);
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
-            while (true)
-            {
-                // сбрасываем данные для клиентов и от клиентов
-                ResetClientsData();
+                while (true)
+                {
+                    // сбрасываем данные для клиентов и от клиентов
+                    ResetClientsData();
+
+                    if (defaultTankSettings.FinishSesison <= DateTime.Now)
+                    {
+                        await SendUpdates(false);
+                        break;
+                    }
 
                     // высылаем всем состояние движка
                     await SendUpdates(false);
@@ -247,16 +274,21 @@ namespace TankServer
                         await SendUpdates(true);
                     }
 
-                // обрабатываем команды от клиентов
-                ApplyClientsData();
+                    // обрабатываем команды от клиентов
+                    ApplyClientsData();
 
-                // удаляем ненужных клиентов
-                RemoveClients();
+                    // удаляем ненужных клиентов
+                    RemoveClients();
 
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    break;
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e);
             }
         }
 
@@ -372,7 +404,6 @@ namespace TankServer
             }
         }
 
-        protected DateTime _lastSpectatorsUpd = DateTime.Now;
 
         protected async Task SendUpdates(bool onlySpectators)
         {
@@ -449,11 +480,18 @@ namespace TankServer
                 request.Map.InteractObjects = client.Value.IsSpecator ? allObjects : visibleObjects;
 
                 var json = request.ToJson();
-                
-                await client.Key.Send(json);
-                if (needUpdate)
+
+                try
                 {
-                    _logger.Info($"Передача полной карты для {client.Key.ConnectionInfo.ClientIpAddress} / {(client.Value.IsSpecator ? "наблюдатель" : client.Value.Nickname)}");
+                    await client.Key.Send(json);
+                    if (needUpdate)
+                    {
+                        _logger.Info($"Передача полной карты для {client.Key.ConnectionInfo.ClientIpAddress} / {(client.Value.IsSpecator ? "наблюдатель" : client.Value.Nickname)}");
+                    }
+                }
+                catch (Exception e)
+                {
+                    _logger.Error(e);
                 }
 
                 if (needUpdate)
@@ -478,250 +516,305 @@ namespace TankServer
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                UpdateSettings();
-                await Task.Delay(serverSettings.ServerTickRate);
-                if (cancellationToken.IsCancellationRequested)
+                try
                 {
-                    break;
-                }
+                    UpdateSettings();
+                    await Task.Delay(serverSettings.ServerTickRate);
 
-                if (_lastCoreUpdate == default(DateTime))
-                {
-                    _lastCoreUpdate = DateTime.Now;
-                    continue;
-                }
-
-                var tsDelta = DateTime.Now - _lastCoreUpdate;
-                _lastCoreUpdate = DateTime.Now;
-                var delta = Convert.ToDecimal(tsDelta.TotalSeconds);
-
-                lock (_syncObject)
-                {
-                    AddUpgrades();
-
-                    var objsToRemove = new List<BaseInteractObject>();
-                    foreach (var clientInfo in Clients)
+                    if (cancellationToken.IsCancellationRequested)
                     {
-                        if (clientInfo.Value.NeedRemove && clientInfo.Value.InteractObject != null)
-                        {
-                            var objToRemove = Map.InteractObjects.FirstOrDefault(x => x.Id == clientInfo.Value.InteractObject.Id);
-                            if (objToRemove != null)
-                            {
-                                objsToRemove.Add(objToRemove);
-                            }
-                        }
+                        break;
                     }
 
-                    var upgradeItem = Map.InteractObjects.OfType<UpgradeInteractObject>()
-                        .FirstOrDefault(t => t.DespawnTime < DateTime.Now);
-
-                    if(upgradeItem != null)
-                        objsToRemove.Add(upgradeItem);
-                        
-                    foreach (var movingObject in Map.InteractObjects.OfType<BaseMovingObject>())
+                    if (defaultTankSettings.StartSesison > DateTime.Now)
                     {
-                        if (!movingObject.IsMoving)
+                        await Task.Delay(serverSettings.ServerTickRate > 1000
+                            ? serverSettings.ServerTickRate
+                            : 1000 - serverSettings.ServerTickRate);
+                        continue;
+                    }
+                    else if(defaultTankSettings.FinishSesison <= DateTime.Now)
+                    {
+                        break;
+                    }
+
+                    if (_lastCoreUpdate == default(DateTime))
+                    {
+                        _lastCoreUpdate = DateTime.Now;
+                        continue;
+                    }
+
+                    var tsDelta = DateTime.Now - _lastCoreUpdate;
+                    _lastCoreUpdate = DateTime.Now;
+                    var delta = Convert.ToDecimal(tsDelta.TotalSeconds);
+
+                    lock (_syncObject)
+                    {
+                        AddUpgrades();
+
+                        var objsToRemove = new List<BaseInteractObject>();
+                        foreach (var clientInfo in Clients)
                         {
-                            continue;
+                            if (clientInfo.Value.NeedRemove && clientInfo.Value.InteractObject != null)
+                            {
+                                var objToRemove =
+                                    Map.InteractObjects.FirstOrDefault(x => x.Id == clientInfo.Value.InteractObject.Id);
+                                if (objToRemove != null)
+                                {
+                                    objsToRemove.Add(objToRemove);
+                                }
+                            }
                         }
 
-                        var newPoint = new Point(movingObject.Rectangle.LeftCorner);
-                        var newRectangle = new Rectangle(newPoint, movingObject.Rectangle.Width, movingObject.Rectangle.Height);
+                        var upgradeItem = Map.InteractObjects.OfType<UpgradeInteractObject>()
+                            .FirstOrDefault(t => t.DespawnTime < DateTime.Now);
 
-                        var speed = movingObject.Speed * delta;
-                        var shift = speed > 1 ? 1 : speed;
+                        if (upgradeItem != null)
+                            objsToRemove.Add(upgradeItem);
 
-                        while (speed >= 0)
+                        foreach (var movingObject in Map.InteractObjects.OfType<BaseMovingObject>())
                         {
-
-                            var canMove = newPoint.Left >= 0 && newPoint.Left < Map.MapWidth - Constants.CellWidth && newPoint.Top >= 0 && newPoint.Top < Map.MapHeight - Constants.CellHeight;
-
-                            if (canMove)
+                            if (!movingObject.IsMoving)
                             {
-                                var intersectedObject = MapManager.GetIntersectedObject(newRectangle, Map.InteractObjects.Where(o => o.Id != movingObject.Id));
-                                var cells = MapManager.WhatOnMap(newRectangle, Map);
+                                continue;
+                            }
 
-                                //Если двигающийся объект - это пуля
-                                if (movingObject is BulletObject bulletObject)
+                            var newPoint = new Point(movingObject.Rectangle.LeftCorner);
+                            var newRectangle = new Rectangle(newPoint, movingObject.Rectangle.Width,
+                                movingObject.Rectangle.Height);
+
+                            var speed = movingObject.Speed * delta;
+                            var shift = speed > 1 ? 1 : speed;
+
+                            while (speed >= 0)
+                            {
+
+                                var canMove = newPoint.Left >= 0 &&
+                                              newPoint.Left < Map.MapWidth - Constants.CellWidth && newPoint.Top >= 0 &&
+                                              newPoint.Top < Map.MapHeight - Constants.CellHeight;
+
+                                if (canMove)
                                 {
-                                    if (cells.Any(c => c.Value == CellMapType.Wall))
+                                    var intersectedObject = MapManager.GetIntersectedObject(newRectangle,
+                                        Map.InteractObjects.Where(o => o.Id != movingObject.Id));
+                                    var cells = MapManager.WhatOnMap(newRectangle, Map);
+
+                                    //Если двигающийся объект - это пуля
+                                    if (movingObject is BulletObject bulletObject)
                                     {
-                                        objsToRemove.Add(bulletObject);
-                                        canMove = false;
-                                    }
-
-                                    var destructiveWalls = cells.Where(c => c.Value == CellMapType.DestructiveWall).ToList();
-                                    if (destructiveWalls.Count > 0)
-                                    {
-                                        foreach (var destructiveWall in destructiveWalls)
+                                        if (cells.Any(c => c.Value == CellMapType.Wall))
                                         {
-                                            Map.Cells[destructiveWall.Key.TopInt, destructiveWall.Key.LeftInt] = CellMapType.Void;
-                                        }
-
-                                        //удаляем пулю
-                                        objsToRemove.Add(bulletObject);
-
-                                        // т.к. изменилась карта, то надо всем клиентам выслать новую карту
-                                        foreach (var clientInfo in Clients)
-                                        {
-                                            clientInfo.Value.NeedUpdateMap = true;
-                                        }
-
-                                        canMove = false;
-                                    }
-
-                                    //Если пуля попала в танк
-                                    if (intersectedObject is TankObject tankIntersectedObject)
-                                    {
-                                        if (tankIntersectedObject.IsInvulnerable == false)
-                                        {
-                                            //Удалить пулю
                                             objsToRemove.Add(bulletObject);
                                             canMove = false;
+                                        }
 
-                                            //Если здоровья больше, чем урон пули
-                                            var hpToRemove = tankIntersectedObject.Hp > bulletObject.DamageHp
-                                                ? bulletObject.DamageHp
-                                                : tankIntersectedObject.Hp;
-                                            bool isFrag = false;
-
-                                            //Уменьшить здоровье танка на урон пули
-                                            tankIntersectedObject.Hp -= hpToRemove;
-                                            //Если здоровье танка меньше нуля и у него ещё есть жизни
-                                            if (tankIntersectedObject.Hp <= 0 && tankIntersectedObject.Lives > 0 )
+                                        var destructiveWalls = cells.Where(c => c.Value == CellMapType.DestructiveWall)
+                                            .ToList();
+                                        if (destructiveWalls.Count > 0)
+                                        {
+                                            foreach (var destructiveWall in destructiveWalls)
                                             {
-                                                Reborn(tankIntersectedObject);
-                                                    isFrag = true;
+                                                Map.Cells[destructiveWall.Key.TopInt, destructiveWall.Key.LeftInt] =
+                                                    CellMapType.Void;
+                                            }
+
+                                            //удаляем пулю
+                                            objsToRemove.Add(bulletObject);
+
+                                            // т.к. изменилась карта, то надо всем клиентам выслать новую карту
+                                            foreach (var clientInfo in Clients)
+                                            {
+                                                clientInfo.Value.NeedUpdateMap = true;
+                                            }
+
+                                            canMove = false;
+                                        }
+
+                                        //Если пуля попала в танк
+                                        if (intersectedObject is TankObject tankIntersectedObject)
+                                        {
+                                            if (tankIntersectedObject.IsInvulnerable == false)
+                                            {
+                                                //Удалить пулю
+                                                objsToRemove.Add(bulletObject);
+                                                canMove = false;
+
+                                                //Если здоровья больше, чем урон пули
+                                                var hpToRemove = tankIntersectedObject.Hp > bulletObject.DamageHp
+                                                    ? bulletObject.DamageHp
+                                                    : tankIntersectedObject.Hp;
+                                                bool isFrag = false;
+
+                                                //Уменьшить здоровье танка на урон пули
+                                                tankIntersectedObject.Hp -= hpToRemove;
+
+                                                //Если здоровье танка меньше нуля и у него ещё есть жизни
+                                                if (tankIntersectedObject.Hp <= 0)
+                                                {
+                                                    if (tankIntersectedObject.Lives != 1)
+                                                    {
+                                                        Reborn(tankIntersectedObject);
+                                                        isFrag = true;
+                                                    }
+                                                    else
+                                                    {
+                                                        objsToRemove.Add(tankIntersectedObject);
+                                                    }
+
+                                                    break;
+                                                }
+
+                                                var sourceTank = Map.InteractObjects.OfType<TankObject>()
+                                                    .FirstOrDefault(t => t.Id == bulletObject.SourceId);
+                                                if (sourceTank != null)
+                                                {
+                                                    sourceTank.Score += hpToRemove;
+                                                    if (isFrag)
+                                                    {
+                                                        sourceTank.Score += 50;
+                                                        _logger.Info(
+                                                            $"{tankIntersectedObject.Nickname} was killed by {sourceTank.Nickname}");
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        else if (intersectedObject is BulletObject bulletIntersectedObject)
+                                        {
+                                            objsToRemove.Add(bulletObject);
+                                            objsToRemove.Add(bulletIntersectedObject);
+                                        }
+                                    }
+                                    else if (movingObject is TankObject tankObject)
+                                    {
+                                        if (cells.Any(c =>
+                                            c.Value == CellMapType.DestructiveWall || c.Value == CellMapType.Wall))
+                                        {
+                                            canMove = false;
+                                        }
+                                        else if ((decimal)cells.Count(c => c.Value == CellMapType.Water) / cells.Count >= 0.5m)
+                                        {
+                                            if (tankObject.Lives != 1)
+                                            {
+                                                Reborn(tankObject);
                                             }
                                             else
                                             {
-                                                if (tankIntersectedObject.Hp <= 0 && tankIntersectedObject.Lives <= 0)
-                                                {
-                                                    objsToRemove.Add(tankIntersectedObject);
-                                                }
+                                                objsToRemove.Add(tankObject);
+                                                canMove = false;
                                             }
 
-                                            var sourceTank = Map.InteractObjects.OfType<TankObject>().FirstOrDefault(t => t.Id == bulletObject.SourceId);
-                                            if (sourceTank != null)
-                                            {
-                                                sourceTank.Score += hpToRemove;
-                                                if (isFrag)
-                                                {
-                                                    sourceTank.Score += 50;
-                                                    _logger.Info($"{tankIntersectedObject.Nickname} was killed by {sourceTank.Nickname}");
-                                                }
-                                            }
+                                            break;
                                         }
-                                    }
-                                    else if (intersectedObject is BulletObject bulletIntersectedObject)
-                                    {
-                                        objsToRemove.Add(bulletObject);
-                                        objsToRemove.Add(bulletIntersectedObject);
+
+                                        if (intersectedObject is UpgradeInteractObject upgradeObject)
+                                        {
+                                            var tank = tankObject;
+
+                                            // Применяем эффект улудшения на танк время указывается в секундах
+                                            SetUpgrade(tank, upgradeObject);
+
+                                            objsToRemove.Add(intersectedObject);
+                                        }
+
+                                        if (canMove)
+                                        {
+                                            canMove = intersectedObject == null;
+                                        }
                                     }
                                 }
-                                else if (movingObject is TankObject tankObject)
+
+                                if (canMove)
                                 {
-                                    if (cells.Any(c => c.Value == CellMapType.DestructiveWall || c.Value == CellMapType.Wall))
+                                    movingObject.Rectangle = new Rectangle(newRectangle);
+                                    Rectangle rec;
+                                    List<KeyValuePair<Point, CellMapType>> cells;
+
+                                    switch (movingObject.Direction)
                                     {
-                                        canMove = false;
+                                        case DirectionType.Left:
+                                            newPoint.Left -= shift;
+                                            break;
+                                        case DirectionType.Right:
+                                            if (movingObject is TankObject)
+                                            {
+                                                rec = new Rectangle()
+                                                {
+                                                    Height = 5, Width = 1,
+                                                    LeftCorner = new Point
+                                                    {
+                                                        Left = (int) newPoint.Left + movingObject.Rectangle.Width,
+                                                        Top = newPoint.Top
+                                                    }
+                                                };
+                                                cells = MapManager.WhatOnMap(rec, Map);
+                                                if (cells.Any(c =>
+                                                    c.Value == CellMapType.DestructiveWall ||
+                                                    c.Value == CellMapType.Wall))
+                                                    break;
+                                            }
+
+                                            newPoint.Left += shift;
+                                            break;
+                                        case DirectionType.Up:
+                                            newPoint.Top -= shift;
+                                            break;
+                                        case DirectionType.Down:
+                                            if (movingObject is TankObject)
+                                            {
+                                                rec = new Rectangle()
+                                                {
+                                                    Height = 1, Width = 5,
+                                                    LeftCorner = new Point
+                                                    {
+                                                        Left = newPoint.Left,
+                                                        Top = newPoint.Top + movingObject.Rectangle.Height
+                                                    }
+                                                };
+                                                cells = MapManager.WhatOnMap(rec, Map);
+                                                if (cells.Any(c =>
+                                                    c.Value == CellMapType.DestructiveWall ||
+                                                    c.Value == CellMapType.Wall))
+                                                    break;
+                                            }
+
+                                            newPoint.Top += shift;
+                                            break;
                                     }
-                                    else if ((decimal)cells.Count(c => c.Value == CellMapType.Water) / cells.Count >= 0.5m)
+
+                                    speed = speed - shift;
+                                }
+                                else
+                                {
+                                    if (movingObject is BulletObject)
                                     {
-                                        if (tankObject.Lives > 0)
-                                        {
-                                            Reborn(tankObject);
-                                        }
-                                        else { 
-                                            objsToRemove.Add(tankObject);
-                                            canMove = false;
-                                        }
-                                        
+                                        objsToRemove.Add(movingObject);
                                     }
 
-                                    if (intersectedObject is UpgradeInteractObject upgradeObject)
-                                    {
-                                        var tank = tankObject;
-
-                                        // Применяем эффект улудшения на танк время указывается в секундах
-                                        SetUpgrade(tank, upgradeObject, 5);
-
-                                        // Применяем эффект улудшения на танк время указывается в секундах
-                                        SetUpgrade(tank, upgradeObject, 5);
-
-                                        objsToRemove.Add(intersectedObject);
-                                    }
-
-                                    if (canMove)
-                                    {
-                                        canMove = intersectedObject == null;
-                                    }
+                                    break;
                                 }
                             }
+                        }
 
-                            if (canMove)
+                        foreach (var objToRemove in objsToRemove)
+                        {
+                            //Если ссылка на удаляемый объект не ссылается на нулевой объект и айди объекта == айди удаляемого объекта
+                            var client = Clients.FirstOrDefault(c =>
+                                c.Value.InteractObject != null && c.Value.InteractObject.Id == objToRemove.Id);
+                            if (client.Key != null)
                             {
-                                movingObject.Rectangle = new Rectangle(newRectangle);
-                                Rectangle rec;
-                                List<KeyValuePair<Point, CellMapType>> cells;
-
-                                switch (movingObject.Direction)
-                                {
-                                    case DirectionType.Left:
-                                        newPoint.Left -= shift;
-                                        break;
-                                    case DirectionType.Right:
-                                        if (movingObject is TankObject)
-                                        {
-                                            rec = new Rectangle() { Height = 5, Width = 1, LeftCorner = new Point { Left = (int)newPoint.Left + movingObject.Rectangle.Width, Top = newPoint.Top } };
-                                            cells = MapManager.WhatOnMap(rec, Map);
-                                            if (cells.Any(c => c.Value == CellMapType.DestructiveWall || c.Value == CellMapType.Wall))
-                                                break;
-                                        }
-                                        newPoint.Left += shift;
-                                        break;
-                                    case DirectionType.Up:
-                                        newPoint.Top -= shift;
-                                        break;
-                                    case DirectionType.Down:
-                                        if (movingObject is TankObject)
-                                        {
-                                            rec = new Rectangle() { Height = 1, Width = 5, LeftCorner = new Point { Left = newPoint.Left, Top = newPoint.Top + movingObject.Rectangle.Height } };
-                                            cells = MapManager.WhatOnMap(rec, Map);
-                                            if (cells.Any(c => c.Value == CellMapType.DestructiveWall || c.Value == CellMapType.Wall))
-                                                break;
-                                        }
-                                        newPoint.Top += shift;
-                                        break;
-                                }
-
-                                speed = speed - shift;
+                                client.Value.NeedRemove = true;
                             }
                             else
                             {
-                                if (movingObject is BulletObject)
-                                {
-                                    objsToRemove.Add(movingObject);
-                                }
-
-                                break;
+                                //Удаляем объект
+                                Map.InteractObjects.Remove(objToRemove);
                             }
                         }
                     }
-
-                    foreach (var objToRemove in objsToRemove)
-                    {
-                        //Если ссылка на удаляемый объект не ссылается на нулевой объект и айди объекта == айди удаляемого объекта
-                        var client = Clients.FirstOrDefault(c => c.Value.InteractObject != null && c.Value.InteractObject.Id == objToRemove.Id);
-                        if (client.Key != null)
-                        {
-                            client.Value.NeedRemove = true;
-                        }
-                        else
-                        {
-                            //Удаляем объект
-                            Map.InteractObjects.Remove(objToRemove);
-                        }
-                    }
+                }
+                catch (Exception e)
+                {
+                    _logger.Error(e);
                 }
             }
         }
@@ -729,7 +822,11 @@ namespace TankServer
         private void Reborn(TankObject tank, int normalHP = 100)
         {
             //уменьшаем жизни
-            tank.Lives--;
+            if (tank.Lives > 1)
+            {
+                tank.Lives--;
+            }
+
             //Делаем танку здоровье нормальным(не увеличенным)
             tank.Hp = normalHP;
             tank.Rectangle = PastOnPassablePlace();
@@ -744,7 +841,6 @@ namespace TankServer
             }
 
             CallInvulnerability(tank, defaultTankSettings.TimeOfInvulnerability);
-
         }
 
         private Rectangle PastOnPassablePlace()
@@ -783,7 +879,7 @@ namespace TankServer
                 return;
             }
 
-            if (Map.InteractObjects.OfType<UpgradeInteractObject>().Count() >= 3)
+            if (Map.InteractObjects.OfType<UpgradeInteractObject>().Count() >= serverSettings.MaxCountOfUpgrade)
             {
                 return;
             }
@@ -802,22 +898,22 @@ namespace TankServer
             switch (rnd)
             {
                 case 1:
-                    result = new BulletSpeedUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseBulletSpeed);
+                    result = new BulletSpeedUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseBulletSpeed, serverSettings.SecondsToDespawn);
                     break;
                 case 2:
-                    result = new DamageUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseDamage);
+                    result = new DamageUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseDamage, serverSettings.SecondsToDespawn);
                     break;
                 case 3:
-                    result = new HealthUpgradeObject(objId, rectangle, defaultTankSettings.RestHP);
+                    result = new HealthUpgradeObject(objId, rectangle, defaultTankSettings.RestHP, serverSettings.SecondsToDespawn);
                     break;
                 case 4:
-                    result = new MaxHpUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseHP);
+                    result = new MaxHpUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseHP, serverSettings.SecondsToDespawn);
                     break;
                 case 5:
-                    result = new SpeedUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseSpeed);
+                    result = new SpeedUpgradeObject(objId, rectangle, defaultTankSettings.IncreaseSpeed, serverSettings.SecondsToDespawn);
                     break;
                 case 6:
-                    result = new InvulnerabilityUpgradeObject(objId, rectangle, defaultTankSettings.TimeOfInvulnerability);
+                    result = new InvulnerabilityUpgradeObject(objId, rectangle, defaultTankSettings.TimeOfInvulnerability, serverSettings.SecondsToDespawn);
                     break;
                 default:
                     throw new NotSupportedException("Incorrect object");
@@ -839,9 +935,9 @@ namespace TankServer
             tank.IsInvulnerable = false;
         }
 
-        private async void SetUpgrade(TankObject tank, UpgradeInteractObject upgradeObj, int time)
+        private async void SetUpgrade(TankObject tank, UpgradeInteractObject upgradeObj)
         {
-            time *= 1000;
+            var time = defaultTankSettings.TimeOfActionUpgrades;
 
             switch (upgradeObj.Type)
             {
@@ -879,14 +975,17 @@ namespace TankServer
                 case UpgradeType.MaxHp:
                 {
                     var upgrade = upgradeObj as MaxHpUpgradeObject;
-                    await Task.Run((() =>
-                    {
-                        tank.MaximumHp += upgrade.IncreaseHP;
-                        tank.Hp += upgrade.IncreaseHP;
-                        Thread.Sleep(time);
-                        tank.MaximumHp -= upgrade.IncreaseHP;
-                        tank.Hp -= upgrade.IncreaseHP;
-                    }));
+                    await Task.Run(() =>
+                        {
+                            tank.MaximumHp += upgrade.IncreaseHP;
+                            tank.Hp += upgrade.IncreaseHP;
+                            Thread.Sleep(time);
+                            tank.MaximumHp -= upgrade.IncreaseHP;
+                            if (tank.Hp > tank.MaximumHp)
+                            {
+                                tank.Hp = tank.MaximumHp;
+                            }
+                        });
                         
                     break;
                 }
@@ -905,6 +1004,21 @@ namespace TankServer
             if (settings == null || settings == defaultTankSettings)
             {
                 return;
+            }
+
+            if (settings.TimeOfActionUpgrades < 100)
+            {
+                settings.TimeOfActionUpgrades *= 1000;
+            }
+
+            if (settings.TimeOfInvulnerability < 100)
+            {
+                settings.TimeOfInvulnerability *= 1000;
+            }
+
+            if (settings.ChanceSpawnUpgrades > 1)
+            {
+                settings.ChanceSpawnUpgrades /= 100;
             }
 
             lock (_syncObject)

@@ -9,3 +9,55 @@ app {
     display: flex;
     flex-direction: column;
 }
+
+#ServerId, #AddServer {
+    margin: 5px;
+    margin-left: 20px;
+}
+
+.bottom {
+    position: fixed;
+    text-align: center;
+    bottom: 0;
+    width: 100%;
+    height: 50px;
+    background: #f9f9f9;
+    color: #bbb;
+    line-height: 50px;
+    font-family: "Source Sans Pro", "Hiragino Sans GB", "Microsoft JhengHei", arial, helvetica, sans-serif;
+    font-size: smaller;
+}
+
+#modal {
+    height: 600px;
+    overflow-x: auto;
+}
+
+#modal div {
+    margin-top: 5px;
+}
+
+    #modal div label {
+        text-align: right;
+        font-weight: 600;
+    }
+
+    #modal div label, #modal div input, #modal div select {
+        width: 48%;
+        margin-right: 1%;
+        margin-left: 1%;
+    }
+
+    #modal div input, #modal div select {
+        height: 30px;
+    }
+
+    #modal div input {
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.5;
+        color: #495057;
+        padding: 0 .5rem 0 .5rem;
+        border: 1px solid #ced4da;
+        border-radius: .25rem;
+    }
