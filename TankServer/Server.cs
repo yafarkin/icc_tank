@@ -43,10 +43,17 @@ namespace TankServer
             {
                 socket.OnOpen = () =>
                 {
+                    var request = new ServerRequest
+                    {
+                        Settings = defaultTankSettings,
+                        IsSettingsChanged = true
+
+                    };
+                    var clientInfo = new ClientInfo { Request = request };
                     lock (_syncObject)
                     {
                         _logger.Info($"[КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
-                        Clients.Add(socket, new ClientInfo() { Request = new ServerRequest { Settings = defaultTankSettings, IsSettingsChanged = true } });
+                        Clients.Add(socket, clientInfo);
                     }
                 };
                 socket.OnClose = () =>
@@ -130,9 +137,11 @@ namespace TankServer
                                 clientInfo.NeedUpdateMap = true;
 
                                 //если настройки изменились, клиенту отправится новая версия и флаг об обновлении настроек
-                                clientInfo.Request = new ServerRequest { IsSettingsChanged = true, Settings = defaultTankSettings };
+                                clientInfo.Request = new ServerRequest { Map = Map, IsSettingsChanged = true, Settings = defaultTankSettings };
 
-                                if (string.IsNullOrWhiteSpace(response.CommandParameter) || Clients.Where(x => x.Value.IsSpecator == false).Count() == serverSettings.MaxClientCount)
+                                socket.Send(clientInfo.Request.ToJson());
+
+                                if (string.IsNullOrWhiteSpace(response.CommandParameter) || Clients.Count(x => !x.Value.IsSpecator) == serverSettings.MaxClientCount)
                                 {
                                     var spectator = AddSpectator();
                                     clientInfo.IsSpecator = true;
@@ -195,7 +204,8 @@ namespace TankServer
         public BaseInteractObject AddTankBot(string nickname, string tag)
         {
             var rectangle = PastOnPassablePlace();
-            var tank = new TankObject(Guid.NewGuid(), rectangle, defaultTankSettings.TankSpeed, false, defaultTankSettings.TankMaxHP, defaultTankSettings.TankMaxHP, serverSettings.CountOfLifes, serverSettings.CountOfLifes, nickname, tag, defaultTankSettings.TankDamage);
+            var tank = new TankObject(Guid.NewGuid(), rectangle, defaultTankSettings.TankSpeed, false, defaultTankSettings.TankMaxHP,
+                defaultTankSettings.TankMaxHP, serverSettings.CountOfLifes, serverSettings.CountOfLifes, nickname, tag, defaultTankSettings.TankDamage);
             //При создании нового танка он бессмертен (передаём параметр длительности в миллисекундах)
             CallInvulnerability(tank, defaultTankSettings.TimeOfInvulnerability);
             Map.InteractObjects.Add(tank);
@@ -651,10 +661,15 @@ namespace TankServer
                                                 //Если здоровье танка меньше нуля и у него ещё есть жизни
                                                 if (tankIntersectedObject.Hp <= 0)
                                                 {
+                                                    var bullet = Map.InteractObjects.FirstOrDefault(x => (x as BulletObject)?.SourceId == tankIntersectedObject.Id);
+                                                    if (bullet != null)
+                                                    {
+                                                        objsToRemove.Add(bullet);
+                                                    }
+
                                                     if (tankIntersectedObject.Lives != 1)
                                                     {
                                                         Reborn(tankIntersectedObject);
-                                                        isFrag = true;
                                                     }
                                                     else
                                                     {
@@ -693,6 +708,12 @@ namespace TankServer
                                         }
                                         else if ((decimal)cells.Count(c => c.Value == CellMapType.Water) / cells.Count >= 0.5m)
                                         {
+                                            var bullet = Map.InteractObjects.FirstOrDefault(x => (x as BulletObject)?.SourceId == tankObject.Id);
+                                            if (bullet != null)
+                                            {
+                                                objsToRemove.Add(bullet);
+                                            }
+
                                             if (tankObject.Lives != 1)
                                             {
                                                 Reborn(tankObject);
@@ -830,15 +851,6 @@ namespace TankServer
             //Делаем танку здоровье нормальным(не увеличенным)
             tank.Hp = normalHP;
             tank.Rectangle = PastOnPassablePlace();
-
-            lock (_syncObject)
-            {
-                var bullet = Map.InteractObjects.FirstOrDefault(x => (x as BulletObject)?.SourceId == tank.Id);
-                if (bullet != null)
-                {
-                    Map.InteractObjects.Remove(bullet);
-                }
-            }
 
             CallInvulnerability(tank, defaultTankSettings.TimeOfInvulnerability);
         }

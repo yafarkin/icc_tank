@@ -207,7 +207,7 @@ class UserForm extends React.Component {
                         </div>
                         <div id="ChanceSpawnUpgrades">
                             <label>Шанс появления бонусов</label>
-                            <input type="number" defaultValue="0.995" id="Value" />
+                            <input type="number" defaultValue="0.05" id="Value" />
                         </div>
                         <div id="TankSpeed">
                             <label>Множитель скорости танка</label>
@@ -243,7 +243,7 @@ class UserForm extends React.Component {
                         </div>
                         <div id="IncreaseHP">
                             <label>Показатели бонуса увеличения максимального количества HP</label>
-                            <input type="number" defaultValue="125" id="Value" />
+                            <input type="number" defaultValue="25" id="Value" />
                         </div>
                         <div id="IncreaseSpeed">
                             <label>Показатели бонуса увеличения скорости танка</label>
