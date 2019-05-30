@@ -912,7 +912,7 @@
             _renderTarget2D.Clear(_blackScreen);
             _renderTarget2D.FillRectangle(_clientInfoAreaRect, _mapObjectsColors[13]);
             _renderTarget2D.DrawLine(_clientInfoLeftPoint, _clientInfoRightPoint, _mapObjectsColors[12], 10);
-            _clientInfoSessionTime.Text = $"Session time: {Settings?.SessionTime}";
+            _clientInfoSessionTime.Text = $"Session time: {Settings?.SessionTime.ToString()}";
             _clientInfoTanks.AddRange(
                 Map?.InteractObjects.OfType<TankObject>().OrderByDescending(t => t.Score).ToList());
 

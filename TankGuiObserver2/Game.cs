@@ -319,7 +319,7 @@
                 }
                 
                 _gameRender.Map = _spectatorClass?.Map;
-                //_gameRender.Settings = _spectatorClass.Settings;
+                _gameRender.Settings = _spectatorClass.Settings;
                 _gameRender.DrawClientInfo();
                 _logger.Debug("call: DrawClientInfo()");
 
