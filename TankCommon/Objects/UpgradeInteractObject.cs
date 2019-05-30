@@ -12,10 +12,10 @@ namespace TankCommon.Objects
         {
         }
 
-        public UpgradeInteractObject(Guid id, Rectangle rectangle) : base(id, rectangle)
+        public UpgradeInteractObject(Guid id, Rectangle rectangle, int secondsToDespawn) : base(id, rectangle)
         {
             SpawnTime = DateTime.Now;
-            DespawnTime = SpawnTime.AddSeconds(30);
+            DespawnTime = SpawnTime.AddSeconds(secondsToDespawn);
         }
     }
 }

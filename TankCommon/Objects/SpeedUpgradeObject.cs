@@ -10,7 +10,7 @@ namespace TankCommon.Objects
         {
         }
 
-        public SpeedUpgradeObject(Guid id, Rectangle rectangle, int increaseSpeed) : base(id, rectangle)
+        public SpeedUpgradeObject(Guid id, Rectangle rectangle, int increaseSpeed, int secondsToDespawn) : base(id, rectangle, secondsToDespawn)
         {
             IncreaseSpeed = increaseSpeed;
             Type = UpgradeType.Speed;
