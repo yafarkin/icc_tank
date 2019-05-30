@@ -55,7 +55,7 @@ namespace TankServer
                     Map = MapManager.LoadMap(serverSettings.Height, serverSettings.Width, CellMapType.Water, 40, 0);
                     break;
                 default:
-                    throw new InvalidDataException("Неизвестный тип карты");
+                    throw new Exception("Неизвестный тип карты");
             }
 
             _random = new Random();

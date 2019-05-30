@@ -11,7 +11,7 @@ namespace TankCommon.Objects
         public int Port { get; set; } = 2000;
 
         [Description("Тип шаблона карты")]
-        public Enum.MapType MapType { get; set; } = Enum.MapType.Base;
+        public Enum.MapType MapType { get; set; } = Enum.MapType.Empty_map;
 
         [Description("Ширина карты")]
         public int Width { get; set; } = 20;
