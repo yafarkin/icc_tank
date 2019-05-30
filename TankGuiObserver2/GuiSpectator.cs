@@ -95,9 +95,6 @@ namespace TankGuiObserver2
 #if LOGGED_GUI_SPECTATOR
             _logger.Info(info);
 #endif
-#pragma warning disable 4014
-            DisplayMap();
-#pragma warning restore 4014
 
         }
 
@@ -106,58 +103,33 @@ namespace TankGuiObserver2
             _syncObject = new object();
         }
 
-        protected async Task DisplayMap()
-        {
-            while (!_cancellationToken.IsCancellationRequested)
-            {
-                await Task.Delay(400);
-                if (!_wasUpdate)
-                {
-                    LogInfo("flag: !_wasUpdate [GuiSpectator]");
-                    continue;
-                }
-
-                lock (_syncObject)
-                {
-                    _wasUpdate = false;
-                }
-            }
-        }
-
-        public GuiSpectator(CancellationToken cancellationToken)
-        {
-            _cancellationToken = cancellationToken;
-        }
         public ServerResponse Client(int msgCount, ServerRequest request)
         {
-            lock(_syncObject)
-            {
-                if (request.Map.Cells != null)
-                {
-                    LogInfo("flag: request.Map.Cells != null");
-                    Map = request.Map;
-                    _lastMapUpdate = DateTime.Now;
-                }
-                else if (Map == null)
-                {
-                    LogInfo("flag: Map == null");
-                    return new ServerResponse { ClientCommand = ClientCommandType.UpdateMap };
-                }
-                if (request.Settings != null)
-                {
-                    LogInfo("flag: request.Settings != null");
-                    Settings = request.Settings;
-                }
+            if (request.Map.Cells != null)
+             {
+                 LogInfo("flag: request.Map.Cells != null");
+                 Map = request.Map;
+                 _lastMapUpdate = DateTime.Now;
+             }
+             else if (Map == null)
+             {
+                 LogInfo("flag: Map == null");
+                 return new ServerResponse { ClientCommand = ClientCommandType.UpdateMap };
+             }
+             if (request.Settings != null)
+             {
+                 LogInfo("flag: request.Settings != null");
+                 Settings = request.Settings;
+             }
 
-                LogInfo("set: Map.InteractObjects");
-                Map.InteractObjects = request.Map.InteractObjects;
-                LogInfo("set: _msgCount");
-                _msgCount = msgCount;
-                LogInfo("set: _wasUpdate");
-                _wasUpdate = true;
+             LogInfo("set: Map.InteractObjects");
+             Map.InteractObjects = request.Map.InteractObjects;
+             LogInfo("set: _msgCount");
+             _msgCount = msgCount;
+             LogInfo("set: _wasUpdate");
+             _wasUpdate = true;
 
-                return new ServerResponse { ClientCommand = ClientCommandType.None };
-            }
+             return new ServerResponse { ClientCommand = ClientCommandType.None };
         }
     }
 
@@ -278,6 +250,7 @@ namespace TankGuiObserver2
         public void Restart(string server)
         {
             _serverUri = new Uri(server);
+            _webSocketProxy?.Close();
             _webSocketProxy?.Dispose();
             _webSocketProxy = new WebSocketProxy(_serverUri);
         }
@@ -350,7 +323,7 @@ namespace TankGuiObserver2
                         LogInfo($"catch (Exception ex) [_webSocketProxy.Send(outputData, CancellationToken.None);]");
                     }
 
-                    Thread.Sleep(1000);
+                    Thread.Sleep(500);
                 }
 
                 tokenSource.Cancel();

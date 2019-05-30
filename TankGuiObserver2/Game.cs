@@ -131,7 +131,7 @@
             _tokenSource = new System.Threading.CancellationTokenSource();
             _connector = new Connector(_serverString);
             _guiObserverCore = new GuiObserverCore(_serverString, string.Empty);
-            _spectatorClass = new GuiSpectator(_tokenSource.Token);
+            _spectatorClass = new GuiSpectator();
             _gameRender = new GameRender(_serverString, _renderForm, _factory2D, _renderTarget2D);
             
             #region Keyboard
@@ -163,6 +163,7 @@
             {
                 Reset();
             }
+            
             KeyboardState kbs = _keyboard.GetCurrentState();//_keyboard.Poll();
             foreach (var key in kbs.PressedKeys)
             {
@@ -233,6 +234,7 @@
                         "F - show fps\n" +
                         "H - help\n" +
                         "V - vertical sync\n" +
+                        "T - render tank\n" +
                         "Tab - show players\n" +
                         "Esc - exit\n", "Help(me)");
                 }
@@ -385,19 +387,37 @@
             _logger.Debug("flag: !_isWebSocketOpen()");
             _isEnterPressed = false;
             _gameRender.UIIsVisible = false;
-            _isClientThreadRunning = true;
 
             if (!_connector.Server.Equals(_serverString))
             {
+                _tokenSource.Cancel();
+                _tokenSource?.Dispose();
+                _tokenSource = new System.Threading.CancellationTokenSource();
                 _connector?.Dispose();
                 _connector = new Connector(_serverString);
+                _guiObserverCore.Restart(_serverString);
             }
 
+            _isClientThreadRunning = true;
             _connector.IsServerRunning();
             _logger.Debug("call: _connector.IsServerRunning()");
             if (_connector.ServerRunning)
             {
                 _isClientThreadRunning = false;
+            }
+            else
+            {
+                _isClientThreadRunning = true;
+                try
+                {
+                    _clientThread?.Interrupt();
+                    _clientThread = null;
+                }
+                catch (System.Security.SecurityException ex)
+                {
+                    _logger.Error("exception: _clientThread.Interrupt()");
+                    _logger.Error($"exception: {ex.Message}");
+                }
             }
 
             _gameRender.DrawWaitingLogo();
@@ -411,14 +431,11 @@
                 _gameRender.GameSetDefault();
 
                 _gameRender.Settings = _spectatorClass.Settings;
-                _tokenSource.Cancel();
-                _tokenSource?.Dispose();
-                _tokenSource = new System.Threading.CancellationTokenSource();
-                _guiObserverCore.Restart(_serverString);
-
+                
                 try
                 {
                     _clientThread?.Interrupt();
+                    _clientThread = null;
                 }
                 catch (System.Security.SecurityException ex)
                 {
@@ -429,7 +446,6 @@
                     _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
                 });
                 _clientThread.Start();
-                System.Threading.Thread.Sleep(300);
             }
         }
 

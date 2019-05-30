@@ -1,4 +1,6 @@
-﻿namespace TankGuiObserver2
+﻿#define COLORED_DEAD_0
+
+namespace TankGuiObserver2
 {
     using SharpDX;
     using SharpDX.Direct2D1;
@@ -216,6 +218,7 @@
         int _hpDifLen;
         RawVector2 _clientInfoLeftPoint;
         RawVector2 _clientInfoRightPoint;
+        TextRange _tempRange;
         RectangleF _clientInfoAreaRect;
         RectangleF _cleintInfo;
         RectangleF _clientInfoTextRect;
@@ -228,6 +231,7 @@
         TextFormat _clientInfoTextFormat;
         TextLayout _textLayout;
         CustomColorRenderer _textRenderer;
+        List<TextRange> _clientInfoTableEffects;
         List<string> _paddingStrings;
         List<TankObject> _clientInfoTanks;
 
@@ -295,6 +299,11 @@
             {
                 _ipResetIpTextBox.Visible = value;
                 _resetIpBtn.Visible = value;
+                _resetIpBtn.IsAccessible = value;
+                if (value == false)
+                {
+                    _resetIpBtn.Hide();
+                }
             }
         }
 
@@ -303,6 +312,7 @@
             _isMapSet = false;
             _isImmutableObjectsInitialized = false;
             _isDestructiveObjectsInitialized = false;
+            Map = null;
 
             _immutableMapObjects.Clear();
             _immutableGrass.Clear();
@@ -390,7 +400,8 @@
             _clientInfoRightPoint = new RawVector2(
                 _clientInfoAreaRect.X + _clientInfoAreaRect.Width,
                 _clientInfoTextRect.Y + 0.6f * _clientInfoTextRect.Height);
-            
+            _tempRange = new TextRange();
+
             _tankRectangle = new RawRectangleF();
             _nickRectangle = new RawRectangleF();
             _nickBackRectangle = new RawRectangleF();
@@ -432,6 +443,7 @@
                     _paddingStrings.Add(new string('_', i));
                 }
             }
+            _clientInfoTableEffects = new List<TextRange>();
 
             _clientInfoLabel = new Label();
             _clientInfoLabel.Text = "Client info";
@@ -915,7 +927,7 @@
             _clientInfoSessionTime.Text = $"Session time: {Settings?.SessionTime.ToString()}";
             _clientInfoTanks.AddRange(
                 Map?.InteractObjects.OfType<TankObject>().OrderByDescending(t => t.Score).ToList());
-
+            
             _index = 0;
             _nickDifLen = 0;
             _scoreDifLen = 0;
@@ -923,6 +935,7 @@
             _clientInfoStringBuilder.Append("Id Nickname                  Score          Hp     Lives\n");
             foreach (var tank in _clientInfoTanks)
             {
+                int cisbLength = _clientInfoStringBuilder.Length;
                 string score = tank.Score.ToString();
                 string hp = tank.Hp.ToString();
                 _nickDifLen = 16 - tank.Nickname.Length;
@@ -931,9 +944,15 @@
                 _clientInfoStringBuilder.AppendFormat("{0}  {1}  {2} {3} {4}\n", 
                     _index.ToString(), 
                     (_nickDifLen <= 0) ? tank.Nickname : tank.Nickname + _paddingStrings[_nickDifLen],
-                    (_scoreDifLen <= 0) ? score         : score         + _paddingStrings[_scoreDifLen],
-                    (_hpDifLen <= 0) ? hp            : hp            + _paddingStrings[_hpDifLen],
+                    (_scoreDifLen <= 0) ? score : score + _paddingStrings[_scoreDifLen],
+                    (_hpDifLen <= 0) ? hp : hp + _paddingStrings[_hpDifLen],
                     tank.Lives.ToString());
+#if COLORED_DEAD_1
+                if (tank.IsDead)
+                {
+                    _clientInfoTableEffects.Add(new TextRange(cisbLength, _clientInfoStringBuilder.Length));
+                }
+#endif
                 ++_index;
             }
             
@@ -957,12 +976,23 @@
 
                     if (_setted && _clientInfoStringBuilder[i + 1] != '_')
                     {
-                        _textLayout?.SetDrawingEffect(_mapObjectsColors[16], new TextRange(_index, i));
-                        _textLayout?.SetDrawingEffect(_mapObjectsColors[14], new TextRange(i+1, i+1));
+                        _tempRange.StartPosition = _index;
+                        _tempRange.Length = i;
+                        _textLayout?.SetDrawingEffect(_mapObjectsColors[16], _tempRange);
+                        _tempRange.StartPosition = i + 1;
+                        _tempRange.Length = i + 1;
+                        _textLayout?.SetDrawingEffect(_mapObjectsColors[14], _tempRange);
                         _setted = false;
                     }
                 }
             }
+
+#if COLORED_DEAD_1
+            for (int i = 0; i < _clientInfoTableEffects.Count; i++)
+            {
+                _textLayout.SetDrawingEffect(_mapObjectsColors[6], _clientInfoTableEffects[i]);
+            }
+#endif
 
             //Draw
             _textLayout.Draw(_textRenderer, _cleintInfo.X, _cleintInfo.Y);
