@@ -41,16 +41,13 @@ namespace AdminPanel.Controllers
             var port = 2000;
             while (true)
             {
-                lock (Program.Servers)
+                if (Program.Servers.Any(x => x.Port == port))
                 {
-                    if (Program.Servers.Any(x => x.Port == port))
-                    {
-                        port += 10;
-                    }
-                    else
-                    {
-                        break;
-                    }
+                    port += 10;
+                }
+                else
+                {
+                    break;
                 }
             }
 
@@ -68,7 +65,8 @@ namespace AdminPanel.Controllers
 
                 var server = new Server(serverSettings, Program.Logger);
 
-                lock (Program.Servers)
+                
+                lock (Program.Sync)
                 {
                     Program.Servers.Add(new ServerEntity()
                     {
@@ -134,17 +132,20 @@ namespace AdminPanel.Controllers
         {
             var ips = Dns.GetHostEntry(Dns.GetHostName()).AddressList.Where(z => z.AddressFamily == AddressFamily.InterNetwork);
             Task.Delay(150);
-            var result = Program.Servers.Select(x => new
+            lock (Program.Sync)
             {
-                Id = x.Id,
-                Name = x.Server.serverSettings.SessionName,
-                Ip = string.Join(", ", ips),
-                Port = x.Server.serverSettings.Port,
-                Type = x.Server.serverSettings.ServerType.GetDescription(),
-                People = x.Server.Clients.Count(z => !string.IsNullOrWhiteSpace(z.Value.Nickname)) + " / " + x.Server.serverSettings.MaxClientCount
-            });
+                var result = Program.Servers.Select(x => new
+                {
+                    Id = x.Id,
+                    Name = x.Server.serverSettings.SessionName,
+                    Ip = string.Join(", ", ips),
+                    Port = x.Server.serverSettings.Port,
+                    Type = x.Server.serverSettings.ServerType.GetDescription(),
+                    People = x.Server.Clients.Count(z => !string.IsNullOrWhiteSpace(z.Value.Nickname)) + " / " + x.Server.serverSettings.MaxClientCount
+                });
 
             return result.ToJson();
+            }
         }
 
         /// <summary>

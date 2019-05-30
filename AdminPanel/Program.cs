@@ -8,6 +8,7 @@ namespace AdminPanel
 {
     public class Program
     {
+        public static object Sync = new object();
         public static List<Entity.ServerEntity> Servers = new List<Entity.ServerEntity>();
         public static Logger Logger = LogManager.GetCurrentClassLogger();
 

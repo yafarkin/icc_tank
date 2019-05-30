@@ -76,13 +76,14 @@ namespace TankGuiObserver2
         }
     }
 
+    /*не зависит от socket*/
     class GuiSpectator
     {
         public TankSettings Settings { get; set; }
         public Map Map { get; set; }
+        private object _syncObject = new object();
         protected DateTime _lastMapUpdate;
         protected readonly CancellationToken _cancellationToken;
-        protected readonly object _syncObject = new object();
         protected int _msgCount;
         protected bool _wasUpdate;
 
@@ -94,14 +95,15 @@ namespace TankGuiObserver2
 #if LOGGED_GUI_SPECTATOR
             _logger.Info(info);
 #endif
-        }
-
-        public GuiSpectator(CancellationToken cancellationToken)
-        {
-            _cancellationToken = cancellationToken;
 #pragma warning disable 4014
             DisplayMap();
 #pragma warning restore 4014
+
+        }
+
+        public void ResetSyncObject()
+        {
+            _syncObject = new object();
         }
 
         protected async Task DisplayMap()
@@ -121,9 +123,14 @@ namespace TankGuiObserver2
                 }
             }
         }
+
+        public GuiSpectator(CancellationToken cancellationToken)
+        {
+            _cancellationToken = cancellationToken;
+        }
         public ServerResponse Client(int msgCount, ServerRequest request)
         {
-            lock (_syncObject)
+            lock(_syncObject)
             {
                 if (request.Map.Cells != null)
                 {
@@ -136,8 +143,7 @@ namespace TankGuiObserver2
                     LogInfo("flag: Map == null");
                     return new ServerResponse { ClientCommand = ClientCommandType.UpdateMap };
                 }
-                if (request.Settings != null &&
-                    request.IsSettingsChanged)
+                if (request.Settings != null)
                 {
                     LogInfo("flag: request.Settings != null");
                     Settings = request.Settings;
@@ -245,11 +251,10 @@ namespace TankGuiObserver2
     public class GuiObserverCore
     {
         public WebSocketProxy WebSocketProxy => _webSocketProxy;
-        protected readonly Uri _serverUri;
+        protected Uri _serverUri;
         protected readonly string _nickName;
 
         private WebSocketProxy _webSocketProxy;
-        private AutoResetEvent _autoResetEvent;
         static NLog.Logger _logger;
 
         [System.Runtime.CompilerServices.MethodImpl(256)]
@@ -262,18 +267,17 @@ namespace TankGuiObserver2
 
         public GuiObserverCore(string server, string nickname)
         {
-            _autoResetEvent = new AutoResetEvent(true);
-            _serverUri = new Uri(server);
             _nickName = nickname;
             _logger = NLog.LogManager.GetCurrentClassLogger();
-            Restart();
+            Restart(server);
             LogInfo("Ctor is working fiine. [GuiObserverCore]");
             //_webSocketProxy = new WebSocketProxy(_serverUri);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(256)]
-        public void Restart()
+        public void Restart(string server)
         {
+            _serverUri = new Uri(server);
             _webSocketProxy?.Dispose();
             _webSocketProxy = new WebSocketProxy(_serverUri);
         }

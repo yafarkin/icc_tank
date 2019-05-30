@@ -128,11 +128,12 @@
             _notifyVerticalSyncOff.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
             #endregion
 
-            
+            _tokenSource = new System.Threading.CancellationTokenSource();
             _connector = new Connector(_serverString);
+            _guiObserverCore = new GuiObserverCore(_serverString, string.Empty);
+            _spectatorClass = new GuiSpectator(_tokenSource.Token);
             _gameRender = new GameRender(_serverString, _renderForm, _factory2D, _renderTarget2D);
             
-
             #region Keyboard
             _keyboardDelay = new System.Diagnostics.Stopwatch();
             _keyboardDelay.Start();
@@ -281,51 +282,12 @@
             _isWebSocketOpen = (_guiObserverCore?.WebSocketProxy.State ==  WebSocket4Net.WebSocketState.Open);
             if (!_isWebSocketOpen)
             {
-                _logger.Debug("flag: !_isWebSocketOpen()");
-                _isEnterPressed = false;
-                _gameRender.UIIsVisible = false;
-                _isClientThreadRunning = true;
+                Reset();
+            }
 
-                _connector.IsServerRunning();
-                _logger.Debug("call: _connector.IsServerRunning()");
-                if (_connector.ServerRunning)
-                {
-                    _isClientThreadRunning = false;
-                }
-
-                _gameRender.DrawWaitingLogo();
-
-                _logger.Debug("call: DrawWaitingLogo()");
-                if (!_isClientThreadRunning)
-                {
-                    _logger.Debug("flag: _isClientThreadRunning()");
-                    _isClientThreadRunning = true;
-                    //_spectatorClass.Map = null;
-                    ++_serverStartupIndex;
-                    //_isClientInfoWasCentered = false;
-                    _gameRender.Settings = _connector.Settings;
-
-                    _tokenSource?.Dispose();
-                    _tokenSource = new System.Threading.CancellationTokenSource();
-                    _guiObserverCore = new GuiObserverCore(_serverString, string.Empty);
-                    _spectatorClass = new GuiSpectator(_tokenSource.Token);
-                    _guiObserverCore.Restart();
-
-                    try
-                    {
-                        _clientThread?.Interrupt();
-                    }
-                    catch (System.Security.SecurityException ex)
-                    {
-                        _logger.Error("exception: _clientThread.Interrupt()");
-                        _logger.Error($"exception: {ex.Message}");
-                    }
-                    _gameRender.GameSet();
-                    _clientThread = new System.Threading.Thread(() => {
-                        _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
-                    });
-                    _clientThread.Start();
-                }
+            if (_gameRender.ResetIp(ref _serverString))
+            {
+                Reset();
             }
 
             if (_isEnterPressed && _isWebSocketOpen)
@@ -399,6 +361,55 @@
 
             _swapChain.Present(_verticalSyncOn, PresentFlags.None);
             _logger.Debug("Frame draw: end");
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(256)]
+        private void Reset()
+        {
+            _logger.Debug("flag: !_isWebSocketOpen()");
+            _isEnterPressed = false;
+            _gameRender.UIIsVisible = false;
+            _isClientThreadRunning = true;
+
+            _connector?.Dispose();
+            _connector = new Connector(_serverString);
+            _connector.IsServerRunning();
+            _logger.Debug("call: _connector.IsServerRunning()");
+            if (_connector.ServerRunning)
+            {
+                _isClientThreadRunning = false;
+            }
+
+            _gameRender.DrawWaitingLogo();
+
+            _logger.Debug("call: DrawWaitingLogo()");
+            if (!_isClientThreadRunning)
+            {
+                _logger.Debug("flag: _isClientThreadRunning()");
+                _isClientThreadRunning = true;
+                ++_serverStartupIndex;
+                _gameRender.GameSetDefault();
+
+                _gameRender.Settings = _spectatorClass.Settings;
+                _tokenSource.Cancel();
+                _tokenSource?.Dispose();
+                _tokenSource = new System.Threading.CancellationTokenSource();
+                _guiObserverCore.Restart(_serverString);
+
+                try
+                {
+                    _clientThread?.Interrupt();
+                }
+                catch (System.Security.SecurityException ex)
+                {
+                    _logger.Error("exception: _clientThread.Interrupt()");
+                    _logger.Error($"exception: {ex.Message}");
+                }
+                _clientThread = new System.Threading.Thread(() => {
+                    _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
+                });
+                _clientThread.Start();
+            }
         }
 
         public static Bitmap LoadFromFile(RenderTarget renderTarget, string file)

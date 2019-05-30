@@ -182,6 +182,7 @@
     class GameRender : System.IDisposable
     {
         //Game
+        string _serverString;
         RenderForm _renderForm;
         RenderTarget _renderTarget2D;
         SharpDX.Direct2D1.Factory _factory2D;
@@ -208,6 +209,7 @@
         //ClientInfo
         bool _setted;
         bool _centeredCI;
+        bool _isStringResseted;
         int _index;
         int _nickDifLen;
         int _scoreDifLen;
@@ -221,6 +223,8 @@
         Label _clientInfoLabel;
         Label _clientInfoSessionTime;
         Label _clientInfoSessionServer;
+        TextBox _ipResetIpTextBox;
+        Button _resetIpBtn;
         TextFormat _clientInfoTextFormat;
         TextLayout _textLayout;
         CustomColorRenderer _textRenderer;
@@ -280,11 +284,11 @@
             {
                 _clientInfoSessionServer.Visible = value;
                 _clientInfoLabel.Visible = value;
-                _clientInfoSessionTime.Visible = false;
+                _clientInfoSessionTime.Visible = value;
             }
         }
 
-        public void GameSet()
+        public void GameSetDefault()
         {
             _isMapSet = false;
             _isImmutableObjectsInitialized = false;
@@ -303,6 +307,7 @@
         {
             #region Itialization
 
+            _serverString = server;
             _renderForm = renderForm;
             _factory2D = factory2D;
             _renderTarget2D = renderTarget;
@@ -364,7 +369,9 @@
                 _renderForm.Height - (_renderForm.Height - _logoTextRect.Bottom - 200),
                 _renderForm.Width - _renderForm.Height, 30);
             _clientInfoAreaRect = new RectangleF(_renderForm.Height, 0, _renderForm.Width - _renderForm.Height, _renderForm.Height);
-            _cleintInfo = new RectangleF(_renderForm.Height + 50, 100 + 50, _renderForm.Width-_renderForm.Height-100, 500);
+            _cleintInfo = new RectangleF(_renderForm.Height + 50, 100 + 50, 
+                 (_renderForm.Width > _renderForm.Height) ? _renderForm.Width-_renderForm.Height-100 : 250
+                 , 500);
             _clientInfoTextRect = new RectangleF(
                 _clientInfoAreaRect.X + 0.39f * _clientInfoAreaRect.X,
                 _clientInfoAreaRect.Y + 0.05f * _clientInfoAreaRect.Height, 300, 100);
@@ -430,12 +437,12 @@
             _clientInfoSessionTime.Font = new System.Drawing.Font("Cambria", 16);
             _clientInfoSessionTime.BackColor = System.Drawing.Color.Green;
             _clientInfoSessionTime.ForeColor = System.Drawing.Color.White;
-            _clientInfoSessionTime.Location = new System.Drawing.Point(_renderForm.Height + 250, 30);
+            _clientInfoSessionTime.Location = new System.Drawing.Point(_renderForm.Height + 450, 40);
             _clientInfoSessionTime.AutoSize = true;
             _clientInfoSessionTime.Visible = false;
 
             _clientInfoSessionServer = new Label();
-            _clientInfoSessionServer.Text = server;
+            _clientInfoSessionServer.Text = _serverString;
             _clientInfoSessionServer.Font = new System.Drawing.Font("Cambria", 16);
             _clientInfoSessionServer.BackColor = System.Drawing.Color.Green;
             _clientInfoSessionServer.ForeColor = System.Drawing.Color.White;
@@ -443,9 +450,26 @@
             _clientInfoSessionServer.AutoSize = true;
             _clientInfoSessionServer.Visible = false;
 
+            _ipResetIpTextBox = new TextBox();
+            _ipResetIpTextBox.Font = new System.Drawing.Font("Cambria", 16);
+            _ipResetIpTextBox.Text = "ws://10.22.2.120:2000";
+            _ipResetIpTextBox.Width = 250;
+            _ipResetIpTextBox.Location = new System.Drawing.Point(200, 0);
+            _ipResetIpTextBox.Visible = true;
+            _resetIpBtn = new Button();
+            _resetIpBtn.Font = new System.Drawing.Font("Cambria", 16);
+            _resetIpBtn.Name = "btnReset";
+            _resetIpBtn.Text = "Reset ip";
+            _resetIpBtn.Width = 250;
+            _resetIpBtn.Location = new System.Drawing.Point(200, 35);
+            _resetIpBtn.Click += ResetIPButton_Click;
+            _resetIpBtn.Visible = true;
+
             _renderForm.Controls.Add(_clientInfoSessionServer);
             _renderForm.Controls.Add(_clientInfoSessionTime);
             _renderForm.Controls.Add(_clientInfoLabel);
+            _renderForm.Controls.Add(_ipResetIpTextBox);
+            _renderForm.Controls.Add(_resetIpBtn);
             #endregion
 
             #region BitmapLoading
@@ -877,9 +901,9 @@
             _renderTarget2D.Clear(_blackScreen);
             _renderTarget2D.FillRectangle(_clientInfoAreaRect, _mapObjectsColors[13]);
             _renderTarget2D.DrawLine(_clientInfoLeftPoint, _clientInfoRightPoint, _mapObjectsColors[12], 10);
-            _clientInfoSessionTime.Text = $"Session tome: {Settings?.SessionTime}";
+            _clientInfoSessionTime.Text = $"Session time: {Settings?.SessionTime}";
             _clientInfoTanks.AddRange(
-                Map.InteractObjects.OfType<TankObject>().OrderByDescending(t => t.Score).ToList());
+                Map?.InteractObjects.OfType<TankObject>().OrderByDescending(t => t.Score).ToList());
 
             _index = 0;
             _nickDifLen = 0;
@@ -980,6 +1004,27 @@
             }
         }
 
+        public void ResetIPButton_Click(
+            object sender, EventArgs e)
+        {
+            _isStringResseted = true;
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(256)]
+        public bool ResetIp(ref string serverString)
+        {
+            if (_isStringResseted)
+            {
+                _isStringResseted = false;
+                serverString = _ipResetIpTextBox.Text;
+                _serverString = serverString;
+                _textAnimation.SetAnimatedString($"Waiting for connection to {_serverString}");
+                _clientInfoSessionServer.Text = _serverString;
+                return true;
+            }
+            return false;
+        }
+
         public void Dispose()
         {
             for (int mapIndex = 0; mapIndex < _mapObjectsColors.Length; mapIndex++)
@@ -989,20 +1034,25 @@
 
             for (int i = 0; i < _bitmaps.Length; i++)
             {
-                _bitmaps[i].Dispose();
+                _bitmaps[i]?.Dispose();
             }
 
-            if (_textLayout != null) _textLayout.Dispose();
-            _tankUpBitmap.Dispose();
-            _tankDownBitmap.Dispose();
-            _tankLeftBitmap.Dispose();
-            _tankRightBitmap.Dispose();
+            for (int i = 0; i < _bricksBitmaps.Length; i++)
+            {
+                _bricksBitmaps[i]?.Dispose();
+            }
 
-            _bulletSpeedUpgradeBitmap.Dispose();
-            _damageUpgradeBitmap.Dispose();
-            _healthUpgradeBitmap.Dispose();
-            _maxHpUpgradeBitmap.Dispose();
-            _speedUpgradeBitmap.Dispose();
+            _textLayout?.Dispose();
+            _tankUpBitmap?.Dispose();
+            _tankDownBitmap?.Dispose();
+            _tankLeftBitmap?.Dispose();
+            _tankRightBitmap?.Dispose();
+
+            _bulletSpeedUpgradeBitmap?.Dispose();
+            _damageUpgradeBitmap?.Dispose();
+            _healthUpgradeBitmap?.Dispose();
+            _maxHpUpgradeBitmap?.Dispose();
+            _speedUpgradeBitmap?.Dispose();
         }
 
     }
