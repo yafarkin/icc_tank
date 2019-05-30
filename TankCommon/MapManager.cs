@@ -133,6 +133,10 @@ namespace TankCommon
                         mapData[y, x] = CellMapType.Wall;
                         x++;
                         break;
+                    case 'c':
+                        mapData[y, x] = CellMapType.Wall;
+                        x++;
+                        break;
                     case 'т':
                         mapData[y, x] = CellMapType.Grass;
                         x++;
