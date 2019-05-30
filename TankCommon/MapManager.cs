@@ -66,8 +66,8 @@ namespace TankCommon
                 case MapType.Manual_Map_2:
                     fileName = "Manual_Map_2.txt";
                     break;
-                case MapType.Manual_Map_3:
-                    fileName = "Manual_Map_3.txt";
+                case MapType.Promotional:
+                    fileName = "Promotional.txt";
                     break;
                 default:
                     throw new InvalidDataException("Неизвестный тип карты");

@@ -48,7 +48,7 @@ namespace TankServer
                 case MapType.Manual_Map_2:
                     Map = MapManager.ReadMap(mapType);
                     break;
-                case MapType.Manual_Map_3:
+                case MapType.Promotional:
                     Map = MapManager.ReadMap(mapType);
                     break;
                 case MapType.Water_map:
