@@ -43,13 +43,13 @@ namespace TankServer
                     Map = MapManager.LoadMap(serverSettings.Height, serverSettings.Width, CellMapType.Wall, 0, 0);
                     break;
                 case MapType.Manual_Map_1:
-                    Map = MapManager.ReadMap(MapType.Manual_Map_1);
+                    Map = MapManager.ReadMap(mapType);
                     break;
                 case MapType.Manual_Map_2:
-                    Map = MapManager.ReadMap(MapType.Manual_Map_2);
+                    Map = MapManager.ReadMap(mapType);
                     break;
                 case MapType.Manual_Map_3:
-                    Map = MapManager.ReadMap(MapType.Manual_Map_3);
+                    Map = MapManager.ReadMap(mapType);
                     break;
                 case MapType.Water_map:
                     Map = MapManager.LoadMap(serverSettings.Height, serverSettings.Width, CellMapType.Water, 40, 0);
