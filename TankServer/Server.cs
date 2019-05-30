@@ -1038,14 +1038,6 @@ namespace TankServer
             {
                 Map.InteractObjects.OfType<TankObject>().ToList().ForEach(x =>
                 {
-                    if (defaultTankSettings.GameSpeed > settings.GameSpeed)
-                    {
-                        x.BulletSpeed = settings.BulletSpeed;
-                        x.Damage = settings.TankDamage;
-                        x.Speed = settings.TankSpeed;
-                        x.MaximumHp = settings.TankMaxHP;
-                    }
-
                     x.BulletSpeed = x.BulletSpeed == defaultTankSettings.BulletSpeed
                         ? settings.BulletSpeed * settings.GameSpeed
                         : settings.BulletSpeed * settings.GameSpeed + (x.BulletSpeed - defaultTankSettings.BulletSpeed);
