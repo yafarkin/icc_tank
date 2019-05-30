@@ -308,7 +308,7 @@ namespace TankGuiObserver2
                     var inputData = _webSocketProxy.GetMessage();
                     if (string.IsNullOrWhiteSpace(inputData))
                     {
-                        Thread.Sleep(10);
+                        Thread.Sleep(50);
                         LogInfo("Run method: interupted [string.IsNullOrWhiteSpace(inputData)]");
                         continue;
                     }
