@@ -195,7 +195,7 @@ namespace TankServer
         public BaseInteractObject AddTankBot(string nickname, string tag)
         {
             var rectangle = PastOnPassablePlace();
-            var tank = new TankObject(Guid.NewGuid(), rectangle, defaultTankSettings.TankSpeed, false, defaultTankSettings.TankMaxHP, 100, 5, 5, nickname, tag, defaultTankSettings.TankDamage);
+            var tank = new TankObject(Guid.NewGuid(), rectangle, defaultTankSettings.TankSpeed, false, defaultTankSettings.TankMaxHP, defaultTankSettings.TankMaxHP, serverSettings.CountOfLifes, serverSettings.CountOfLifes, nickname, tag, defaultTankSettings.TankDamage);
             //При создании нового танка он бессмертен (передаём параметр длительности в миллисекундах)
             CallInvulnerability(tank, defaultTankSettings.TimeOfInvulnerability);
             Map.InteractObjects.Add(tank);
@@ -993,6 +993,18 @@ namespace TankServer
                 {
                     var upgrade = upgradeObj as InvulnerabilityUpgradeObject;
                     CallInvulnerability(tank, defaultTankSettings.TimeOfInvulnerability);
+                    break;
+                }
+                case UpgradeType.Speed:
+                {
+                    var upgrade = upgradeObj as SpeedUpgradeObject;
+                    await Task.Run((() =>
+                    {
+                        tank.Speed += upgrade.IncreaseSpeed;
+                        Thread.Sleep(time);
+                        tank.Speed -= upgrade.IncreaseSpeed;
+                    }));
+
                     break;
                 }
             }
