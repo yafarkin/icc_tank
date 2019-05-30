@@ -128,15 +128,10 @@
             _notifyVerticalSyncOff.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
             #endregion
 
-            _tokenSource = new System.Threading.CancellationTokenSource();
-            _guiObserverCore = new GuiObserverCore(_serverString, string.Empty);
-            _spectatorClass = new GuiSpectator(_tokenSource.Token);
+            
             _connector = new Connector(_serverString);
             _gameRender = new GameRender(_serverString, _renderForm, _factory2D, _renderTarget2D);
-            _clientThread = new System.Threading.Thread(() => {
-                _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
-            });
-            _clientThread.Start();
+            
 
             #region Keyboard
             _keyboardDelay = new System.Diagnostics.Stopwatch();
@@ -281,7 +276,8 @@
                     }
                 }
             }
-            //Drawing a gama
+            
+            //Drawing a game
             _isWebSocketOpen = (_guiObserverCore?.WebSocketProxy.State ==  WebSocket4Net.WebSocketState.Open);
             if (!_isWebSocketOpen)
             {
@@ -298,6 +294,7 @@
                 }
 
                 _gameRender.DrawWaitingLogo();
+
                 _logger.Debug("call: DrawWaitingLogo()");
                 if (!_isClientThreadRunning)
                 {
@@ -310,6 +307,8 @@
 
                     _tokenSource?.Dispose();
                     _tokenSource = new System.Threading.CancellationTokenSource();
+                    _guiObserverCore = new GuiObserverCore(_serverString, string.Empty);
+                    _spectatorClass = new GuiSpectator(_tokenSource.Token);
                     _guiObserverCore.Restart();
 
                     try
@@ -377,6 +376,11 @@
                 _gameRender.DrawLogo();
                 _logger.Debug("call: DrawLogo()");
             }
+            else if (_spectatorClass?.Map == null)
+            {
+
+            }
+
 
             if (_isFPressed)
             {

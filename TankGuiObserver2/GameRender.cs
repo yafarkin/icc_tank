@@ -33,15 +33,18 @@
         public char ColorBrushIndex;
         public int RowIndex;
         public int ColumnIndex;
+        public int BitmapIndex;
         public RawRectangleF Rectangle;
         public DestuctiveWalls(
             char colorBrushIndex,
             int row, int column,
+            int bitmapIndex,
             RawRectangleF rectangle)
         {
             ColorBrushIndex = colorBrushIndex;
             RowIndex = row;
             ColumnIndex = column;
+            BitmapIndex = bitmapIndex;
             Rectangle = rectangle;
         }
     }
@@ -622,22 +625,30 @@
             if (!_isDestructiveObjectsInitialized)
             {
                 _isDestructiveObjectsInitialized = true;
-                int index = 0;
-                for (var i = 5; i < (_mapHeight - 5); i++)
+                int i, j, index = 0,
+                    blocksInARow = _mapWidth / 5,
+                    blocksInACol = _mapHeight / 5;
+                for (int r = 0; r < blocksInACol; r++)
                 {
-                    for (var j = 5; j < (_mapWidth - 5); j++)
+                    for (int c = 0; c < blocksInARow; c++)
                     {
-                        var c = Map[i, j];
-                        if (c == CellMapType.DestructiveWall)
+                        for (i = (5 * r); i < (5 * r + 5); i++)
                         {
-                            _rawRectangleTemp.Left = j * _zoomWidth;
-                            _rawRectangleTemp.Top = i * _zoomHeight;
-                            _rawRectangleTemp.Right = j * _zoomWidth + _zoomWidth;
-                            _rawRectangleTemp.Bottom = i * _zoomHeight + _zoomHeight;
-                            _destuctiveWallsObjects.Add(new DestuctiveWalls((char)1, i, j, _rawRectangleTemp));
-                            _renderTarget2D.DrawBitmap(_bricksBitmaps[index%25], _rawRectangleTemp, 
-                                1.0f, BitmapInterpolationMode.Linear);
-                            ++index;
+                            for (j = (5 * c); j < (5 * c + 5); j++)
+                            {
+                                if (Map[i, j] == CellMapType.DestructiveWall)
+                                {
+                                    _rawRectangleTemp.Left = j * _zoomWidth;
+                                    _rawRectangleTemp.Top = i * _zoomHeight;
+                                    _rawRectangleTemp.Right = j * _zoomWidth + _zoomWidth;
+                                    _rawRectangleTemp.Bottom = i * _zoomHeight + _zoomHeight;
+                                    _destuctiveWallsObjects.Add(new DestuctiveWalls((char)1, i, j, 
+                                        (index % 25), _rawRectangleTemp));
+                                    _renderTarget2D.DrawBitmap(_bricksBitmaps[index % 25], _rawRectangleTemp,
+                                        1.0f, BitmapInterpolationMode.Linear);
+                                    ++index;
+                                }
+                            }
                         }
                     }
                 }
@@ -649,7 +660,7 @@
                 {
                     if (Map[obj.RowIndex, obj.ColumnIndex] == CellMapType.DestructiveWall)
                     {
-                        _renderTarget2D.DrawBitmap(_bricksBitmaps[index%25], obj.Rectangle, 
+                        _renderTarget2D.DrawBitmap(_bricksBitmaps[obj.BitmapIndex], obj.Rectangle, 
                             1.0f, BitmapInterpolationMode.Linear);
                         ++index;
                     }
