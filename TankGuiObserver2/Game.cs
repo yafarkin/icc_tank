@@ -206,11 +206,26 @@
                     _renderForm.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Fixed3D;
                     _renderForm.WindowState = System.Windows.Forms.FormWindowState.Normal;
                 }
+                else if (key == Key.F4)
+                {
+                    if (_keyboardDelay.ElapsedMilliseconds > 100)
+                    {
+                        if (_gameRender.IpReconnectUIVisible)
+                        {
+                            _gameRender.IpReconnectUIVisible = false;
+                        }
+                        else
+                        {
+                            _gameRender.IpReconnectUIVisible = true;
+                        }
+                    }
+                }
                 else if (key == Key.H)
                 {
                     System.Windows.Forms.MessageBox.Show(
                         "F1 - fullscreen\n" +
                         "F2 - windowed\n" +
+                        "F4 - reconnect\n" +
                         "F - show fps\n" +
                         "H - help\n" +
                         "V - vertical sync\n" +
@@ -276,6 +291,7 @@
                         _keyboardDelay.Start();
                     }
                 }
+
             }
             
             //Drawing a game
@@ -371,13 +387,18 @@
             _gameRender.UIIsVisible = false;
             _isClientThreadRunning = true;
 
-            _connector?.Dispose();
-            _connector = new Connector(_serverString);
+            if (!_connector.Server.Equals(_serverString))
+            {
+                _connector?.Dispose();
+                _connector = new Connector(_serverString);
+            }
+
             _connector.IsServerRunning();
             _logger.Debug("call: _connector.IsServerRunning()");
             if (_connector.ServerRunning)
             {
                 _isClientThreadRunning = false;
+                //System.Threading.Thread.Sleep(100);
             }
 
             _gameRender.DrawWaitingLogo();

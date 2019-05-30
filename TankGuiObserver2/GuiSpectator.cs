@@ -15,9 +15,9 @@ namespace TankGuiObserver2
 {
     public class Connector : System.IDisposable
     {
+        public string Server { get; private set; }
         public bool ServerRunning { get; private set; }
         public TankSettings Settings { get; set; }
-        private Uri _serverUri;
         private WebSocketProxy _webSocketProxy;
         static NLog.Logger _logger;
 
@@ -31,8 +31,8 @@ namespace TankGuiObserver2
 
         public Connector(string server)
         {
-            _serverUri = new Uri(server);
-            _webSocketProxy = new WebSocketProxy(_serverUri);
+            Server = server;
+            _webSocketProxy = new WebSocketProxy(new Uri(Server));
             _logger = NLog.LogManager.GetCurrentClassLogger();
         }
 

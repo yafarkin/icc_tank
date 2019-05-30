@@ -288,6 +288,16 @@
             }
         }
 
+        public bool IpReconnectUIVisible
+        {
+            get => _ipResetIpTextBox.Visible && _resetIpBtn.Visible;
+            set
+            {
+                _ipResetIpTextBox.Visible = value;
+                _resetIpBtn.Visible = value;
+            }
+        }
+
         public void GameSetDefault()
         {
             _isMapSet = false;
@@ -448,11 +458,10 @@
             _clientInfoSessionServer.ForeColor = System.Drawing.Color.White;
             _clientInfoSessionServer.Location = new System.Drawing.Point(_renderForm.Height + 20, 40);
             _clientInfoSessionServer.AutoSize = true;
-            _clientInfoSessionServer.Visible = false;
 
             _ipResetIpTextBox = new TextBox();
             _ipResetIpTextBox.Font = new System.Drawing.Font("Cambria", 16);
-            _ipResetIpTextBox.Text = "ws://10.22.2.120:2000";
+            _ipResetIpTextBox.Text = _serverString;
             _ipResetIpTextBox.Width = 250;
             _ipResetIpTextBox.Location = new System.Drawing.Point(200, 0);
             _ipResetIpTextBox.Visible = true;
@@ -463,7 +472,9 @@
             _resetIpBtn.Width = 250;
             _resetIpBtn.Location = new System.Drawing.Point(200, 35);
             _resetIpBtn.Click += ResetIPButton_Click;
-            _resetIpBtn.Visible = true;
+            
+            IpReconnectUIVisible = false;
+
 
             _renderForm.Controls.Add(_clientInfoSessionServer);
             _renderForm.Controls.Add(_clientInfoSessionTime);
