@@ -66,18 +66,7 @@ namespace TankServer
             {
                 socket.OnOpen = () =>
                 {
-                    var request = new ServerRequest
-                    {
-                        Settings = defaultTankSettings,
-                        IsSettingsChanged = true
-
-                    };
-                    var clientInfo = new ClientInfo { Request = request };
-                    lock (_syncObject)
-                    {
-                        _logger.Info($"[КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
-                        Clients.Add(socket, clientInfo);
-                    }
+                    _logger.Info($"[КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
                 };
                 socket.OnClose = () =>
                 {
@@ -86,7 +75,15 @@ namespace TankServer
                         _logger.Info($"[КЛИЕНТ-]: {socket.ConnectionInfo.ClientIpAddress}");
                         if (Clients.ContainsKey(socket))
                         {
-                            Clients[socket].NeedRemove = true;
+                            Clients[socket].IsConnected = false;
+                            if (!(Clients[socket].InteractObject is TankObject tank))
+                            {
+                                Clients[socket].NeedRemove = true;
+                            }
+                            else
+                            {
+                                tank.IsDead = true;
+                            }
                         }
 
                         var firstInQueue = Clients.Values.FirstOrDefault(c => c.IsInQueue);
@@ -105,7 +102,15 @@ namespace TankServer
                         _logger.Info($"[КЛИЕНТ-]: {socket.ConnectionInfo.ClientIpAddress}");
                         if (Clients.ContainsKey(socket))
                         {
-                            Clients[socket].NeedRemove = true;
+                            Clients[socket].IsConnected = false;
+                            if (!(Clients[socket].InteractObject is TankObject tank))
+                            {
+                                Clients[socket].NeedRemove = true;
+                            }
+                            else
+                            {
+                                tank.IsDead = true;
+                            }
                         }
 
                         var firstInQueue = Clients.Values.FirstOrDefault(c => c.IsInQueue);
@@ -119,26 +124,78 @@ namespace TankServer
                 };
                 socket.OnMessage = msg =>
                 {
+                    var response = msg.FromJson<ServerResponse>();
+                    if (response == null) return;
+                    if (response.ClientCommand == null)
+                    {
+                        response.ClientCommand = ClientCommandType.Login;
+                    }
+
                     lock (_syncObject)
                     {
-                        if (!Clients.ContainsKey(socket))
-                        {
-                            return;
-                        }
-
-                        //Информация для клиента
-                        var clientInfo = Clients[socket];
-
-                        var response = msg.FromJson<ServerResponse>();
-
-                        if(response == null) return;
-
                         if (response.ClientCommand == ClientCommandType.Logout)
                         {
-                            clientInfo.NeedRemove = true;
+                            var client = Clients.FirstOrDefault(x => x.Key == socket).Value.NeedRemove = true;
                         }
-                        else
+                        else if (response.ClientCommand == ClientCommandType.Login)
                         {
+                            if (!string.IsNullOrWhiteSpace(response.CommandParameter) && Clients.Count(x => x.Key.ConnectionInfo.ClientIpAddress == socket.ConnectionInfo.ClientIpAddress && !string.IsNullOrWhiteSpace(x.Value.Nickname)) > 0)
+                            {
+                                return;
+                            }
+                            if (Clients.ContainsKey(socket))
+                            {
+                                return;
+                            }
+
+                            var request = new ServerRequest
+                            {
+                                Settings = defaultTankSettings,
+                                IsSettingsChanged = true
+
+                            };
+                            var info = new ClientInfo { Request = request };
+
+                            _logger.Info($"Вход на сервер: {(string.IsNullOrWhiteSpace(response.CommandParameter) ? "наблюдатель" : response.CommandParameter)}");
+
+                            info.IsLogined = true;
+                            info.NeedUpdateMap = true;
+
+                            //если настройки изменились, клиенту отправится новая версия и флаг об обновлении настроек
+                            info.Request = new ServerRequest { Map = Map, IsSettingsChanged = true, Settings = defaultTankSettings };
+
+                            socket.Send(info.Request.ToJson());
+
+                            if (string.IsNullOrWhiteSpace(response.CommandParameter) || Clients.Count(x => !x.Value.IsSpecator) == serverSettings.MaxClientCount)
+                            {
+                                var spectator = AddSpectator();
+                                info.IsSpecator = true;
+                                info.InteractObject = spectator;
+                            }
+                            else
+                            {
+                                var nickname = response.CommandParameter;
+                                var tag = string.Empty;
+                                var idx = nickname.IndexOf('\t');
+                                if (idx > 0)
+                                {
+                                    tag = nickname.Substring(idx + 1);
+                                    nickname = nickname.Substring(0, idx);
+                                }
+
+                                info.Nickname = nickname;
+                                info.Tag = tag;
+                                var bot = AddTankBot(nickname, tag);
+                                info.InteractObject = bot;
+                            }
+
+                            Clients.Add(socket, info);
+                        }
+                        else if (Clients.ContainsKey(socket))
+                        {
+                            //Информация для клиента
+                            var clientInfo = Clients[socket];
+
                             // ответ в этом цикле уже был получен, не обрабатываем до следующего цикла
                             if (clientInfo.Response != null)
                             {
@@ -146,55 +203,6 @@ namespace TankServer
                             }
 
                             clientInfo.Response = response;
-
-                            if (response.ClientCommand == ClientCommandType.Login)
-                            {
-                                if (clientInfo.IsLogined)
-                                {
-                                    return;
-                                }
-
-                                _logger.Info($"Вход на сервер: {(string.IsNullOrWhiteSpace(response.CommandParameter) ? "наблюдатель" : response.CommandParameter)}");
-
-                                clientInfo.IsLogined = true;
-                                clientInfo.NeedUpdateMap = true;
-
-                                //если настройки изменились, клиенту отправится новая версия и флаг об обновлении настроек
-                                clientInfo.Request = new ServerRequest { Map = Map, IsSettingsChanged = true, Settings = defaultTankSettings };
-
-                                socket.Send(clientInfo.Request.ToJson());
-
-                                if (string.IsNullOrWhiteSpace(response.CommandParameter) || Clients.Count(x => !x.Value.IsSpecator) == serverSettings.MaxClientCount)
-                                {
-                                    var spectator = AddSpectator();
-                                    clientInfo.IsSpecator = true;
-                                    clientInfo.InteractObject = spectator;
-                                }
-                                else
-                                {
-                                    var nickname = response.CommandParameter;
-                                    var tag = string.Empty;
-                                    var idx = nickname.IndexOf('\t');
-                                    if (idx > 0)
-                                    {
-                                        tag = nickname.Substring(idx + 1);
-                                        nickname = nickname.Substring(0, idx);
-                                    }
-
-                                    clientInfo.Nickname = nickname;
-                                    clientInfo.Tag = tag;
-
-                                    if (Map.InteractObjects.OfType<TankObject>().Count() >= serverSettings.MaxClientCount)
-                                    {
-                                        clientInfo.IsInQueue = true;
-                                    }
-                                    else
-                                    {
-                                        var bot = AddTankBot(nickname, tag);
-                                        clientInfo.InteractObject = bot;
-                                    }
-                                }
-                            }
                         }
 
                         if (response.ClientCommand != ClientCommandType.None)
@@ -284,39 +292,40 @@ namespace TankServer
                     // сбрасываем данные для клиентов и от клиентов
                     ResetClientsData();
 
-                    if (defaultTankSettings.FinishSesison <= DateTime.Now)
-                    {
-                        await SendUpdates(false);
-                        break;
-                    }
-
                     // высылаем всем состояние движка
                     await SendUpdates(false);
 
-                    // в более частом цикле высылаем состояние движка для наблюдателей
-                    var botTimer = serverSettings.PlayerTickRate;
-                    while (botTimer > 0 && !cancellationToken.IsCancellationRequested)
-                    {
-                        await Task.Delay(serverSettings.SpectatorTickRate);
-                        if (cancellationToken.IsCancellationRequested)
-                        {
-                            break;
-                        }
-
-                        botTimer -= serverSettings.SpectatorTickRate;
-                        await SendUpdates(true);
-                    }
-
-                    // обрабатываем команды от клиентов
-                    ApplyClientsData();
-
-                    // удаляем ненужных клиентов
-                    RemoveClients();
-
-                    if (cancellationToken.IsCancellationRequested)
+                    if (defaultTankSettings.FinishSesison <= DateTime.Now && cancellationToken.IsCancellationRequested)
                     {
                         break;
                     }
+                    else if (defaultTankSettings.StartSesison > DateTime.Now)
+                    {
+                        await Task.Delay(1000);
+                        continue;
+                    }
+                    else
+                    {
+                        // в более частом цикле высылаем состояние движка для наблюдателей
+                        var botTimer = serverSettings.PlayerTickRate;
+                        while (botTimer > 0 && !cancellationToken.IsCancellationRequested)
+                        {
+                            await Task.Delay(serverSettings.SpectatorTickRate);
+                            if (cancellationToken.IsCancellationRequested)
+                            {
+                                break;
+                            }
+
+                            botTimer -= serverSettings.SpectatorTickRate;
+                            await SendUpdates(true);
+                        }
+
+                        // обрабатываем команды от клиентов
+                        ApplyClientsData();
+                    }
+
+                    // удаляем ненужных клиентов
+                    RemoveClients();
                 }
             }
             catch (Exception e)
@@ -340,12 +349,15 @@ namespace TankServer
                     if (clientInfo.Value.InteractObject != null)
                     {
                         var objToRemove = Map.InteractObjects.FirstOrDefault(o => o.Id == clientInfo.Value.InteractObject.Id);
-                        if (objToRemove != null)
+                        if (objToRemove is TankObject objTank)
                         {
-                            Map.InteractObjects.Remove(objToRemove);
+                            objTank.IsMoving = false;
+                            objTank.IsDead = true;
                         }
-
-                        socketsToRemove.Add(clientInfo.Key);
+                        else
+                        {
+                            socketsToRemove.Add(clientInfo.Key);
+                        }
                     }
                 }
 
@@ -402,7 +414,7 @@ namespace TankServer
                             break;
                     }
 
-                    if (client.Value.IsSpecator)
+                    if (client.Value.IsSpecator || ((client.Value.InteractObject as TankObject)?.IsDead ?? true))
                     {
                         continue;
                     }
@@ -516,7 +528,10 @@ namespace TankServer
 
                 try
                 {
-                    await client.Key.Send(json);
+                    if (client.Value.IsConnected)
+                    {
+                        await client.Key.Send(json);
+                    }
                     if (needUpdate)
                     {
                         _logger.Info($"Передача полной карты для {client.Key.ConnectionInfo.ClientIpAddress} / {(client.Value.IsSpecator ? "наблюдатель" : client.Value.Nickname)}");
@@ -590,9 +605,14 @@ namespace TankServer
                         {
                             if (clientInfo.Value.NeedRemove && clientInfo.Value.InteractObject != null)
                             {
-                                var objToRemove =
+                                var objToRemove = 
                                     Map.InteractObjects.FirstOrDefault(x => x.Id == clientInfo.Value.InteractObject.Id);
-                                if (objToRemove != null)
+                                if (objToRemove is TankObject objTank)
+                                {
+                                    objTank.IsMoving = false;
+                                    objTank.IsDead = true;
+                                }
+                                else
                                 {
                                     objsToRemove.Add(objToRemove);
                                 }

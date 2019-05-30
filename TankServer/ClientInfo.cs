@@ -8,6 +8,7 @@ namespace TankServer
         public bool IsLogined { get; set; }
         public bool IsSpecator { get; set; }
         public bool IsInQueue { get; set; }
+        public bool IsConnected { get; set; } = true;
 
         public bool NeedUpdateMap { get; set; }
         public bool NeedUpdateSettings { get; set; }

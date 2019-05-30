@@ -34,7 +34,8 @@ class UserForm extends React.Component {
             viewModal: false,
             serverList: [],
             viewTankSettings: false,
-            error: ""
+            error: "",
+            isAdmin: false
         };
 
         this.openModal = this.openModal.bind(this);
@@ -61,6 +62,9 @@ class UserForm extends React.Component {
         mapTypeList = this.getList('GetMapTypes');
         serverTypeList = this.getList('GetServerTypes');
         setInterval(() => this.updateServerList(), 1000);
+        if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+            this.setState({ isAdmin: true });
+        }
     }
 
     updateServerList() {
@@ -81,19 +85,22 @@ class UserForm extends React.Component {
     }
 
     doTestStart() {
+        this.setState({ error: "" });
         var result = this.getText(document.getElementById('modal'));
-        this.openModal();
 
         this.postHelper("CreateServer", result).then(x => {
             if (x && x.error) {
-                console.log(x.error);
+                this.setState({ error: x.error });
+            }
+            else {
+                this.openModal();
             }
         });
     }
 
     openModal() {
         var view = !this.state.viewModal;
-        this.setState({ viewModal: view, viewTankSettings: view });
+        this.setState({ viewModal: view, viewTankSettings: view, error: "" });
     }
 
     editTankSettings() {
@@ -135,15 +142,16 @@ class UserForm extends React.Component {
                         );
                     })}</tbody>
                 </table>
-                <select className="custom-select" type="text" defaultValue="0" id="ServerId">{this.state.serverList.map(e => {
+                <select className={this.state.isAdmin ? 'custom-select' : 'invisible'} type="text" defaultValue="0" id="ServerId">{this.state.serverList.map(e => {
                     if (e)
                     return <option value={e.Id}>{e.Name}</option>;
                 })}</select>
-                <button className={this.state.viewModal ? 'btn btn-primary invisible' : 'btn btn-primary visible'} disabled={!this.state.serverList[0]} id="ChangeServer" onClick={this.viewTankSettings}>{this.state.viewTankSettings ? 'Cancel' : 'Edit'}</button>
-                <button className={this.state.viewTankSettings ? 'btn btn-primary invisible' : 'btn btn-primary visible'} disabled={!this.state.serverList[0]} id="StopServer" onClick={this.stopServer}>Stop Server</button>
+                <button className={this.state.viewModal || !this.state.isAdmin ? 'btn btn-primary invisible' : 'btn btn-primary visible'} disabled={!this.state.serverList[0]} id="ChangeServer" onClick={this.viewTankSettings}>{this.state.viewTankSettings ? 'Cancel' : 'Edit'}</button>
+                <button className={this.state.viewTankSettings || !this.state.isAdmin ? 'btn btn-primary invisible' : 'btn btn-primary visible'} disabled={!this.state.serverList[0]} id="StopServer" onClick={this.stopServer}>Stop Server</button>
                 <br/>
-                <button className={this.state.viewModal === this.state.viewTankSettings ? 'btn btn-primary visible' : 'btn btn-primary invisible'} id="AddServer" onClick={this.openModal}>{this.state.viewModal ? 'Close' : 'Add'}</button>
-                <div id="modal">
+                <button className={this.state.viewModal === this.state.viewTankSettings && this.state.isAdmin ? 'btn btn-primary visible' : 'btn btn-primary invisible'} id="AddServer" onClick={this.openModal}>{this.state.viewModal ? 'Close' : 'Add'}</button>
+                <div id="errorMessage" className={this.state.error ? 'visible' : 'invisible'}>{this.state.error}</div>
+                <div id="modal" className={this.state.isAdmin ? 'visible' : 'invisible'}>
                     <div id="SessionName" className={this.state.viewModal ? 'visible' : 'invisible'}>
                         <label>Имя сервера</label>
                         <input type="text" id="Value" />
@@ -251,8 +259,15 @@ class UserForm extends React.Component {
                         </div>
                     </div>
                 </div>
-                <button id="AddServer" className={this.state.viewTankSettings !== this.state.viewModal ? 'btn btn-primary visible' : 'btn btn-primary invisible'} onClick={this.editTankSettings}>Change</button>
-                <button id="AddServer" className={this.state.viewModal ? 'btn btn-primary visible' : 'btn btn-primary invisible'} onClick={this.doTestStart}>Create</button>
+                <button id="AddServer" className={this.state.isAdmin && this.state.viewTankSettings !== this.state.viewModal ? 'btn btn-primary visible' : 'btn btn-primary invisible'} onClick={this.editTankSettings}>Change</button>
+                <button id="AddServer" className={this.state.viewModal && this.state.isAdmin ? 'btn btn-primary visible' : 'btn btn-primary invisible'} onClick={this.doTestStart}>Create</button>
+                <div id="links" className={this.state.isAdmin ? 'invisible' : 'visible'}>
+                    <a href="clients/cs.zip"><div id="client"><img id="logo" src="clients/cs.svg" /><p>C# - клиент</p></div></a>
+                    <a href="clients/java.zip"><div id="client"><img id="logo" src="clients/java.svg" /><p>Java - клиент</p></div></a>
+                    <a href="clients/js.zip"><div id="client"><img id="logo" src="clients/js.svg" /><p>JS - клиент</p></div></a>
+                    <a href="clients/py.zip"><div id="client"><img id="logo" src="clients/py.svg" /><p>Python - клиент</p></div></a>
+                </div>
+                <a href="clients/observer.zip" className={this.state.isAdmin ? 'invisible' : 'visible'}><div id="observer"><img id="logo" src="clients/binoculars.svg" /><p>Gui - наблюдатель</p></div></a>
             </div >
         );
     }

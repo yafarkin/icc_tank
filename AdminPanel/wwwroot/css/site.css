@@ -17,7 +17,67 @@ app {
 
 #app {
     margin-bottom: 65px;
+    margin-top: 50px;
 }
+
+#errorMessage {
+    padding: 10px;
+    background: #ff0000bb;
+    border-radius: 25px;
+    margin: 20px;
+    text-align: center;
+    font-weight: 600;
+    color: white;
+}
+
+#logo {
+    height: 60px;
+}
+
+#client {
+    color: #fff;
+    background-color: #76CDD8;
+    padding: 20px;
+    border-radius: 8px;
+    display: flex;
+    height: 100px;
+}
+
+#links a {
+    width: 23%;
+    margin: 1%;
+}
+
+#observer {
+    color: #fff;
+    width: 23%;
+    background-color: #76CDD8;
+    padding: 20px;
+    border-radius: 8px;
+    margin: auto;
+    display: flex;
+    height: 100px;
+}
+
+    #observer p, #client p {
+        line-height: 60px;
+        text-align: center;
+        width: -webkit-fill-available;
+        font-weight: 600;
+    }
+
+    #observer:hover, #client:hover {
+        background: #ffc000;
+    }
+
+        a:hover {
+            text-decoration: none;
+        }
+
+        #links {
+            display: inline-flex;
+            width: 100%;
+        }
 
 .bottom {
     margin-top: 15px;
@@ -26,11 +86,36 @@ app {
     bottom: 0;
     width: 100%;
     height: 50px;
-    background: #f9f9f9;
-    color: #bbb;
+    background: #231F20;
+    color: #fff;
     line-height: 50px;
     font-family: "Source Sans Pro", "Hiragino Sans GB", "Microsoft JhengHei", arial, helvetica, sans-serif;
     font-size: smaller;
+}
+
+.header {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    height: 50px;
+    background: #231F20;
+    display: flex;
+}
+
+    .header p {
+        width: -webkit-fill-available;
+        text-align: center;
+        color: #fff;
+        line-height: 50px;
+        font-family: "Source Sans Pro", "Hiragino Sans GB", "Microsoft JhengHei", arial, helvetica, sans-serif;
+        font-size: large;
+        font-weight: 600;
+    }
+
+.header img {
+    height: 30px;
+    margin: 10px;
+    margin-left: 20px;
 }
 
 #modal {
