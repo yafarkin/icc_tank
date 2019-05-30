@@ -55,7 +55,7 @@ namespace ICC_Tank
             
             var strHostName = Dns.GetHostName();
             var ipEntry = Dns.GetHostEntry(strHostName);
-            var ipAddresses = ipEntry.AddressList;
+            var ipAddresses = /*ipEntry.AddressList*/"ws://10.22.2.120:2000";
 
             Console.WriteLine($"Соединение по имени: ws://{strHostName}:{serverSetting.Port}");
             Console.WriteLine("Или по IP адресу(ам):");

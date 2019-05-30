@@ -102,11 +102,8 @@
             _serverStartupIndex = 0;
             _serverString = string.Empty;
             _serverString = System.Configuration.ConfigurationManager.AppSettings["server"];
-            if (_serverString == null)
-            {
-                _serverString = "ws://127.0.0.1:2000";
-            }
 
+            #region UI
             _notifyHelp = new System.Windows.Forms.NotifyIcon();
             _notifyHelp.Icon = System.Drawing.SystemIcons.Exclamation;
             _notifyHelp.BalloonTipTitle = "Подсказка";
@@ -129,26 +126,28 @@
             _notifyVerticalSyncOff.BalloonTipTitle = "";
             _notifyVerticalSyncOff.BalloonTipText = "Вертикальная синхронизация отключена";
             _notifyVerticalSyncOff.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
+            #endregion
 
             _tokenSource = new System.Threading.CancellationTokenSource();
-            _guiObserverCore = new GuiObserverCore(_serverString, string.Empty);
-            _spectatorClass = new GuiSpectator(_tokenSource.Token);
             _connector = new Connector(_serverString);
+            _guiObserverCore = new GuiObserverCore(_serverString, string.Empty);
+            _spectatorClass = new GuiSpectator();
             _gameRender = new GameRender(_serverString, _renderForm, _factory2D, _renderTarget2D);
-            _clientThread = new System.Threading.Thread(() => {
-                _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
-            });
-            _clientThread.Start();
-
+            
+            #region Keyboard
             _keyboardDelay = new System.Diagnostics.Stopwatch();
             _keyboardDelay.Start();
             _directInput = new DirectInput();
             _keyboard = new Keyboard(_directInput);
             _keyboard.Properties.BufferSize = 128;
             _keyboard.Acquire();
+            #endregion
 
+            #region Logger
             _logger = NLog.LogManager.GetCurrentClassLogger();
             _logger.Info("Ctor is working fine. [Game]");
+            #endregion
+
         }
 
         public void RunGame()
@@ -160,6 +159,11 @@
         {
             _renderTarget2D.BeginDraw();
             _logger.Debug("Frame draw: begin");
+            if (_gameRender.ResetIp(ref _serverString))
+            {
+                Reset();
+            }
+            
             KeyboardState kbs = _keyboard.GetCurrentState();//_keyboard.Poll();
             foreach (var key in kbs.PressedKeys)
             {
@@ -207,12 +211,31 @@
                     _renderForm.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Fixed3D;
                     _renderForm.WindowState = System.Windows.Forms.FormWindowState.Normal;
                 }
+                else if (key == Key.F4)
+                {
+                    if (_keyboardDelay.ElapsedMilliseconds > 300)
+                    {
+                        if (_gameRender.IpReconnectUIVisible)
+                        {
+                            _gameRender.IpReconnectUIVisible = false;
+                        }
+                        else
+                        {
+                            _gameRender.IpReconnectUIVisible = true;
+                        }
+                    }
+                }
                 else if (key == Key.H)
                 {
                     System.Windows.Forms.MessageBox.Show(
-                        "F1 - fullscreen\nF2 - windowed\n" +
-                        "F - show fps\nH - help\n" +
+                        "F1 - fullscreen\n" +
+                        "F2 - windowed\n" +
+                        "F4 - reconnect\n" +
+                        "F - show fps\n" +
+                        "H - help\n" +
                         "V - vertical sync\n" +
+                        "T - render tank\n" +
+                        "Tab - show players\n" +
                         "Esc - exit\n", "Help(me)");
                 }
                 else if (key == Key.V)
@@ -274,54 +297,16 @@
                         _keyboardDelay.Start();
                     }
                 }
+
             }
-            //Drawing a gama
+            
+            //Drawing a game
             _isWebSocketOpen = (_guiObserverCore?.WebSocketProxy.State ==  WebSocket4Net.WebSocketState.Open);
             if (!_isWebSocketOpen)
             {
-                _logger.Debug("flag: !_isWebSocketOpen()");
-                _isEnterPressed = false;
-                _gameRender.UIIsVisible = false;
-                _isClientThreadRunning = true;
-
-                _connector.IsServerRunning();
-                _logger.Debug("call: _connector.IsServerRunning()");
-                if (_connector.ServerRunning)
-                {
-                    _isClientThreadRunning = false;
-                }
-
-                _gameRender.DrawWaitingLogo();
-                _logger.Debug("call: DrawWaitingLogo()");
-                if (!_isClientThreadRunning)
-                {
-                    _logger.Debug("flag: _isClientThreadRunning()");
-                    _isClientThreadRunning = true;
-                    //_spectatorClass.Map = null;
-                    ++_serverStartupIndex;
-                    //_isClientInfoWasCentered = false;
-                    //_gameRender.Settings = _connector.Settings;
-
-                    _tokenSource?.Dispose();
-                    _tokenSource = new System.Threading.CancellationTokenSource();
-                    _guiObserverCore.Restart();
-
-                    try
-                    {
-                        _clientThread?.Interrupt();
-                    }
-                    catch (System.Security.SecurityException ex)
-                    {
-                        _logger.Error("exception: _clientThread.Interrupt()");
-                        _logger.Error($"exception: {ex.Message}");
-                    }
-                    _gameRender.GameSet();
-                    _clientThread = new System.Threading.Thread(() => {
-                        _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
-                    });
-                    _clientThread.Start();
-                }
+                Reset();
             }
+
 
             if (_isEnterPressed && _isWebSocketOpen)
             {
@@ -336,7 +321,7 @@
                 }
                 
                 _gameRender.Map = _spectatorClass?.Map;
-                //_gameRender.Settings = _spectatorClass.Settings;
+                _gameRender.Settings = _spectatorClass.Settings;
                 _gameRender.DrawClientInfo();
                 _logger.Debug("call: DrawClientInfo()");
 
@@ -371,6 +356,11 @@
                 _gameRender.DrawLogo();
                 _logger.Debug("call: DrawLogo()");
             }
+            else if (_spectatorClass?.Map == null)
+            {
+
+            }
+
 
             if (_isFPressed)
             {
@@ -391,51 +381,85 @@
             _logger.Debug("Frame draw: end");
         }
 
-        public static Bitmap LoadFromFile(RenderTarget renderTarget, string file)
+        [System.Runtime.CompilerServices.MethodImpl(256)]
+        private void Reset()
         {
-            // Loads from file using System.Drawing.Image
-            using (var bitmap = (System.Drawing.Bitmap)System.Drawing.Image.FromFile(file))
+            _logger.Debug("flag: !_isWebSocketOpen()");
+            _isEnterPressed = false;
+            _gameRender.UIIsVisible = false;
+
+            if (!_connector.Server.Equals(_serverString))
             {
-                var sourceArea = new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height);
-                var bitmapProperties = new BitmapProperties(
-                    new PixelFormat(Format.R8G8B8A8_UNorm, AlphaMode.Premultiplied));
-                var size = new Size2(bitmap.Width, bitmap.Height);
+                _tokenSource.Cancel();
+                _tokenSource?.Dispose();
+                _tokenSource = new System.Threading.CancellationTokenSource();
+                _connector?.Dispose();
+                _connector = new Connector(_serverString);
+                _guiObserverCore.Restart(_serverString);
+            }
 
-                // Transform pixels from BGRA to RGBA
-                int stride = bitmap.Width * sizeof(int);
-                using (var tempStream = new DataStream(bitmap.Height * stride, true, true))
+            _isClientThreadRunning = true;
+            _connector.IsServerRunning();
+            _logger.Debug("call: _connector.IsServerRunning()");
+            if (_connector.ServerRunning)
+            {
+                _isClientThreadRunning = false;
+            }
+            else
+            {
+                _isClientThreadRunning = true;
+                try
                 {
-                    // Lock System.Drawing.Bitmap
-                    var bitmapData = bitmap.LockBits(sourceArea,
-                        System.Drawing.Imaging.ImageLockMode.ReadOnly,
-                        System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-
-                    // Convert all pixels 
-                    for (int y = 0; y < bitmap.Height; y++)
-                    {
-                        int offset = bitmapData.Stride * y;
-                        for (int x = 0; x < bitmap.Width; x++)
-                        {
-                            // Not optimized 
-                            byte B = System.Runtime.InteropServices.Marshal.ReadByte(bitmapData.Scan0, offset++);
-                            byte G = System.Runtime.InteropServices.Marshal.ReadByte(bitmapData.Scan0, offset++);
-                            byte R = System.Runtime.InteropServices.Marshal.ReadByte(bitmapData.Scan0, offset++);
-                            byte A = System.Runtime.InteropServices.Marshal.ReadByte(bitmapData.Scan0, offset++);
-                            int rgba = R | (G << 8) | (B << 16) | (A << 24);
-                            tempStream.Write(rgba);
-                        }
-
-                    }
-                    bitmap.UnlockBits(bitmapData);
-                    tempStream.Position = 0;
-
-                    return new Bitmap(renderTarget, size, tempStream, stride, bitmapProperties);
+                    _clientThread?.Interrupt();
+                    _clientThread = null;
                 }
+                catch (System.Security.SecurityException ex)
+                {
+                    _logger.Error("exception: _clientThread.Interrupt()");
+                    _logger.Error($"exception: {ex.Message}");
+                }
+            }
+
+            _gameRender.DrawWaitingLogo();
+
+            _logger.Debug("call: DrawWaitingLogo()");
+            if (!_isClientThreadRunning)
+            {
+                _logger.Debug("flag: _isClientThreadRunning()");
+                _isClientThreadRunning = true;
+                ++_serverStartupIndex;
+                _gameRender.GameSetDefault();
+
+                _gameRender.Settings = _spectatorClass.Settings;
+                
+                try
+                {
+                    _clientThread?.Interrupt();
+                    _clientThread = null;
+                }
+                catch (System.Security.SecurityException ex)
+                {
+                    _logger.Error("exception: _clientThread.Interrupt()");
+                    _logger.Error($"exception: {ex.Message}");
+                }
+                _clientThread = new System.Threading.Thread(() => {
+                    _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
+                });
+                _clientThread.Start();
             }
         }
 
         public void Dispose()
         {
+            try
+            {
+                _clientThread?.Interrupt();
+            }
+            catch (System.Exception ex)
+            {
+                _logger.Error($"exception: catched in Game.Dispose() [{ex.Message}]");
+            }
+
             _notifyVerticalSyncOn.Dispose();
             _notifyVerticalSyncOff.Dispose();
             _connector.Dispose();

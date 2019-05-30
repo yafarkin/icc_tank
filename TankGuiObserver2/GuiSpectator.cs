@@ -1,4 +1,8 @@
-﻿using System;
+﻿//#define LOGGED_CONNECTOR
+#define LOGGED_GUI_SPECTATOR
+#define LOGGED_GUI_OBSERVER_CORE
+
+using System;
 using TankCommon;
 using TankCommon.Enum;
 using TankCommon.Objects;
@@ -11,16 +15,24 @@ namespace TankGuiObserver2
 {
     public class Connector : System.IDisposable
     {
+        public string Server { get; private set; }
         public bool ServerRunning { get; private set; }
         public TankSettings Settings { get; set; }
-        private Uri _serverUri;
         private WebSocketProxy _webSocketProxy;
         static NLog.Logger _logger;
 
+        [System.Runtime.CompilerServices.MethodImpl(256)]
+        private void LogInfo(string info)
+        {
+#if LOGGED_CONNECTOR
+            _logger.Info(info);
+#endif
+        }
+
         public Connector(string server)
         {
-            _serverUri = new Uri(server);
-            _webSocketProxy = new WebSocketProxy(_serverUri);
+            Server = server;
+            _webSocketProxy = new WebSocketProxy(new Uri(Server));
             _logger = NLog.LogManager.GetCurrentClassLogger();
         }
 
@@ -52,7 +64,7 @@ namespace TankGuiObserver2
                 }
                 catch (Exception e)
                 {
-                    _logger.Info($"Исключение во время выполнения: {e}");
+                    LogInfo($"Исключение во время выполнения: {e}");
                 }
 
             }
@@ -64,74 +76,60 @@ namespace TankGuiObserver2
         }
     }
 
+    /*не зависит от socket*/
     class GuiSpectator
     {
         public TankSettings Settings { get; set; }
         public Map Map { get; set; }
+        private object _syncObject = new object();
         protected DateTime _lastMapUpdate;
         protected readonly CancellationToken _cancellationToken;
-        protected readonly object _syncObject = new object();
         protected int _msgCount;
         protected bool _wasUpdate;
 
         static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public GuiSpectator(CancellationToken cancellationToken)
+        [System.Runtime.CompilerServices.MethodImpl(256)]
+        private void LogInfo(string info)
         {
-            _cancellationToken = cancellationToken;
-#pragma warning disable 4014
-            DisplayMap();
-#pragma warning restore 4014
+#if LOGGED_GUI_SPECTATOR
+            _logger.Info(info);
+#endif
+
         }
 
-        protected async Task DisplayMap()
+        public void ResetSyncObject()
         {
-            while (!_cancellationToken.IsCancellationRequested)
-            {
-                await Task.Delay(100);
-                if (!_wasUpdate)
-                {
-                    _logger.Info("Ctor is working fiine.");
-                    continue;
-                }
-
-                lock (_syncObject)
-                {
-                    _wasUpdate = false;
-                }
-            }
+            _syncObject = new object();
         }
+
         public ServerResponse Client(int msgCount, ServerRequest request)
         {
-            lock (_syncObject)
-            {
-                if (request.Map.Cells != null)
-                {
-                    _logger.Info("flag: request.Map.Cells != null");
-                    Map = request.Map;
-                    _lastMapUpdate = DateTime.Now;
-                }
-                else if (Map == null)
-                {
-                    _logger.Info("flag: Map == null");
-                    return new ServerResponse { ClientCommand = ClientCommandType.UpdateMap };
-                }
+            if (request.Map.Cells != null)
+             {
+                 LogInfo("flag: request.Map.Cells != null");
+                 Map = request.Map;
+                 _lastMapUpdate = DateTime.Now;
+             }
+             else if (Map == null)
+             {
+                 LogInfo("flag: Map == null");
+                 return new ServerResponse { ClientCommand = ClientCommandType.UpdateMap };
+             }
+             if (request.Settings != null)
+             {
+                 LogInfo("flag: request.Settings != null");
+                 Settings = request.Settings;
+             }
 
-                if (request.Settings != null)
-                {
-                    _logger.Info("flag: request.Settings != null");
-                    Settings = request.Settings;
-                }
+             LogInfo("set: Map.InteractObjects");
+             Map.InteractObjects = request.Map.InteractObjects;
+             LogInfo("set: _msgCount");
+             _msgCount = msgCount;
+             LogInfo("set: _wasUpdate");
+             _wasUpdate = true;
 
-                _logger.Info("set: Map.InteractObjects");
-                Map.InteractObjects = request.Map.InteractObjects;
-                _logger.Info("set: _msgCount");
-                _msgCount = msgCount;
-                _logger.Info("set: _wasUpdate");
-                _wasUpdate = true;
-
-                return new ServerResponse { ClientCommand = ClientCommandType.None };
-            }
+             return new ServerResponse { ClientCommand = ClientCommandType.None };
         }
     }
 
@@ -225,34 +223,41 @@ namespace TankGuiObserver2
     public class GuiObserverCore
     {
         public WebSocketProxy WebSocketProxy => _webSocketProxy;
-        protected readonly Uri _serverUri;
+        protected Uri _serverUri;
         protected readonly string _nickName;
 
         private WebSocketProxy _webSocketProxy;
-        private AutoResetEvent _autoResetEvent;
         static NLog.Logger _logger;
+
+        [System.Runtime.CompilerServices.MethodImpl(256)]
+        private void LogInfo(string info)
+        {
+#if LOGGED_GUI_OBSERVER_CORE
+            _logger.Info(info);
+#endif
+        }
 
         public GuiObserverCore(string server, string nickname)
         {
-            _autoResetEvent = new AutoResetEvent(true);
-            _serverUri = new Uri(server);
             _nickName = nickname;
             _logger = NLog.LogManager.GetCurrentClassLogger();
-            Restart();
-            _logger.Info("Ctor is working fiine. [GuiObserverCore]");
+            Restart(server);
+            LogInfo("Ctor is working fiine. [GuiObserverCore]");
             //_webSocketProxy = new WebSocketProxy(_serverUri);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(256)]
-        public void Restart()
+        public void Restart(string server)
         {
+            _serverUri = new Uri(server);
+            _webSocketProxy?.Close();
             _webSocketProxy?.Dispose();
             _webSocketProxy = new WebSocketProxy(_serverUri);
         }
 
         public void Run(Func<int, ServerRequest, ServerResponse> bot, CancellationToken cancellationToken)
         {
-            _logger.Info($"Подсоединение к серверу { _serverUri} как { _nickName}...");
+            LogInfo($"Подсоединение к серверу { _serverUri} как { _nickName}...");
             try
             {
                 if (_webSocketProxy.State != WebSocketState.Open &&
@@ -264,26 +269,27 @@ namespace TankGuiObserver2
                     CommandParameter = _nickName,
                     ClientCommand = ClientCommandType.Login
                 };
-                _logger.Info($"Логин на сервер как {_nickName}");
+                LogInfo($"Логин на сервер как {_nickName}");
                 _webSocketProxy.Send(loginResponse.ToJson(), cancellationToken);
-                _logger.Info("Логин успешно выполнен.");
+                LogInfo("Логин успешно выполнен.");
 
                 CancellationTokenSource tokenSource = new CancellationTokenSource();
 
-                while (!cancellationToken.IsCancellationRequested && _webSocketProxy.State == WebSocketState.Open)
+                while (!cancellationToken.IsCancellationRequested && 
+                    _webSocketProxy.State == WebSocketState.Open)
                 {
                     var inputData = _webSocketProxy.GetMessage();
                     if (string.IsNullOrWhiteSpace(inputData))
                     {
-                        Thread.Sleep(10);
-                        _logger.Info("Run method: interupted [string.IsNullOrWhiteSpace(inputData)]");
+                        Thread.Sleep(50);
+                        LogInfo("Run method: interupted [string.IsNullOrWhiteSpace(inputData)]");
                         continue;
                     }
 
                     var serverRequest = inputData.FromJson<ServerRequest>();
                     if (serverRequest?.Map == null)
                     {
-                        _logger.Info("Run method: interupted [serverRequest?.Map == null]");
+                        LogInfo("Run method: interupted [serverRequest?.Map == null]");
                         continue;
                     }
 
@@ -297,11 +303,11 @@ namespace TankGuiObserver2
 
                 if (_webSocketProxy.State != WebSocketState.Open)
                 {
-                    _logger.Info($"Закрыто соединение с сервером [_webSocketProxy.State != WebSocketState.Open {cancellationToken.IsCancellationRequested}]");
+                    LogInfo($"Закрыто соединение с сервером [_webSocketProxy.State != WebSocketState.Open {cancellationToken.IsCancellationRequested}]");
                 }
                 else
                 {
-                    _logger.Info($"Запрос на прекращение работы [_webSocketProxy.State == WebSocketState.Open] {cancellationToken.IsCancellationRequested}");
+                    LogInfo($"Запрос на прекращение работы [_webSocketProxy.State == WebSocketState.Open] {cancellationToken.IsCancellationRequested}");
                     var logoutResponse = new ServerResponse
                     {
                         ClientCommand = ClientCommandType.Logout
@@ -314,18 +320,18 @@ namespace TankGuiObserver2
                     }
                     catch (Exception ex)
                     {
-                        _logger.Info($"catch (Exception ex) [_webSocketProxy.Send(outputData, CancellationToken.None);]");
+                        LogInfo($"catch (Exception ex) [_webSocketProxy.Send(outputData, CancellationToken.None);]");
                     }
 
-                    Thread.Sleep(1000);
+                    Thread.Sleep(500);
                 }
 
                 tokenSource.Cancel();
-                _logger.Info("call: tokenSource.Cancel()");
+                LogInfo("call: tokenSource.Cancel()");
             }
             catch (Exception e)
             {
-                _logger.Info($"catch (Exception ex) [Run]");
+                LogInfo($"catch (Exception ex) [Run]");
             }
         }
 

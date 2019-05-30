@@ -175,7 +175,8 @@ mkdir "$(TargetDir)\img\tank"
 xcopy "$(ProjectDir)img\tank" "$(TargetDir)\img\tank"
 mkdir "$(TargetDir)\img\upgrade"
 xcopy "$(ProjectDir)img\upgrade" "$(TargetDir)\img\upgrade"
-
+mkdir "$(TargetDir)\img\bricks"
+xcopy "$(ProjectDir)img\bricks" "$(TargetDir)\img\bricks"
 
 </PreBuildEvent>
   </PropertyGroup>
