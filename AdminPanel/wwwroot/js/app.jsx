@@ -196,6 +196,12 @@ class UserForm extends React.Component {
                         <label>Время до деспауна бонусов</label>
                         <input type="number" defaultValue="30" id="Value" />
                     </div>
+                    <div id="IsMultipleConnectionAllow" className={this.state.viewModal ? 'visible' : 'invisible'}>
+                        <label>Несколько клиентов с 1 ip</label>
+                        <select className="custom-select" defaultValue="0" id="Value">
+                        <option value="false">Запретить</option>
+                        <option value="true">Разрешить</option></select>
+                    </div>
                     <div id="TankSettings" className={this.state.viewTankSettings ? 'visible' : 'invisible'}>
                         <div id="StartSesison">
                             <label>Начало игровой сессии</label>
