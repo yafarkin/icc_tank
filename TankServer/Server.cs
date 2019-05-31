@@ -135,11 +135,22 @@ namespace TankServer
                     {
                         if (response.ClientCommand == ClientCommandType.Logout)
                         {
-                            var client = Clients.FirstOrDefault(x => x.Key == socket).Value.NeedRemove = true;
+                            try
+                            {
+                                var client = Clients.FirstOrDefault(x => x.Key == socket);
+                                if (client.Key != null)
+                                {
+                                    client.Value.NeedRemove = true;
+                                }
+                            }
+                            catch(Exception ex)
+                            {
+                                _logger.Error(ex.Message);
+                            }
                         }
                         else if (response.ClientCommand == ClientCommandType.Login)
                         {
-                            if (!string.IsNullOrWhiteSpace(response.CommandParameter) && Clients.Count(x => x.Key.ConnectionInfo.ClientIpAddress == socket.ConnectionInfo.ClientIpAddress && !string.IsNullOrWhiteSpace(x.Value.Nickname)) > 0)
+                            if (!string.IsNullOrWhiteSpace(response.CommandParameter) && !serverSettings.IsMultipleConnectionAllow && Clients.Count(x => x.Key.ConnectionInfo.ClientIpAddress == socket.ConnectionInfo.ClientIpAddress && !string.IsNullOrWhiteSpace(x.Value.Nickname)) > 0)
                             {
                                 return;
                             }

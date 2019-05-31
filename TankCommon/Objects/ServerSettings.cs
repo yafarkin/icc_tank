@@ -37,6 +37,9 @@ namespace TankCommon.Objects
         [Description("Время до деспауна бонусов")]
         public int SecondsToDespawn { get; set; } = 30;
 
+        [Description("Разрешить несколько клиентов на 1 ip")]
+        public bool IsMultipleConnectionAllow { get; set; } = false;
+
         [Description("Класс настройки темпа игры")]
         public TankSettings TankSettings { get; set; } = new TankSettings();
         [Description("Задержка прощетов на сервере в ms")]
