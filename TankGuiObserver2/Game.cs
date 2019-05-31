@@ -159,10 +159,6 @@
         {
             _renderTarget2D.BeginDraw();
             _logger.Debug("Frame draw: begin");
-            if (_gameRender.ResetIp(ref _serverString))
-            {
-                Reset();
-            }
             
             KeyboardState kbs = _keyboard.GetCurrentState();//_keyboard.Poll();
             foreach (var key in kbs.PressedKeys)
@@ -215,6 +211,7 @@
                 {
                     if (_keyboardDelay.ElapsedMilliseconds > 300)
                     {
+                        _keyboardDelay.Stop();
                         if (_gameRender.IpReconnectUIVisible)
                         {
                             _gameRender.IpReconnectUIVisible = false;
@@ -223,6 +220,8 @@
                         {
                             _gameRender.IpReconnectUIVisible = true;
                         }
+                        _keyboardDelay.Reset();
+                        _keyboardDelay.Start();
                     }
                 }
                 else if (key == Key.H)
@@ -300,6 +299,17 @@
 
             }
             
+            /*
+              NOTE:
+              Если данный ресет поставить после if (!_isWebSocketOpen),
+              то реконект пройдет по старому _serverString, в случае, 
+              когда нам действительно нужен реконект, а не конект.
+             */
+            if (_gameRender.ResetIp(ref _serverString))
+            {
+                Reset();
+            }
+
             //Drawing a game
             _isWebSocketOpen = (_guiObserverCore?.WebSocketProxy.State ==  WebSocket4Net.WebSocketState.Open);
             if (!_isWebSocketOpen)
