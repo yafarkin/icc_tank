@@ -251,6 +251,7 @@ namespace TankGuiObserver2
         TextFormat _fpsmsTextFormat;
 
         //DrawTank()
+        bool _isNickRendered;
         int _nickLength;
         float _width;
         float _difference;
@@ -278,6 +279,9 @@ namespace TankGuiObserver2
         Bitmap _maxHpUpgradeBitmap;
         Bitmap _speedUpgradeBitmap;
         Bitmap _bulletUpBitmap;
+        Bitmap _bulletDownBitmap;
+        Bitmap _bulletLeftBitmap;
+        Bitmap _bulletRightBitmap;
         Bitmap[] _bitmaps;
         Bitmap[] _bricksBitmaps;
 
@@ -288,7 +292,8 @@ namespace TankGuiObserver2
             {
                 _clientInfoSessionServer.Visible = value;
                 _clientInfoLabel.Visible = value;
-                _clientInfoSessionTime.Visible = value;
+                //we are not using it (now)
+                _clientInfoSessionTime.Visible = false;
             }
         }
 
@@ -317,6 +322,15 @@ namespace TankGuiObserver2
             _immutableMapObjects.Clear();
             _immutableGrass.Clear();
             _destuctiveWallsObjects.Clear();
+        }
+
+        public bool IsNickRendered
+        {
+            get => _isNickRendered;
+            set
+            {
+                _isNickRendered = value;
+            }
         }
 
         public GameRender(
@@ -415,13 +429,13 @@ namespace TankGuiObserver2
                 new TextFormat(_directFactory, "Arial", FontWeight.Normal, FontStyle.Italic, 180.0f);
             _nicknameTextFormat =
                 new TextFormat(_directFactory, "Times New Roman", FontWeight.Normal, FontStyle.Italic, 16.0f);
-            _clientInfoTextFormat = new TextFormat(_directFactory, "Times New Roman", 
-                FontWeight.Normal, FontStyle.Italic, 28.0f);
+            _clientInfoTextFormat = new TextFormat(_directFactory, "Consolas", 
+                FontWeight.Normal, FontStyle.Normal, 24.0f);
 
             //advanced text renderer
             _textRenderer = new CustomColorRenderer();
             _textRenderer.AssignResources(_renderTarget2D, _mapObjectsColors[14]);
-
+            
             _centeredCI = true;
 
             #endregion
@@ -455,12 +469,14 @@ namespace TankGuiObserver2
             _clientInfoLabel.Visible = false;
 
             _clientInfoSessionTime = new Label();
+            _clientInfoSessionTime.Width = 300;
+            _clientInfoSessionTime.Height = 30;
             _clientInfoSessionTime.Text = "Session time: ";
             _clientInfoSessionTime.Font = new System.Drawing.Font("Cambria", 16);
             _clientInfoSessionTime.BackColor = System.Drawing.Color.Green;
             _clientInfoSessionTime.ForeColor = System.Drawing.Color.White;
             _clientInfoSessionTime.Location = new System.Drawing.Point(_renderForm.Height + 450, 40);
-            _clientInfoSessionTime.AutoSize = true;
+            _clientInfoSessionTime.AutoSize = false;
             _clientInfoSessionTime.Visible = false;
 
             _clientInfoSessionServer = new Label();
@@ -475,14 +491,14 @@ namespace TankGuiObserver2
             _ipResetIpTextBox.Font = new System.Drawing.Font("Cambria", 16);
             _ipResetIpTextBox.Text = _serverString;
             _ipResetIpTextBox.Width = 250;
-            _ipResetIpTextBox.Location = new System.Drawing.Point(200, 0);
+            _ipResetIpTextBox.Location = new System.Drawing.Point(300, 0);
             _ipResetIpTextBox.Visible = true;
             _resetIpBtn = new Button();
             _resetIpBtn.Font = new System.Drawing.Font("Cambria", 16);
             _resetIpBtn.Name = "btnReset";
             _resetIpBtn.Text = "Reset ip";
             _resetIpBtn.Width = 250;
-            _resetIpBtn.Location = new System.Drawing.Point(200, 35);
+            _resetIpBtn.Location = new System.Drawing.Point(300, 35);
             _resetIpBtn.Click += ResetIPButton_Click;
             
             IpReconnectUIVisible = false;
@@ -521,6 +537,11 @@ namespace TankGuiObserver2
             _healthUpgradeBitmap = LoadFromFile(_renderTarget2D, @"img\upgrade\Health.png");
             _maxHpUpgradeBitmap = LoadFromFile(_renderTarget2D, @"img\upgrade\MaxHp.png");
             _speedUpgradeBitmap = LoadFromFile(_renderTarget2D, @"img\upgrade\Speed.png");
+
+            _bulletUpBitmap    = LoadFromFile(_renderTarget2D, @"img\bullets\Bullet_Up.png");
+            _bulletDownBitmap  = LoadFromFile(_renderTarget2D, @"img\bullets\Bullet_Down.png");
+            _bulletLeftBitmap  = LoadFromFile(_renderTarget2D, @"img\bullets\Bullet_Left.png");
+            _bulletRightBitmap = LoadFromFile(_renderTarget2D, @"img\bullets\Bullet_Right.png");
 
             #endregion
 
@@ -805,7 +826,35 @@ namespace TankGuiObserver2
                     _rawRectangleTemp.Top = Convert.ToSingle(bulletObject.Rectangle.LeftCorner.Top) * _zoomHeight;
                     _rawRectangleTemp.Right = Convert.ToSingle(bulletObject.Rectangle.LeftCorner.Left + bulletObject.Rectangle.Width) * _zoomWidth;
                     _rawRectangleTemp.Bottom = Convert.ToSingle(bulletObject.Rectangle.LeftCorner.Top + bulletObject.Rectangle.Height) * _zoomHeight;
-                    FillBlock(_rawRectangleTemp, _mapObjectsColors[10]);
+
+                    if (bulletObject.Direction == DirectionType.Down)
+                    {
+                        _renderTarget2D.DrawBitmap(
+                            _bulletDownBitmap,
+                            _rawRectangleTemp,
+                            1.0f, BitmapInterpolationMode.Linear);
+                    }
+                    else if (bulletObject.Direction == DirectionType.Up)
+                    {
+                        _renderTarget2D.DrawBitmap(
+                            _bulletUpBitmap,
+                            _rawRectangleTemp,
+                            1.0f, BitmapInterpolationMode.Linear);
+                    }
+                    else if (bulletObject.Direction == DirectionType.Left)
+                    {
+                        _renderTarget2D.DrawBitmap(
+                            _bulletLeftBitmap,
+                            _rawRectangleTemp,
+                            1.0f, BitmapInterpolationMode.Linear);
+                    }
+                    else if (bulletObject.Direction == DirectionType.Right)
+                    {
+                        _renderTarget2D.DrawBitmap(
+                            _bulletRightBitmap,
+                            _rawRectangleTemp,
+                            1.0f, BitmapInterpolationMode.Linear);
+                    }
                 }
             }
         }
@@ -825,22 +874,25 @@ namespace TankGuiObserver2
                         _tankRectangle.Right = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Left + tankObject.Rectangle.Width) * _zoomWidth;
                         _tankRectangle.Bottom = Convert.ToSingle(tankObject.Rectangle.LeftCorner.Top + tankObject.Rectangle.Height) * _zoomHeight;
 
-                        _nickLength = tankObject.Nickname.Length;
-                        _width = _tankRectangle.Right - _tankRectangle.Left;
-                        _difference = (_width - _nickLength * _zoomWidth) / 2;
-                        _nickRectangle.Left = _tankRectangle.Left + _difference;
-                        _nickRectangle.Right = _tankRectangle.Right - _difference + 3 * _zoomWidth;
-                        _nickRectangle.Top = _tankRectangle.Top - 3 * _zoomHeight;
-                        _nickRectangle.Bottom = _tankRectangle.Top - _zoomHeight;
+                        if (_isNickRendered)
+                        {
+                            _nickLength = tankObject.Nickname.Length;
+                            _width = _tankRectangle.Right - _tankRectangle.Left;
+                            _difference = (_width - _nickLength * _zoomWidth) / 2;
+                            _nickRectangle.Left = _tankRectangle.Left + _difference;
+                            _nickRectangle.Right = _tankRectangle.Right - _difference + 3 * _zoomWidth;
+                            _nickRectangle.Top = _tankRectangle.Top - 3 * _zoomHeight;
+                            _nickRectangle.Bottom = _tankRectangle.Top - _zoomHeight;
 
-                        _nickBackRectangle.Left = _nickRectangle.Left - 5;
-                        _nickBackRectangle.Right = _nickRectangle.Right;
-                        _nickBackRectangle.Top = _nickRectangle.Top - 3;
-                        _nickBackRectangle.Bottom = _nickRectangle.Bottom + 5;
+                            _nickBackRectangle.Left = _nickRectangle.Left - 5;
+                            _nickBackRectangle.Right = _nickRectangle.Right;
+                            _nickBackRectangle.Top = _nickRectangle.Top - 3;
+                            _nickBackRectangle.Bottom = _nickRectangle.Bottom + 5;
 
-                        _renderTarget2D.FillRectangle(_nickBackRectangle, _mapObjectsColors[13]);
-                        _renderTarget2D.DrawText(tankObject.Nickname,
-                            _nicknameTextFormat, _nickRectangle, _mapObjectsColors[15]);
+                            _renderTarget2D.FillRectangle(_nickBackRectangle, _mapObjectsColors[13]);
+                            _renderTarget2D.DrawText(tankObject.Nickname,
+                                _nicknameTextFormat, _nickRectangle, _mapObjectsColors[15]);
+                        }
 
                         if (tankObject.IsInvulnerable)
                         {
@@ -928,21 +980,22 @@ namespace TankGuiObserver2
             _clientInfoTanks.AddRange(
                 Map?.InteractObjects.OfType<TankObject>().OrderByDescending(t => t.Score).ToList());
             
-            _index = 0;
+            _index = 10;
             _nickDifLen = 0;
             _scoreDifLen = 0;
             _hpDifLen = 0;
-            _clientInfoStringBuilder.Append("Id Nickname                    Score           Hp       Lives\n");
+            _clientInfoStringBuilder.Append("Id     Nickname     Score     Hp    Lives\n");
             foreach (var tank in _clientInfoTanks)
             {
                 int cisbLength = _clientInfoStringBuilder.Length;
                 string score = tank.Score.ToString();
                 string hp = tank.Hp.ToString();
-                _nickDifLen = 16 - tank.Nickname.Length;
-                _scoreDifLen = 9 - score.Length;
+                string index = _index.ToString();
+                _nickDifLen = 15 - tank.Nickname.Length;
+                _scoreDifLen = 7 - score.Length;
                 _hpDifLen = 7 - hp.Length;
-                _clientInfoStringBuilder.AppendFormat("{0}  {1}  {2} {3} {4}\n", 
-                    _index.ToString(), 
+                _clientInfoStringBuilder.AppendFormat("{0} {1}   {2} {3} {4}\n",
+                    _index < 10 ? index + " " : index, 
                     (_nickDifLen <= 0) ? tank.Nickname : tank.Nickname + _paddingStrings[_nickDifLen],
                     (_scoreDifLen <= 0) ? score : score + _paddingStrings[_scoreDifLen],
                     (_hpDifLen <= 0) ? hp : hp + _paddingStrings[_hpDifLen],

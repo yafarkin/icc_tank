@@ -95,7 +95,6 @@ namespace TankGuiObserver2
 #if LOGGED_GUI_SPECTATOR
             _logger.Info(info);
 #endif
-
         }
 
         public void ResetSyncObject()

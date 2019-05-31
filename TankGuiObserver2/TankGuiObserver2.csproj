@@ -177,7 +177,8 @@ mkdir "$(TargetDir)\img\upgrade"
 xcopy "$(ProjectDir)img\upgrade" "$(TargetDir)\img\upgrade"
 mkdir "$(TargetDir)\img\bricks"
 xcopy "$(ProjectDir)img\bricks" "$(TargetDir)\img\bricks"
-
+mkdir "$(TargetDir)\img\bullets"
+xcopy "$(ProjectDir)img\bullets" "$(TargetDir)\img\bullets"
 </PreBuildEvent>
   </PropertyGroup>
 </Project>

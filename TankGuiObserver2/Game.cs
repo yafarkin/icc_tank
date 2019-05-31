@@ -64,6 +64,9 @@
                 _renderForm.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
                 _renderForm.WindowState = System.Windows.Forms.FormWindowState.Maximized;
             }
+            _serverString = System.Configuration.ConfigurationManager.AppSettings["server"];
+            _isTabPressed = false;
+            _serverStartupIndex = 0;
 
             var desc = new SwapChainDescription()
             {
@@ -98,11 +101,6 @@
                                  new PixelFormat(Format.Unknown, AlphaMode.Premultiplied)));
             #endregion
 
-            _isTabPressed = false;
-            _serverStartupIndex = 0;
-            _serverString = string.Empty;
-            _serverString = System.Configuration.ConfigurationManager.AppSettings["server"];
-
             #region UI
             _notifyHelp = new System.Windows.Forms.NotifyIcon();
             _notifyHelp.Icon = System.Drawing.SystemIcons.Exclamation;
@@ -128,12 +126,13 @@
             _notifyVerticalSyncOff.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
             #endregion
 
+            #region Connection
             _tokenSource = new System.Threading.CancellationTokenSource();
             _connector = new Connector(_serverString);
             _guiObserverCore = new GuiObserverCore(_serverString, string.Empty);
             _spectatorClass = new GuiSpectator();
-            _gameRender = new GameRender(_serverString, _renderForm, _factory2D, _renderTarget2D);
-            
+            #endregion
+
             #region Keyboard
             _keyboardDelay = new System.Diagnostics.Stopwatch();
             _keyboardDelay.Start();
@@ -147,6 +146,8 @@
             _logger = NLog.LogManager.GetCurrentClassLogger();
             _logger.Info("Ctor is working fine. [Game]");
             #endregion
+
+            _gameRender = new GameRender(_serverString, _renderForm, _factory2D, _renderTarget2D);
 
         }
 
@@ -207,6 +208,23 @@
                     _renderForm.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Fixed3D;
                     _renderForm.WindowState = System.Windows.Forms.FormWindowState.Normal;
                 }
+                else if (key == Key.F3)
+                {
+                    if (_keyboardDelay.ElapsedMilliseconds > 100)
+                    {
+                        _keyboardDelay.Stop();
+                        if (_gameRender.IsNickRendered)
+                        {
+                            _gameRender.IsNickRendered = false;
+                        }
+                        else
+                        {
+                            _gameRender.IsNickRendered = true;
+                        }
+                        _keyboardDelay.Reset();
+                        _keyboardDelay.Start();
+                    }
+                }
                 else if (key == Key.F4)
                 {
                     if (_keyboardDelay.ElapsedMilliseconds > 300)
@@ -229,11 +247,12 @@
                     System.Windows.Forms.MessageBox.Show(
                         "F1 - fullscreen\n" +
                         "F2 - windowed\n" +
+                        "F3 - make nickname [visible/unvisible]\n" +
                         "F4 - reconnect\n" +
                         "F - show fps\n" +
                         "H - help\n" +
                         "V - vertical sync\n" +
-                        "T - render tank\n" +
+                        "T - render only tank mode [on/off]\n" +
                         "Tab - show players\n" +
                         "Esc - exit\n", "Help(me)");
                 }
@@ -317,7 +336,6 @@
                 Reset();
             }
 
-
             if (_isEnterPressed && _isWebSocketOpen)
             {
                 _logger.Debug("flag: _isEnterPressed");
@@ -370,7 +388,6 @@
             {
 
             }
-
 
             if (_isFPressed)
             {
