@@ -984,7 +984,7 @@ namespace TankGuiObserver2
             _nickDifLen = 0;
             _scoreDifLen = 0;
             _hpDifLen = 0;
-            _clientInfoStringBuilder.Append("Id     Nickname     Score     Hp    Lives\n");
+            _clientInfoStringBuilder.Append("Id  Nickname        Score      Hp    Lives\n");
             foreach (var tank in _clientInfoTanks)
             {
                 int cisbLength = _clientInfoStringBuilder.Length;
