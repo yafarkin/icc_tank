@@ -139,10 +139,10 @@ namespace TankServer
                         }
                         else if (response.ClientCommand == ClientCommandType.Login)
                         {
-                            if (!string.IsNullOrWhiteSpace(response.CommandParameter) && Clients.Count(x => x.Key.ConnectionInfo.ClientIpAddress == socket.ConnectionInfo.ClientIpAddress && !string.IsNullOrWhiteSpace(x.Value.Nickname)) > 0)
-                            {
-                                return;
-                            }
+                           // if (!string.IsNullOrWhiteSpace(response.CommandParameter) && Clients.Count(x => x.Key.ConnectionInfo.ClientIpAddress == socket.ConnectionInfo.ClientIpAddress && !string.IsNullOrWhiteSpace(x.Value.Nickname)) > 0)
+                            //{
+                            //    return;
+                           // }
                             if (Clients.ContainsKey(socket))
                             {
                                 return;
@@ -763,7 +763,7 @@ namespace TankServer
                                             }
                                             else
                                             {
-                                                objsToRemove.Add(tankObject);
+                                                CallAbsoluteDeath(ref tankObject);
                                                 canMove = false;
                                             }
 
@@ -779,10 +779,24 @@ namespace TankServer
 
                                             objsToRemove.Add(intersectedObject);
                                         }
-
-                                        if (canMove)
+                                        if (intersectedObject is TankObject && (intersectedObject as TankObject).IsDead)
                                         {
-                                            canMove = intersectedObject == null;
+
+                                        }
+                                        if (canMove && (intersectedObject == null))
+                                        {
+                                            canMove = true;
+                                        }
+                                        else
+                                        {
+                                            if (intersectedObject is TankObject && (intersectedObject as TankObject).IsDead)
+                                            {
+                                                canMove = true;
+                                            }
+                                            else
+                                            {
+                                                canMove = false;
+                                            }
                                         }
                                     }
                                 }
@@ -881,6 +895,13 @@ namespace TankServer
                     _logger.Error(e);
                 }
             }
+        }
+
+        private void CallAbsoluteDeath(ref TankObject tankObject)
+        {
+            tankObject.IsDead = true;
+            tankObject.IsInvulnerable = true;
+
         }
 
         private void Reborn(TankObject tank, int normalHP = 100)
