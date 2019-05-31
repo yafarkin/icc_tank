@@ -246,8 +246,8 @@ namespace TankServer
         public BaseInteractObject AddTankBot(string nickname, string tag)
         {
             var rectangle = PastOnPassablePlace();
-            var tank = new TankObject(Guid.NewGuid(), rectangle, defaultTankSettings.TankSpeed, false, defaultTankSettings.TankMaxHP,
-                defaultTankSettings.TankMaxHP, serverSettings.CountOfLifes, serverSettings.CountOfLifes, nickname, tag, defaultTankSettings.TankDamage);
+            var tank = new TankObject(Guid.NewGuid(), rectangle, defaultTankSettings.TankSpeed * defaultTankSettings.GameSpeed, false, defaultTankSettings.TankMaxHP, defaultTankSettings.TankMaxHP, 
+                serverSettings.CountOfLifes, serverSettings.CountOfLifes, nickname, tag, defaultTankSettings.TankDamage, defaultTankSettings.BulletSpeed * defaultTankSettings.GameSpeed);
             //При создании нового танка он бессмертен (передаём параметр длительности в миллисекундах)
             CallInvulnerability(tank, defaultTankSettings.TimeOfInvulnerability);
             Map.InteractObjects.Add(tank);
@@ -1064,10 +1064,10 @@ namespace TankServer
                     var upgrade = upgradeObj as MaxHpUpgradeObject;
                     await Task.Run(() =>
                         {
-                            tank.MaximumHp += upgrade.IncreaseHP;
-                            tank.Hp += upgrade.IncreaseHP;
+                            tank.MaximumHp = upgrade.IncreaseHP;
+                            tank.Hp = upgrade.IncreaseHP;
                             Thread.Sleep(time);
-                            tank.MaximumHp -= upgrade.IncreaseHP;
+                            tank.MaximumHp -= upgrade.IncreaseHP - tank.MaximumHp;
                             if (tank.Hp > tank.MaximumHp)
                             {
                                 tank.Hp = tank.MaximumHp;
@@ -1086,11 +1086,11 @@ namespace TankServer
                 {
                     var upgrade = upgradeObj as SpeedUpgradeObject;
                     await Task.Run((() =>
-                    {
-                        tank.Speed += upgrade.IncreaseSpeed;
-                        Thread.Sleep(time);
-                        tank.Speed -= upgrade.IncreaseSpeed;
-                    }));
+                        {
+                            tank.Speed += upgrade.IncreaseSpeed;
+                            Thread.Sleep(time);
+                            tank.Speed -= upgrade.IncreaseSpeed;
+                        }));
 
                     break;
                 }
