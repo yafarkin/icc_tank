@@ -980,7 +980,7 @@ namespace TankGuiObserver2
             _clientInfoTanks.AddRange(
                 Map?.InteractObjects.OfType<TankObject>().OrderByDescending(t => t.Score).ToList());
             
-            _index = 10;
+            _index = 1;
             _nickDifLen = 0;
             _scoreDifLen = 0;
             _hpDifLen = 0;
