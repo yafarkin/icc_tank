@@ -25,7 +25,7 @@ namespace TankClient
         {
             var myTank = request.Tank;
 
-            rectangle = myTank.Rectangle;
+            rectangle = myTank?.Rectangle;
             _map = SetClassMap(_map, request);
             _map.MapHeight = request.Map.MapHeight;
             _map.MapWidth = request.Map.MapWidth;
