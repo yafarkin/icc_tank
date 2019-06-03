@@ -1068,10 +1068,10 @@ namespace TankServer
                     var upgrade = upgradeObj as MaxHpUpgradeObject;
                     await Task.Run(() =>
                         {
-                            tank.MaximumHp = upgrade.IncreaseHP;
-                            tank.Hp = upgrade.IncreaseHP;
+                            tank.MaximumHp += upgrade.IncreaseHP;
+                            tank.Hp += upgrade.IncreaseHP;
                             Thread.Sleep(time);
-                            tank.MaximumHp -= upgrade.IncreaseHP - tank.MaximumHp;
+                            tank.MaximumHp -= upgrade.IncreaseHP;
                             if (tank.Hp > tank.MaximumHp)
                             {
                                 tank.Hp = tank.MaximumHp;

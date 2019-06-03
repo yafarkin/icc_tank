@@ -19,7 +19,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTestProject", "UnitTest
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TankGuiObserver2", "TankGuiObserver2\TankGuiObserver2.csproj", "{FA9472AB-7718-4A70-B209-4C459AEE2B18}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNetClient", "KashutinBot\DotNetClient.csproj", "{2C0874C6-B0F3-4504-B9B1-93D99580D393}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNetClient", "DotNetBot\DotNetClient.csproj", "{2C0874C6-B0F3-4504-B9B1-93D99580D393}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
