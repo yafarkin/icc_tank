@@ -60,6 +60,7 @@
     <Compile Include="Enum\CellMapType.cs" />
     <Compile Include="Enum\ClientCommandType.cs" />
     <Compile Include="Enum\DirectionType.cs" />
+    <Compile Include="Enum\LoggerType.cs" />
     <Compile Include="Enum\MapType.cs" />
     <Compile Include="Enum\ServerType.cs" />
     <Compile Include="Extensions.cs" />

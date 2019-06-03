@@ -1,4 +1,4 @@
-﻿#define Log_Game_0
+﻿#define Log_Game_1
 
 namespace TankGuiObserver2
 {
@@ -52,12 +52,13 @@ namespace TankGuiObserver2
         static NLog.Logger _logger;
 
         [System.Runtime.CompilerServices.MethodImpl(256)]
-        private void LogInfo(string toLog)
+        private void LogInfo(string log)
         {
 #if Log_Game_1
-            LogInfo(toLog);
+            _logger.Info(log);
 #endif
         }
+
         public Game(string windowName,
             int windowWidth, int windowHeight,
             bool isFullscreen = false)

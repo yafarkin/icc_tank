@@ -234,7 +234,7 @@ namespace TankGuiObserver2
         List<string> _paddingStrings;
         List<TankObject> _clientInfoTanks;
 
-        //Entry screen
+        /* Entry screen */
         RectangleF _logoTextRect;
         RectangleF _enterTextRect;
         RectangleF _statusTextRect;
@@ -243,13 +243,13 @@ namespace TankGuiObserver2
         TextAnimation _textAnimation;
         TextColorAnimation _textColorAnimation;
 
-        //Fps
+        /* Fps */
         RectangleF _fpsmsTextRect;
         RectangleF _fpsmsTextBackground;
         FpsCounter _fpsmsCounter;
         TextFormat _fpsmsTextFormat;
 
-        //DrawTank()
+        /* DrawTank() */
         bool _isNickRendered;
         int _nickLength;
         float _width;
@@ -259,10 +259,10 @@ namespace TankGuiObserver2
         RawRectangleF _nickBackRectangle;
         TextFormat _nicknameTextFormat;
 
-        //Interactive objects
+        /* Interactive objects */
         RawRectangleF _rawRectangleTemp;
 
-        //Bitmap
+        /* Bitmap */
         RawRectangleF _destinationRectangle;
         List<float> _tanksIncriments;
         List<float> _tanksOpacities;
@@ -724,7 +724,8 @@ namespace TankGuiObserver2
                 {
                     if (Map[obj.RowIndex, obj.ColumnIndex] == CellMapType.DestructiveWall)
                     {
-                        _renderTarget2D.DrawBitmap(_bricksBitmaps[obj.BitmapIndex], obj.Rectangle, 
+                        _renderTarget2D.DrawBitmap(
+                            _bricksBitmaps[obj.BitmapIndex], obj.Rectangle, 
                             1.0f, BitmapInterpolationMode.Linear);
                     }
                 }
@@ -885,7 +886,7 @@ namespace TankGuiObserver2
                             _nickBackRectangle.Bottom = _nickRectangle.Bottom + 5;
 
                             _renderTarget2D.FillRectangle(_nickBackRectangle, _mapObjectsColors[13]);
-                            _renderTarget2D.DrawText(tankObject.Nickname.Substring(0,12),
+                            _renderTarget2D.DrawText(tankObject.Nickname,
                                 _nicknameTextFormat, _nickRectangle, _mapObjectsColors[15]);
                         }
 
