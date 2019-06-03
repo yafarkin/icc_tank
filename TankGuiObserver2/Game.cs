@@ -436,7 +436,7 @@ namespace TankGuiObserver2
                 _tokenSource = new System.Threading.CancellationTokenSource();
                 _connector?.Dispose();
                 _connector = new Connector(_serverString);
-                _guiObserverCore.Restart(_serverString);
+                //_guiObserverCore.Restart(_serverString);
             }
 
             _gameRender.DrawWaitingLogo();
@@ -460,7 +460,7 @@ namespace TankGuiObserver2
                     LogInfo("exception: _clientThread.Interrupt()");
                     LogInfo($"exception: {ex.Message}");
                 }
-                _guiObserverCore.Run(_tokenSource.Token);
+                //_guiObserverCore.Run(_tokenSource.Token);
             }
             else
             {

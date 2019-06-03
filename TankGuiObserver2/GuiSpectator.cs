@@ -15,6 +15,7 @@ using System.Threading;
 
 using WebSocket4Net;
 using Fleck;
+using SuperSocket.ClientEngine;
 
 namespace TankGuiObserver2
 {
@@ -177,7 +178,6 @@ namespace TankGuiObserver2
         private WebSocketServer _webSocket;
         static NLog.Logger _logger;
         WebSocket web;
-
         /*
         GuiSpectator members        
         */
@@ -206,6 +206,37 @@ namespace TankGuiObserver2
             Restart(server);
             LogInfo("Ctor is working fiine. [GuiObserverCore]");
             //_webSocketProxy = new WebSocketProxy(_serverUri);
+            web = new WebSocket(server);
+            web.Open();
+            web.Opened += (object sender, EventArgs eventArgs) =>
+            {
+                _isWebSocketOpen = true;
+                LogInfo($"Подсоединение к серверу { _server} как { _nickName}...");
+                ServerResponse loginResponse = new ServerResponse
+                {
+                    CommandParameter = _nickName,
+                    ClientCommand = ClientCommandType.Login
+                };
+                LogInfo($"Логин на сервер как {_nickName}");
+                web.Send(loginResponse.ToJson());
+                LogInfo("Логин успешно выполнен.");
+            };
+            web.MessageReceived += (object sender, MessageReceivedEventArgs messageReceivedEventArgs) =>
+            {
+                ServerRequest serverRequest = messageReceivedEventArgs.Message.FromJson<ServerRequest>();
+                string outputData = serverRequest != null ? Client(serverRequest).ToJson() : "";
+                web.Send(outputData);
+            };
+            web.Error += (object sender, ErrorEventArgs error) =>
+            {
+                _logger.Info(error.Exception.Message);
+            };
+
+            web.Closed += (object sender, EventArgs eventArgs) =>
+            {
+                _logger.Info("Socket closed");
+            };
+
         }
 
         [System.Runtime.CompilerServices.MethodImpl(256)]
@@ -216,79 +247,6 @@ namespace TankGuiObserver2
             _webSocket = new WebSocketServer(server);
         }
 
-        public event EventHandler SocketOpened;
-        public delegate void OnOpened();
-        OnOpened dOnOpened;
-        public void MathodSocketOpened(object sender, EventArgs eventArgs)
-        {
-            //
-        }
-
-        public void Run(CancellationToken cancellationToken)
-        {
-            LogInfo($"Подсоединение к серверу { _server} как { _nickName}...");
-            try
-            {
-                SocketOpened += MathodSocketOpened;
-                /*web.Opened += DelegateSocketOpened;*/
-                //web.MessageReceived;
-                //web.Error;
-                //web.Closed;
-
-                SocketOpened.Invoke(this, new EventArgs());
-
-                _webSocket.Start(socket =>
-                {
-                    socket.OnOpen = () =>
-                    {
-                        _isWebSocketOpen = true;
-                        LogInfo($"Подсоединение к серверу { _server} как { _nickName}...");
-                        ServerResponse loginResponse = new ServerResponse
-                        {
-                            CommandParameter = _nickName,
-                            ClientCommand = ClientCommandType.Login
-                        };
-                        LogInfo($"Логин на сервер как {_nickName}");
-                        socket.Send(loginResponse.ToJson());
-                        LogInfo("Логин успешно выполнен.");
-                    };
-                    socket.OnClose = () =>
-                    {
-                        _isWebSocketOpen = false;
-                        LogInfo($"Закрыто соединение с сервером");
-                        var logoutResponse = new ServerResponse
-                        {
-                            ClientCommand = ClientCommandType.Logout
-                        };
-                        var outputData = logoutResponse.ToJson();
-
-                        try
-                        {
-                            socket.Send(outputData);
-                        }
-                        catch (Exception ex)
-                        {
-                            LogInfo($"catch (Exception ex) [_webSocketProxy.Send(outputData, CancellationToken.None);]");
-                        }
-                    };
-                    socket.OnError = err =>
-                    {
-                       
-                    };
-                    socket.OnMessage = message =>
-                    {
-                        ServerRequest serverRequest = message.FromJson<ServerRequest>();
-                        ServerResponse serverResponse = Client(serverRequest);
-                        string outputData = serverResponse.ToJson();
-                        socket.Send(outputData);
-                    };
-                });
-            } 
-            catch (Exception e)
-            {
-                LogInfo($"catch (Exception ex) [Run]");
-            }
-        }
 
         public ServerResponse Client(ServerRequest request)
         {
