@@ -1,4 +1,8 @@
-﻿//#define LOGGED_CONNECTOR
+﻿/*
+ TODO: WebSocketServer изменяем WebSocket
+ */
+
+//#define LOGGED_CONNECTOR
 #define LOGGED_GUI_SPECTATOR
 #define LOGGED_GUI_OBSERVER_CORE
 
@@ -10,6 +14,7 @@ using System.Threading.Tasks;
 using System.Threading;
 
 using WebSocket4Net;
+using Fleck;
 
 namespace TankGuiObserver2
 {
@@ -73,62 +78,6 @@ namespace TankGuiObserver2
         public void Dispose()
         {
             _webSocketProxy.Dispose();
-        }
-    }
-
-    /*не зависит от socket*/
-    class GuiSpectator
-    {
-        public TankSettings Settings { get; set; }
-        public Map Map { get; set; }
-        private object _syncObject = new object();
-        protected DateTime _lastMapUpdate;
-        protected readonly CancellationToken _cancellationToken;
-        protected int _msgCount;
-        protected bool _wasUpdate;
-
-        static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
-
-        [System.Runtime.CompilerServices.MethodImpl(256)]
-        private void LogInfo(string info)
-        {
-#if LOGGED_GUI_SPECTATOR
-            _logger.Info(info);
-#endif
-        }
-
-        public void ResetSyncObject()
-        {
-            _syncObject = new object();
-        }
-
-        public ServerResponse Client(int msgCount, ServerRequest request)
-        {
-            if (request.Map.Cells != null)
-             {
-                 LogInfo("flag: request.Map.Cells != null");
-                 Map = request.Map;
-                 _lastMapUpdate = DateTime.Now;
-             }
-             else if (Map == null)
-             {
-                 LogInfo("flag: Map == null");
-                 return new ServerResponse { ClientCommand = ClientCommandType.UpdateMap };
-             }
-             if (request.Settings != null)
-             {
-                 LogInfo("flag: request.Settings != null");
-                 Settings = request.Settings;
-             }
-
-             LogInfo("set: Map.InteractObjects");
-             Map.InteractObjects = request.Map.InteractObjects;
-             LogInfo("set: _msgCount");
-             _msgCount = msgCount;
-             LogInfo("set: _wasUpdate");
-             _wasUpdate = true;
-
-             return new ServerResponse { ClientCommand = ClientCommandType.None };
         }
     }
 
@@ -221,24 +170,38 @@ namespace TankGuiObserver2
 
     public class GuiObserverCore
     {
-        public WebSocketProxy WebSocketProxy => _webSocketProxy;
-        protected Uri _serverUri;
+        public bool IsWebSocketOpen => _isWebSocketOpen;
+        private bool _isWebSocketOpen;
         protected readonly string _nickName;
-
-        private WebSocketProxy _webSocketProxy;
+        protected readonly string _server;
+        private WebSocketServer _webSocket;
         static NLog.Logger _logger;
+        WebSocket web;
+
+        /*
+        GuiSpectator members        
+        */
+        public TankSettings Settings { get; set; }
+        public Map Map { get; set; }
+        private object _syncObject = new object();
+        protected DateTime _lastMapUpdate;
+        protected readonly CancellationToken _cancellationToken;
+        protected int _msgCount;
+        protected bool _wasUpdate;
+
 
         [System.Runtime.CompilerServices.MethodImpl(256)]
         private void LogInfo(string info)
         {
 #if LOGGED_GUI_OBSERVER_CORE
-            _logger.Info(info);
+            _logger.Debug(info);
 #endif
         }
 
         public GuiObserverCore(string server, string nickname)
         {
             _nickName = nickname;
+            _server = server;
             _logger = NLog.LogManager.GetCurrentClassLogger();
             Restart(server);
             LogInfo("Ctor is working fiine. [GuiObserverCore]");
@@ -248,90 +211,111 @@ namespace TankGuiObserver2
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void Restart(string server)
         {
-            _serverUri = new Uri(server);
-            _webSocketProxy?.Close();
-            _webSocketProxy?.Dispose();
-            _webSocketProxy = new WebSocketProxy(_serverUri);
+            //_webSocket?.Close();
+            _webSocket?.Dispose();
+            _webSocket = new WebSocketServer(server);
         }
 
-        public void Run(Func<int, ServerRequest, ServerResponse> bot, CancellationToken cancellationToken)
+        public event EventHandler SocketOpened;
+        public delegate void OnOpened();
+        OnOpened dOnOpened;
+        public void MathodSocketOpened(object sender, EventArgs eventArgs)
         {
-            LogInfo($"Подсоединение к серверу { _serverUri} как { _nickName}...");
+            //
+        }
+
+        public void Run(CancellationToken cancellationToken)
+        {
+            LogInfo($"Подсоединение к серверу { _server} как { _nickName}...");
             try
             {
-                if (_webSocketProxy.State != WebSocketState.Open &&
-                    _webSocketProxy.State != WebSocketState.Connecting)
-                    _webSocketProxy.Open();
+                SocketOpened += MathodSocketOpened;
+                /*web.Opened += DelegateSocketOpened;*/
+                //web.MessageReceived;
+                //web.Error;
+                //web.Closed;
 
-                ServerResponse loginResponse = new ServerResponse
+                SocketOpened.Invoke(this, new EventArgs());
+
+                _webSocket.Start(socket =>
                 {
-                    CommandParameter = _nickName,
-                    ClientCommand = ClientCommandType.Login
-                };
-                LogInfo($"Логин на сервер как {_nickName}");
-                _webSocketProxy.Send(loginResponse.ToJson(), cancellationToken);
-                LogInfo("Логин успешно выполнен.");
-
-                CancellationTokenSource tokenSource = new CancellationTokenSource();
-
-                while (!cancellationToken.IsCancellationRequested && 
-                    _webSocketProxy.State == WebSocketState.Open)
-                {
-                    var inputData = _webSocketProxy.GetMessage();
-                    if (string.IsNullOrWhiteSpace(inputData))
+                    socket.OnOpen = () =>
                     {
-                        Thread.Sleep(50);
-                        LogInfo("Run method: interupted [string.IsNullOrWhiteSpace(inputData)]");
-                        continue;
-                    }
-
-                    var serverRequest = inputData.FromJson<ServerRequest>();
-                    if (serverRequest?.Map == null)
-                    {
-                        LogInfo("Run method: interupted [serverRequest?.Map == null]");
-                        continue;
-                    }
-
-                    var serverResponse = bot(_webSocketProxy.MsgCount, serverRequest);
-                    var outputData = serverResponse.ToJson();
-
-                    _webSocketProxy.Send(outputData, cancellationToken);
-
-
-                }
-
-                if (_webSocketProxy.State != WebSocketState.Open)
-                {
-                    LogInfo($"Закрыто соединение с сервером [_webSocketProxy.State != WebSocketState.Open {cancellationToken.IsCancellationRequested}]");
-                }
-                else
-                {
-                    LogInfo($"Запрос на прекращение работы [_webSocketProxy.State == WebSocketState.Open] {cancellationToken.IsCancellationRequested}");
-                    var logoutResponse = new ServerResponse
-                    {
-                        ClientCommand = ClientCommandType.Logout
+                        _isWebSocketOpen = true;
+                        LogInfo($"Подсоединение к серверу { _server} как { _nickName}...");
+                        ServerResponse loginResponse = new ServerResponse
+                        {
+                            CommandParameter = _nickName,
+                            ClientCommand = ClientCommandType.Login
+                        };
+                        LogInfo($"Логин на сервер как {_nickName}");
+                        socket.Send(loginResponse.ToJson());
+                        LogInfo("Логин успешно выполнен.");
                     };
-                    var outputData = logoutResponse.ToJson();
-
-                    try
+                    socket.OnClose = () =>
                     {
-                        _webSocketProxy.Send(outputData, CancellationToken.None);
-                    }
-                    catch (Exception ex)
+                        _isWebSocketOpen = false;
+                        LogInfo($"Закрыто соединение с сервером");
+                        var logoutResponse = new ServerResponse
+                        {
+                            ClientCommand = ClientCommandType.Logout
+                        };
+                        var outputData = logoutResponse.ToJson();
+
+                        try
+                        {
+                            socket.Send(outputData);
+                        }
+                        catch (Exception ex)
+                        {
+                            LogInfo($"catch (Exception ex) [_webSocketProxy.Send(outputData, CancellationToken.None);]");
+                        }
+                    };
+                    socket.OnError = err =>
                     {
-                        LogInfo($"catch (Exception ex) [_webSocketProxy.Send(outputData, CancellationToken.None);]");
-                    }
-
-                    Thread.Sleep(500);
-                }
-
-                tokenSource.Cancel();
-                LogInfo("call: tokenSource.Cancel()");
-            }
+                       
+                    };
+                    socket.OnMessage = message =>
+                    {
+                        ServerRequest serverRequest = message.FromJson<ServerRequest>();
+                        ServerResponse serverResponse = Client(serverRequest);
+                        string outputData = serverResponse.ToJson();
+                        socket.Send(outputData);
+                    };
+                });
+            } 
             catch (Exception e)
             {
                 LogInfo($"catch (Exception ex) [Run]");
             }
+        }
+
+        public ServerResponse Client(ServerRequest request)
+        {
+            if (request.Map.Cells != null)
+            {
+                LogInfo("flag: request.Map.Cells != null");
+                Map = request.Map;
+                _lastMapUpdate = DateTime.Now;
+            }
+            else if (Map == null)
+            {
+                LogInfo("flag: Map == null");
+                return new ServerResponse { ClientCommand = ClientCommandType.UpdateMap };
+            }
+            if (request.Settings != null)
+            {
+                LogInfo("flag: request.Settings != null");
+                Settings = request.Settings;
+            }
+
+            LogInfo("set: Map.InteractObjects");
+            Map.InteractObjects = request.Map.InteractObjects;
+            LogInfo("set: _wasUpdate");
+            _wasUpdate = true;
+
+            return new ServerResponse { ClientCommand = ClientCommandType.None };
+            
         }
 
     }

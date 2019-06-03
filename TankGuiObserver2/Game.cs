@@ -26,7 +26,6 @@ namespace TankGuiObserver2
         int _serverStartupIndex;
         string _serverString;
         System.Threading.Thread _clientThread;
-        GuiSpectator _spectatorClass;
         System.Threading.CancellationTokenSource _tokenSource;
         GuiObserverCore _guiObserverCore;
         Connector _connector;
@@ -140,7 +139,6 @@ namespace TankGuiObserver2
             _tokenSource = new System.Threading.CancellationTokenSource();
             _connector = new Connector(_serverString);
             _guiObserverCore = new GuiObserverCore(_serverString, string.Empty);
-            _spectatorClass = new GuiSpectator();
             #endregion
 
             #region Keyboard
@@ -158,7 +156,6 @@ namespace TankGuiObserver2
             #endregion
 
             _gameRender = new GameRender(_serverString, _renderForm, _factory2D, _renderTarget2D);
-
         }
 
         public void RunGame()
@@ -250,7 +247,7 @@ namespace TankGuiObserver2
                             break;
                         case Key.Return:
                             {
-                                if (_spectatorClass?.Map != null) _isEnterPressed = true;
+                                if (_guiObserverCore?.Map != null) _isEnterPressed = true;
                             }
                             break;
                         case Key.Escape:
@@ -358,8 +355,7 @@ namespace TankGuiObserver2
             }
 
             //Drawing a game
-            _isWebSocketOpen = (_guiObserverCore?.WebSocketProxy.State ==  WebSocket4Net.WebSocketState.Open);
-            if (!_isWebSocketOpen)
+            if (!_guiObserverCore.IsWebSocketOpen)
             {
                 Reset();
             }
@@ -376,8 +372,6 @@ namespace TankGuiObserver2
                     LogInfo("flag: !_isTabPressed");
                 }
                 
-                _gameRender.Map = _spectatorClass?.Map;
-                _gameRender.Settings = _spectatorClass.Settings;
                 _gameRender.DrawClientInfo();
                 LogInfo("call: DrawClientInfo()");
 
@@ -388,22 +382,22 @@ namespace TankGuiObserver2
                     {
                         _gameRender.DrawMap();
                         LogInfo("call: DrawMap()");
-                        _gameRender.DrawTanks(_spectatorClass.Map.InteractObjects);
+                        _gameRender.DrawTanks(_guiObserverCore.Map.InteractObjects);
                         LogInfo("call: DrawTanks()");
                         _gameRender.DrawGrass();
                         LogInfo("call: DrawGrass()");
-                        _gameRender.DrawInteractiveObjects(_spectatorClass.Map.InteractObjects);
+                        _gameRender.DrawInteractiveObjects(_guiObserverCore.Map.InteractObjects);
                         LogInfo("call: DrawInteractiveObjects()");
                     }
                     else
                     {
-                        _gameRender.DrawTanks(_spectatorClass.Map.InteractObjects);
+                        _gameRender.DrawTanks(_guiObserverCore.Map.InteractObjects);
                         LogInfo("call: DrawTanks() [only/lonely]");
                     }
 
                 }
             }
-            else if (_spectatorClass?.Map != null && _isWebSocketOpen)
+            else if (_guiObserverCore?.Map != null && _isWebSocketOpen)
             {
                 _gameRender.DrawLogo();
                 LogInfo("call: DrawLogo()");
@@ -454,7 +448,7 @@ namespace TankGuiObserver2
                 LogInfo("flag: _isClientThreadRunning()");
                 ++_serverStartupIndex;
                 _gameRender.GameSetDefault();
-                _gameRender.Settings = _spectatorClass.Settings;
+                _gameRender.Settings = _guiObserverCore.Settings;
 
                 try
                 {
@@ -466,10 +460,7 @@ namespace TankGuiObserver2
                     LogInfo("exception: _clientThread.Interrupt()");
                     LogInfo($"exception: {ex.Message}");
                 }
-                _clientThread = new System.Threading.Thread(() => {
-                    _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
-                });
-                _clientThread.Start();
+                _guiObserverCore.Run(_tokenSource.Token);
             }
             else
             {
