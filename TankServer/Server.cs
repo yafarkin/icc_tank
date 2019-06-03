@@ -8,6 +8,7 @@ using TankCommon;
 using TankCommon.Enum;
 using TankCommon.Objects;
 using NLog;
+using System.Text.RegularExpressions;
 
 namespace TankServer
 {
@@ -177,7 +178,7 @@ namespace TankServer
 
                             socket.Send(info.Request.ToJson());
 
-                            if (string.IsNullOrWhiteSpace(response.CommandParameter) || Clients.Count(x => !x.Value.IsSpecator) == serverSettings.MaxClientCount)
+                            if (string.IsNullOrWhiteSpace(response.CommandParameter) || Clients.Count(x => !x.Value.IsSpecator) == serverSettings.MaxClientCount || Clients.Values.Count(x => x.Nickname == GetCorrectNickname(response)) > 0)
                             {
                                 var spectator = AddSpectator();
                                 info.IsSpecator = true;
@@ -185,7 +186,7 @@ namespace TankServer
                             }
                             else
                             {
-                                var nickname = response.CommandParameter;
+                                var nickname = GetCorrectNickname(response);
                                 var tag = string.Empty;
                                 var idx = nickname.IndexOf('\t');
                                 if (idx > 0)
@@ -1177,6 +1178,15 @@ namespace TankServer
                     client.Value.NeedUpdateSettings = true;
                 }
             }
+        }
+
+        public string GetCorrectNickname(ServerResponse response)
+        {
+            var regex = new Regex(@"[!?@#$%^_\-;:\'*&()<>/|\\\s]", RegexOptions.IgnoreCase);
+
+            var nickname = regex.Replace(response.CommandParameter, "");
+
+            return nickname.Length > 15 ? nickname.Substring(0, 15) : nickname;
         }
     }
 }
