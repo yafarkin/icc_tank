@@ -28,6 +28,8 @@ namespace TankServer
         public Dictionary<IWebSocketConnection, ClientInfo> Clients;
 
         protected readonly Logger _logger;
+        public delegate void LoggerDelegate(string log, LoggerType loggerType);
+        LoggerDelegate LoggerDelegates;
 
         public Server(ServerSettings sSettings, Logger logger)
         {            
@@ -35,6 +37,9 @@ namespace TankServer
             serverSettings = sSettings;
             defaultTankSettings = sSettings.TankSettings;
             var mapType = serverSettings.MapType;
+
+            LoggerDelegates += DelegateMethod;
+
             switch (mapType)
             {
                 case MapType.Default_map:
@@ -67,13 +72,13 @@ namespace TankServer
             {
                 socket.OnOpen = () =>
                 {
-                    _logger.Info($"[КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}");
+                    LoggerDelegates($"[КЛИЕНТ+]: {socket.ConnectionInfo.ClientIpAddress}", LoggerType.Info);
                 };
                 socket.OnClose = () =>
                 {
                     lock (_syncObject)
                     {
-                        _logger.Info($"[КЛИЕНТ-]: {socket.ConnectionInfo.ClientIpAddress}");
+                        LoggerDelegates($"[КЛИЕНТ-]: {socket.ConnectionInfo.ClientIpAddress}", LoggerType.Info);
                         if (Clients.ContainsKey(socket))
                         {
                             Clients[socket].IsConnected = false;
@@ -100,7 +105,7 @@ namespace TankServer
                 {
                     lock (_syncObject)
                     {
-                        _logger.Info($"[КЛИЕНТ-]: {socket.ConnectionInfo.ClientIpAddress}");
+                        LoggerDelegates($"[КЛИЕНТ-]: {socket.ConnectionInfo.ClientIpAddress}", LoggerType.Info);
                         if (Clients.ContainsKey(socket))
                         {
                             Clients[socket].IsConnected = false;
@@ -146,7 +151,7 @@ namespace TankServer
                             }
                             catch(Exception ex)
                             {
-                                _logger.Error(ex.Message);
+                                LoggerDelegates(ex.Message, LoggerType.Error);
                             }
                         }
                         else if (response.ClientCommand == ClientCommandType.Login)
@@ -168,7 +173,7 @@ namespace TankServer
                             };
                             var info = new ClientInfo { Request = request };
 
-                            _logger.Info($"Вход на сервер: {(string.IsNullOrWhiteSpace(response.CommandParameter) ? "наблюдатель" : response.CommandParameter)}");
+                            LoggerDelegates($"Вход на сервер: {(string.IsNullOrWhiteSpace(response.CommandParameter) ? "наблюдатель" : response.CommandParameter)}", LoggerType.Info);
 
                             info.IsLogined = true;
                             info.NeedUpdateMap = true;
@@ -219,7 +224,7 @@ namespace TankServer
 
                         if (response.ClientCommand != ClientCommandType.None)
                         {
-                            _logger.Info($"[КЛИЕНТ]: ответ от {socket.ConnectionInfo.ClientIpAddress} = {response.ClientCommand}");
+                            LoggerDelegates($"[КЛИЕНТ]: ответ от {socket.ConnectionInfo.ClientIpAddress} = {response.ClientCommand}", LoggerType.Info);
                         }
                     }
                 };
@@ -342,7 +347,7 @@ namespace TankServer
             }
             catch (Exception e)
             {
-                _logger.Error(e);
+                LoggerDelegates(e.Message, LoggerType.Error);
             }
         }
 
@@ -546,12 +551,12 @@ namespace TankServer
                     }
                     if (needUpdate)
                     {
-                        _logger.Info($"Передача полной карты для {client.Key.ConnectionInfo.ClientIpAddress} / {(client.Value.IsSpecator ? "наблюдатель" : client.Value.Nickname)}");
+                        LoggerDelegates($"Передача полной карты для {client.Key.ConnectionInfo.ClientIpAddress} / {(client.Value.IsSpecator ? "наблюдатель" : client.Value.Nickname)}", LoggerType.Info);
                     }
                 }
                 catch (Exception e)
                 {
-                    _logger.Error(e);
+                    LoggerDelegates(e.Message, LoggerType.Error);
                 }
 
                 if (needUpdate)
@@ -742,8 +747,7 @@ namespace TankServer
                                                     if (isFrag)
                                                     {
                                                         sourceTank.Score += 50;
-                                                        _logger.Info(
-                                                            $"{tankIntersectedObject.Nickname} was killed by {sourceTank.Nickname}");
+                                                        LoggerDelegates($"{tankIntersectedObject.Nickname} was killed by {sourceTank.Nickname}", LoggerType.Info);
                                                     }
                                                 }
                                             }
@@ -904,7 +908,7 @@ namespace TankServer
                 }
                 catch (Exception e)
                 {
-                    _logger.Error(e);
+                    LoggerDelegates(e.Message, LoggerType.Error);
                 }
             }
         }
@@ -1179,7 +1183,34 @@ namespace TankServer
                 }
             }
         }
-
+        
+        public void DelegateMethod(string log, LoggerType loggerType)
+        {
+            switch (loggerType)
+            {
+                case LoggerType.Debug:
+                    LoggerDelegates += _logger.Debug;
+                    break;
+                case LoggerType.Error:
+                    LoggerDelegates += _logger.Error;
+                    break;
+                case LoggerType.Fatal:
+                    LoggerDelegates += _logger.Fatal;
+                    break;
+                case LoggerType.Info:
+                    LoggerDelegates += _logger.Info;
+                    break;
+                case LoggerType.Trace:
+                    LoggerDelegates += _logger.Trace;
+                    break;
+                case LoggerType.Warn:
+                    LoggerDelegates += _logger.Warn;
+                    break;
+                default:
+                    LoggerDelegates += _logger.Debug;
+                    break;
+            }
+        }
         public string GetCorrectNickname(ServerResponse response)
         {
             var regex = new Regex(@"[!?@#$%^_\-;:\'*&()<>/|\\\s]", RegexOptions.IgnoreCase);

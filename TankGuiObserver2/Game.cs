@@ -1,4 +1,6 @@
-﻿namespace TankGuiObserver2
+﻿#define Log_Game_1
+
+namespace TankGuiObserver2
 {
     using SharpDX;
     using SharpDX.DXGI;
@@ -48,6 +50,14 @@
 
         //Logger
         static NLog.Logger _logger;
+
+        [System.Runtime.CompilerServices.MethodImpl(256)]
+        private void LogInfo(string log)
+        {
+#if Log_Game_1
+            _logger.Info(log);
+#endif
+        }
 
         public Game(string windowName,
             int windowWidth, int windowHeight,
@@ -144,7 +154,7 @@
 
             #region Logger
             _logger = NLog.LogManager.GetCurrentClassLogger();
-            _logger.Info("Ctor is working fine. [Game]");
+            LogInfo("Ctor is working fine. [Game]");
             #endregion
 
             _gameRender = new GameRender(_serverString, _renderForm, _factory2D, _renderTarget2D);
@@ -159,165 +169,183 @@
         public void Draw()
         {
             _renderTarget2D.BeginDraw();
-            _logger.Debug("Frame draw: begin");
-            
-            KeyboardState kbs = _keyboard.GetCurrentState();//_keyboard.Poll();
-            foreach (var key in kbs.PressedKeys)
-            {
-                if (key == Key.F)
-                {
-                    if (_keyboardDelay.ElapsedMilliseconds > 100)
-                    {
-                        _keyboardDelay.Stop();
-                        if (!_isFPressed)
-                        {
-                            _isFPressed = true;
-                        }
-                        else
-                        {
-                            _isFPressed = false;
-                        }
-                        _keyboardDelay.Reset();
-                        _keyboardDelay.Start();
-                    }
-                }
-                else if (key == Key.Return && _spectatorClass?.Map != null)
-                {
-                    _isEnterPressed = true;
-                }
-                else if (key == Key.Escape)
-                {
-                    try
-                    {
-                        _clientThread.Interrupt();
-                    }
-                    catch
-                    {
-                    }
-                    _renderForm.Close();
-                }
-                else if (key == Key.F1)
-                {
-                    _renderForm.TopMost = true;
-                    _renderForm.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
-                    _renderForm.WindowState = System.Windows.Forms.FormWindowState.Maximized;
-                }
-                else if (key == Key.F2)
-                {
-                    _renderForm.TopMost = false;
-                    _renderForm.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Fixed3D;
-                    _renderForm.WindowState = System.Windows.Forms.FormWindowState.Normal;
-                }
-                else if (key == Key.F3)
-                {
-                    if (_keyboardDelay.ElapsedMilliseconds > 100)
-                    {
-                        _keyboardDelay.Stop();
-                        if (_gameRender.IsNickRendered)
-                        {
-                            _gameRender.IsNickRendered = false;
-                        }
-                        else
-                        {
-                            _gameRender.IsNickRendered = true;
-                        }
-                        _keyboardDelay.Reset();
-                        _keyboardDelay.Start();
-                    }
-                }
-                else if (key == Key.F4)
-                {
-                    if (_keyboardDelay.ElapsedMilliseconds > 300)
-                    {
-                        _keyboardDelay.Stop();
-                        if (_gameRender.IpReconnectUIVisible)
-                        {
-                            _gameRender.IpReconnectUIVisible = false;
-                        }
-                        else
-                        {
-                            _gameRender.IpReconnectUIVisible = true;
-                        }
-                        _keyboardDelay.Reset();
-                        _keyboardDelay.Start();
-                    }
-                }
-                else if (key == Key.H)
-                {
-                    System.Windows.Forms.MessageBox.Show(
-                        "F1 - fullscreen\n" +
-                        "F2 - windowed\n" +
-                        "F3 - make nickname [visible/unvisible]\n" +
-                        "F4 - reconnect\n" +
-                        "F - show fps\n" +
-                        "H - help\n" +
-                        "V - vertical sync\n" +
-                        "T - render only tank mode [on/off]\n" +
-                        "Tab - show players\n" +
-                        "Esc - exit\n", "Help(me)");
-                }
-                else if (key == Key.V)
-                {
-                    if (_keyboardDelay.ElapsedMilliseconds > 100)
-                    {
-                        _keyboardDelay.Stop();
-                        if (_verticalSyncOn == 0)
-                        {
-                            _verticalSyncOn = 1;
-                            _notifyVerticalSyncOn.Visible = true;
-                            _notifyVerticalSyncOff.Visible = false;
-                            _notifyVerticalSyncOn.ShowBalloonTip(200);
-                        }
-                        else
-                        {
-                            _verticalSyncOn = 0;
-                            _notifyVerticalSyncOn.Visible = false;
-                            _notifyVerticalSyncOff.Visible = true;
-                            _notifyVerticalSyncOff.ShowBalloonTip(500);
-                        }
-                        _keyboardDelay.Reset();
-                        _keyboardDelay.Start();
-                    }
-                }
-                else if (key == Key.T)
-                {
-                    //рендерить только танки
-                    if (_keyboardDelay.ElapsedMilliseconds > 100)
-                    {
-                        _keyboardDelay.Stop();
-                        if (_onlyTankRendering)
-                        {
-                            _onlyTankRendering = false;
-                        }
-                        else
-                        {
-                            _onlyTankRendering = true;
-                        }
-                        _keyboardDelay.Reset();
-                        _keyboardDelay.Start();
-                    }
-                }
-                else if (key == Key.Tab)
-                {
-                    if (_keyboardDelay.ElapsedMilliseconds > 200)
-                    {
-                        _keyboardDelay.Stop();
-                        if (_isTabPressed)
-                        {
-                            _isTabPressed = false;
-                        }
-                        else
-                        {
-                            _isTabPressed = true;
-                        }
-                        _gameRender.CenterClientInfo();
-                        _keyboardDelay.Reset();
-                        _keyboardDelay.Start();
-                    }
-                }
+            LogInfo("Frame draw: begin");
 
+            System.Collections.Generic.List<Key> pressedKeys = 
+                _keyboard.GetCurrentState().PressedKeys;//_keyboard.Poll();
+
+            if (pressedKeys.Count > 0)
+            {
+                foreach (Key pressedKey in pressedKeys)
+                {
+                    switch (pressedKey)
+                    {
+                        case Key.F1:
+                            {
+                                _renderForm.TopMost = true;
+                                _renderForm.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+                                _renderForm.WindowState = System.Windows.Forms.FormWindowState.Maximized;
+                            }
+                            break;
+                        case Key.F2:
+                            {
+                                _renderForm.TopMost = false;
+                                _renderForm.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Fixed3D;
+                                _renderForm.WindowState = System.Windows.Forms.FormWindowState.Normal;
+                            }
+                            break;
+                        case Key.F3:
+                            {
+                                if (_keyboardDelay.ElapsedMilliseconds > 100)
+                                {
+                                    _keyboardDelay.Stop();
+                                    if (_gameRender.IsNickRendered)
+                                    {
+                                        _gameRender.IsNickRendered = false;
+                                    }
+                                    else
+                                    {
+                                        _gameRender.IsNickRendered = true;
+                                    }
+                                    _keyboardDelay.Reset();
+                                    _keyboardDelay.Start();
+                                }
+                            }
+                            break;
+                        case Key.F4:
+                            {
+                                if (_keyboardDelay.ElapsedMilliseconds > 300)
+                                {
+                                    _keyboardDelay.Stop();
+                                    if (_gameRender.IpReconnectUIVisible)
+                                    {
+                                        _gameRender.IpReconnectUIVisible = false;
+                                    }
+                                    else
+                                    {
+                                        _gameRender.IpReconnectUIVisible = true;
+                                    }
+                                    _keyboardDelay.Reset();
+                                    _keyboardDelay.Start();
+                                }
+                            }
+                            break;
+                        case Key.F:
+                            {
+                                if (_keyboardDelay.ElapsedMilliseconds > 100)
+                                {
+                                    _keyboardDelay.Stop();
+                                    if (!_isFPressed)
+                                    {
+                                        _isFPressed = true;
+                                    }
+                                    else
+                                    {
+                                        _isFPressed = false;
+                                    }
+                                    _keyboardDelay.Reset();
+                                    _keyboardDelay.Start();
+                                }
+                            }
+                            break;
+                        case Key.Return:
+                            {
+                                if (_spectatorClass?.Map != null) _isEnterPressed = true;
+                            }
+                            break;
+                        case Key.Escape:
+                            {
+                                try
+                                {
+                                    _clientThread.Interrupt();
+                                }
+                                catch
+                                {
+                                }
+                                _renderForm.Close();
+                            }
+                            break;
+                        case Key.Tab:
+                            {
+                                if (_keyboardDelay.ElapsedMilliseconds > 200)
+                                {
+                                    _keyboardDelay.Stop();
+                                    if (_isTabPressed)
+                                    {
+                                        _isTabPressed = false;
+                                    }
+                                    else
+                                    {
+                                        _isTabPressed = true;
+                                    }
+                                    _gameRender.CenterClientInfo();
+                                    _keyboardDelay.Reset();
+                                    _keyboardDelay.Start();
+                                }
+                            }
+                            break;
+                        case Key.V:
+                            {
+                                if (_keyboardDelay.ElapsedMilliseconds > 100)
+                                {
+                                    _keyboardDelay.Stop();
+                                    if (_verticalSyncOn == 0)
+                                    {
+                                        _verticalSyncOn = 1;
+                                        _notifyVerticalSyncOn.Visible = true;
+                                        _notifyVerticalSyncOff.Visible = false;
+                                        _notifyVerticalSyncOn.ShowBalloonTip(200);
+                                    }
+                                    else
+                                    {
+                                        _verticalSyncOn = 0;
+                                        _notifyVerticalSyncOn.Visible = false;
+                                        _notifyVerticalSyncOff.Visible = true;
+                                        _notifyVerticalSyncOff.ShowBalloonTip(500);
+                                    }
+                                    _keyboardDelay.Reset();
+                                    _keyboardDelay.Start();
+                                }
+                            }
+                            break;
+                        case Key.T:
+                            {
+                                if (_keyboardDelay.ElapsedMilliseconds > 100)
+                                {
+                                    _keyboardDelay.Stop();
+                                    if (_onlyTankRendering)
+                                    {
+                                        _onlyTankRendering = false;
+                                    }
+                                    else
+                                    {
+                                        _onlyTankRendering = true;
+                                    }
+                                    _keyboardDelay.Reset();
+                                    _keyboardDelay.Start();
+                                }
+                            }
+                            break;
+                        case Key.H:
+                            {
+                                System.Windows.Forms.MessageBox.Show(
+                            "F1 - fullscreen\n" +
+                            "F2 - windowed\n" +
+                            "F3 - make nickname [visible/unvisible]\n" +
+                            "F4 - reconnect\n" +
+                            "F - show fps\n" +
+                            "H - help\n" +
+                            "V - vertical sync\n" +
+                            "T - render only tank mode [on/off]\n" +
+                            "Tab - show players\n" +
+                            "Esc - exit\n", "Help(me)");
+                            }
+                            break;
+                    };
+                    
+                }
             }
-            
+
             /*
               NOTE:
               Если данный ресет поставить после if (!_isWebSocketOpen),
@@ -338,61 +366,53 @@
 
             if (_isEnterPressed && _isWebSocketOpen)
             {
-                _logger.Debug("flag: _isEnterPressed");
-                _logger.Debug("flag: _isWebSocketOpen");
+                LogInfo("flag: _isEnterPressed");
+                LogInfo("flag: _isWebSocketOpen");
 
                 if (!_gameRender.UIIsVisible && !_isTabPressed)
                 {
                     _gameRender.UIIsVisible = true;
-                    _logger.Debug("flag: !UIIsVisible");
-                    _logger.Debug("flag: !_isTabPressed");
+                    LogInfo("flag: !UIIsVisible");
+                    LogInfo("flag: !_isTabPressed");
                 }
                 
                 _gameRender.Map = _spectatorClass?.Map;
                 _gameRender.Settings = _spectatorClass.Settings;
                 _gameRender.DrawClientInfo();
-                _logger.Debug("call: DrawClientInfo()");
+                LogInfo("call: DrawClientInfo()");
 
                 if (!_isTabPressed)
                 {
-                    _logger.Debug("flag: _isTabPressed");
+                    LogInfo("flag: _isTabPressed");
                     if (!_onlyTankRendering)
                     {
                         _gameRender.DrawMap();
-                        _logger.Debug("call: DrawMap()");
+                        LogInfo("call: DrawMap()");
                         _gameRender.DrawTanks(_spectatorClass.Map.InteractObjects);
-                        _logger.Debug("call: DrawTanks()");
+                        LogInfo("call: DrawTanks()");
                         _gameRender.DrawGrass();
-                        _logger.Debug("call: DrawGrass()");
+                        LogInfo("call: DrawGrass()");
                         _gameRender.DrawInteractiveObjects(_spectatorClass.Map.InteractObjects);
-                        _logger.Debug("call: DrawInteractiveObjects()");
+                        LogInfo("call: DrawInteractiveObjects()");
                     }
                     else
                     {
                         _gameRender.DrawTanks(_spectatorClass.Map.InteractObjects);
-                        _logger.Debug("call: DrawTanks() [only/lonely]");
+                        LogInfo("call: DrawTanks() [only/lonely]");
                     }
 
-                }
-                else
-                {
-                    //_gameRender.DrawClientInfo();
                 }
             }
             else if (_spectatorClass?.Map != null && _isWebSocketOpen)
             {
                 _gameRender.DrawLogo();
-                _logger.Debug("call: DrawLogo()");
-            }
-            else if (_spectatorClass?.Map == null)
-            {
-
+                LogInfo("call: DrawLogo()");
             }
 
             if (_isFPressed)
             {
                 _gameRender.DrawFPS();
-                _logger.Info("Press F to pay respect.");
+                LogInfo("Press F to pay respect.");
             }
 
             try
@@ -401,17 +421,17 @@
             }
             catch
             {
-                _logger.Info("Catch exception from: _renderTarget2D.EndDraw()");
+                LogInfo("Catch exception from: _renderTarget2D.EndDraw()");
             }
 
             _swapChain.Present(_verticalSyncOn, PresentFlags.None);
-            _logger.Debug("Frame draw: end");
+            LogInfo("Frame draw: end");
         }
 
         [System.Runtime.CompilerServices.MethodImpl(256)]
         private void Reset()
         {
-            _logger.Debug("flag: !_isWebSocketOpen()");
+            LogInfo("flag: !_isWebSocketOpen()");
             _isEnterPressed = false;
             _gameRender.UIIsVisible = false;
 
@@ -425,40 +445,17 @@
                 _guiObserverCore.Restart(_serverString);
             }
 
-            _isClientThreadRunning = true;
-            _connector.IsServerRunning();
-            _logger.Debug("call: _connector.IsServerRunning()");
-            if (_connector.ServerRunning)
-            {
-                _isClientThreadRunning = false;
-            }
-            else
-            {
-                _isClientThreadRunning = true;
-                try
-                {
-                    _clientThread?.Interrupt();
-                    _clientThread = null;
-                }
-                catch (System.Security.SecurityException ex)
-                {
-                    _logger.Error("exception: _clientThread.Interrupt()");
-                    _logger.Error($"exception: {ex.Message}");
-                }
-            }
-
             _gameRender.DrawWaitingLogo();
 
-            _logger.Debug("call: DrawWaitingLogo()");
-            if (!_isClientThreadRunning)
+            _connector.IsServerRunning();
+            LogInfo("call: _connector.IsServerRunning()");
+            if (_connector.ServerRunning)
             {
-                _logger.Debug("flag: _isClientThreadRunning()");
-                _isClientThreadRunning = true;
+                LogInfo("flag: _isClientThreadRunning()");
                 ++_serverStartupIndex;
                 _gameRender.GameSetDefault();
-
                 _gameRender.Settings = _spectatorClass.Settings;
-                
+
                 try
                 {
                     _clientThread?.Interrupt();
@@ -466,13 +463,26 @@
                 }
                 catch (System.Security.SecurityException ex)
                 {
-                    _logger.Error("exception: _clientThread.Interrupt()");
-                    _logger.Error($"exception: {ex.Message}");
+                    LogInfo("exception: _clientThread.Interrupt()");
+                    LogInfo($"exception: {ex.Message}");
                 }
                 _clientThread = new System.Threading.Thread(() => {
                     _guiObserverCore.Run(_spectatorClass.Client, _tokenSource.Token);
                 });
                 _clientThread.Start();
+            }
+            else
+            {
+                try
+                {
+                    _clientThread?.Interrupt();
+                    _clientThread = null;
+                }
+                catch (System.Security.SecurityException ex)
+                {
+                    LogInfo("exception: _clientThread.Interrupt()");
+                    LogInfo($"exception: {ex.Message}");
+                }
             }
         }
 
@@ -484,7 +494,7 @@
             }
             catch (System.Exception ex)
             {
-                _logger.Error($"exception: catched in Game.Dispose() [{ex.Message}]");
+                LogInfo($"exception: catched in Game.Dispose() [{ex.Message}]");
             }
 
             _notifyVerticalSyncOn.Dispose();

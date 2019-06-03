@@ -1,4 +1,4 @@
-﻿#define COLORED_DEAD_0
+﻿#define COLORED_DEAD_1
 
 namespace TankGuiObserver2
 {
@@ -209,7 +209,6 @@ namespace TankGuiObserver2
         List<DestuctiveWalls> _destuctiveWallsObjects;
 
         //ClientInfo
-        bool _setted;
         bool _centeredCI;
         bool _isStringResseted;
         int _index;
@@ -218,7 +217,7 @@ namespace TankGuiObserver2
         int _hpDifLen;
         RawVector2 _clientInfoLeftPoint;
         RawVector2 _clientInfoRightPoint;
-        TextRange _tempRange;
+        TextRange _nicknameEffectRange;
         RectangleF _clientInfoAreaRect;
         RectangleF _cleintInfo;
         RectangleF _clientInfoTextRect;
@@ -235,7 +234,7 @@ namespace TankGuiObserver2
         List<string> _paddingStrings;
         List<TankObject> _clientInfoTanks;
 
-        //Entry screen
+        /* Entry screen */
         RectangleF _logoTextRect;
         RectangleF _enterTextRect;
         RectangleF _statusTextRect;
@@ -244,13 +243,13 @@ namespace TankGuiObserver2
         TextAnimation _textAnimation;
         TextColorAnimation _textColorAnimation;
 
-        //Fps
+        /* Fps */
         RectangleF _fpsmsTextRect;
         RectangleF _fpsmsTextBackground;
         FpsCounter _fpsmsCounter;
         TextFormat _fpsmsTextFormat;
 
-        //DrawTank()
+        /* DrawTank() */
         bool _isNickRendered;
         int _nickLength;
         float _width;
@@ -260,10 +259,10 @@ namespace TankGuiObserver2
         RawRectangleF _nickBackRectangle;
         TextFormat _nicknameTextFormat;
 
-        //Interactive objects
+        /* Interactive objects */
         RawRectangleF _rawRectangleTemp;
 
-        //Bitmap
+        /* Bitmap */
         RawRectangleF _destinationRectangle;
         List<float> _tanksIncriments;
         List<float> _tanksOpacities;
@@ -382,7 +381,8 @@ namespace TankGuiObserver2
             /*13*/ new SolidColorBrush(_renderTarget2D, new RawColor4(0.3f, 0.3f, 0.3f, 0.9f)), //_backgroundBrush
             /*14*/ new SolidColorBrush(_renderTarget2D, new RawColor4(1.0f, 1.0f, 1.0f, 1.0f)), //_logoBrush
             /*15*/ new SolidColorBrush(_renderTarget2D, new RawColor4(0.28f, 0.88f, 0.23f, 1.0f)), //nickname
-            /*16*/ new SolidColorBrush(_renderTarget2D, new RawColor4(0.0f, 0.0f, 0.0f, 0.0f)) //nickname
+            /*16*/ new SolidColorBrush(_renderTarget2D, new RawColor4(0.0f, 0.0f, 0.0f, 0.0f)), //nickname
+            /*17*/ new SolidColorBrush(_renderTarget2D, new RawColor4(0.5215f, 0.554f, 0.5666f, 1.0f)) //dead player in client info table
             };
 
             #endregion
@@ -407,14 +407,11 @@ namespace TankGuiObserver2
                  (_renderForm.Width > _renderForm.Height) ? _renderForm.Width-_renderForm.Height-100 : 250
                  , 500);
             _clientInfoTextRect = new RectangleF(
-                _clientInfoAreaRect.X + 0.39f * _clientInfoAreaRect.X,
-                _clientInfoAreaRect.Y + 0.05f * _clientInfoAreaRect.Height, 300, 100);
-            _clientInfoLeftPoint = new RawVector2(_clientInfoAreaRect.X,
-                _clientInfoTextRect.Y + 0.6f * _clientInfoTextRect.Height);
-            _clientInfoRightPoint = new RawVector2(
-                _clientInfoAreaRect.X + _clientInfoAreaRect.Width,
-                _clientInfoTextRect.Y + 0.6f * _clientInfoTextRect.Height);
-            _tempRange = new TextRange();
+                _renderForm.Height + 50,
+                150, _renderForm.Width - _renderForm.Height, 500);
+            _clientInfoLeftPoint = new RawVector2(_renderForm.Height, 120);
+            _clientInfoRightPoint = new RawVector2(_renderForm.Width, 120);
+            _nicknameEffectRange = new TextRange();
 
             _tankRectangle = new RawRectangleF();
             _nickRectangle = new RawRectangleF();
@@ -435,7 +432,6 @@ namespace TankGuiObserver2
             //advanced text renderer
             _textRenderer = new CustomColorRenderer();
             _textRenderer.AssignResources(_renderTarget2D, _mapObjectsColors[14]);
-            
             _centeredCI = true;
 
             #endregion
@@ -454,7 +450,7 @@ namespace TankGuiObserver2
             {
                 for (int i = 1; i < 30; i++)
                 {
-                    _paddingStrings.Add(new string('_', i));
+                    _paddingStrings.Add(new string(' ', i));
                 }
             }
             _clientInfoTableEffects = new List<TextRange>();
@@ -615,11 +611,10 @@ namespace TankGuiObserver2
             {
                 _isImmutableObjectsInitialized = true;
 
-                int i, j;
-
                 //#### ################ ###########
                 //#### текстуры блоками 5 на 5 ####
                 //#### ################ ###########
+                int i, j;
                 int blocksInARow = _mapWidth / 5;
                 int blocksInACol = _mapHeight / 5;
                 List<SharpDX.Point> walls = new List<SharpDX.Point>();
@@ -677,9 +672,11 @@ namespace TankGuiObserver2
                     }
                 }
 
+#pragma warning disable IDE0059 // Value assigned to symbol is never used
                 walls = null;
                 water = null;
                 grass = null;
+#pragma warning restore IDE0059 // Value assigned to symbol is never used
             }
             else
             {
@@ -723,14 +720,13 @@ namespace TankGuiObserver2
             }
             else
             {
-                int index = 0;
                 foreach (var obj in _destuctiveWallsObjects)
                 {
                     if (Map[obj.RowIndex, obj.ColumnIndex] == CellMapType.DestructiveWall)
                     {
-                        _renderTarget2D.DrawBitmap(_bricksBitmaps[obj.BitmapIndex], obj.Rectangle, 
+                        _renderTarget2D.DrawBitmap(
+                            _bricksBitmaps[obj.BitmapIndex], obj.Rectangle, 
                             1.0f, BitmapInterpolationMode.Linear);
-                        ++index;
                     }
                 }
             }
@@ -940,12 +936,11 @@ namespace TankGuiObserver2
                     _renderForm.Width / 2-150, 30);
                 _clientInfoAreaRect = new RectangleF(0, 0, 
                     _renderForm.Width, _renderForm.Height);
-                _clientInfoLeftPoint =
-                    new RawVector2(0,
-                                   _clientInfoTextRect.Y + 0.6f * _clientInfoTextRect.Height);
-                _clientInfoRightPoint = new RawVector2(
-                                    _renderForm.Width,
-                                    _clientInfoTextRect.Y + 0.6f * _clientInfoTextRect.Height);
+
+                _clientInfoTextRect = new RectangleF(_renderForm.Width/2-250, 150, _renderForm.Width - _renderForm.Height, 500);
+
+                _clientInfoLeftPoint = new RawVector2(0, 120);
+                _clientInfoRightPoint = new RawVector2(_renderForm.Width, 120);
                 _cleintInfo = new RectangleF(
                     (float)_renderForm.Width / 3,
                     100 + 50, 
@@ -958,12 +953,11 @@ namespace TankGuiObserver2
                 _clientInfoLabel.Location = new System.Drawing.Point(_renderForm.Height + 250, 30);
                 _clientInfoAreaRect = new RectangleF(_renderForm.Height, 0, 
                     _renderForm.Width - _renderForm.Height, _renderForm.Height);
-                _clientInfoLeftPoint = 
-                    new RawVector2(_clientInfoAreaRect.X,
-                                    _clientInfoTextRect.Y + 0.6f * _clientInfoTextRect.Height);
-                _clientInfoRightPoint = new RawVector2(
-                                    _clientInfoAreaRect.X + _clientInfoAreaRect.Width,
-                                    _clientInfoTextRect.Y + 0.6f * _clientInfoTextRect.Height);
+
+                _clientInfoTextRect = new RectangleF(_renderForm.Height + 50, 150, _renderForm.Width - _renderForm.Height, 500);
+
+                _clientInfoLeftPoint = new RawVector2(_renderForm.Height, 120);
+                _clientInfoRightPoint = new RawVector2(_renderForm.Width, 120);
                 _cleintInfo = new RectangleF(_renderForm.Height + 50, 
                     100 + 50, 
                     _renderForm.Width - _renderForm.Height - 100, 500);
@@ -984,7 +978,7 @@ namespace TankGuiObserver2
             _nickDifLen = 0;
             _scoreDifLen = 0;
             _hpDifLen = 0;
-            _clientInfoStringBuilder.Append("Id  Nickname        Score      Hp    Lives\n");
+            _clientInfoStringBuilder.Append("Id  Nickname        Score     Hp    Lives\n");
             foreach (var tank in _clientInfoTanks)
             {
                 int cisbLength = _clientInfoStringBuilder.Length;
@@ -994,64 +988,33 @@ namespace TankGuiObserver2
                 _nickDifLen = 15 - tank.Nickname.Length;
                 _scoreDifLen = 7 - score.Length;
                 _hpDifLen = 7 - hp.Length;
-                _clientInfoStringBuilder.AppendFormat("{0} {1}   {2} {3} {4}\n",
+                _clientInfoStringBuilder.AppendFormat("{0} {1}  {2} {3} {4}\n",
                     _index < 10 ? index + " " : index, 
                     (_nickDifLen <= 0) ? tank.Nickname : tank.Nickname + _paddingStrings[_nickDifLen],
                     (_scoreDifLen <= 0) ? score : score + _paddingStrings[_scoreDifLen],
                     (_hpDifLen <= 0) ? hp : hp + _paddingStrings[_hpDifLen],
                     tank.Lives.ToString());
-#if COLORED_DEAD_1
                 if (tank.IsDead)
                 {
-                    _clientInfoTableEffects.Add(new TextRange(cisbLength, _clientInfoStringBuilder.Length));
-                }
+#if COLORED_DEAD_1
+                    _renderTarget2D.DrawText(_clientInfoStringBuilder.ToString(),
+                        _clientInfoTextFormat, _clientInfoTextRect, _mapObjectsColors[17]);
 #endif
+                }
+                else
+                {
+                }
                 ++_index;
             }
             
-            //Deleting '_' (made them invisible)
-            _setted = false;
-            _index = 0;
-            _textLayout = new TextLayout(
-                _directFactory, 
-                _clientInfoStringBuilder.ToString(), 
-                _clientInfoTextFormat, 
-                _cleintInfo.Width, _cleintInfo.Height);
-            for (int i = 0; i < (_clientInfoStringBuilder.Length-1); i++)
-            {
-                if (_clientInfoStringBuilder[i] == '_')
-                {
-                    if (!_setted)
-                    {
-                        _index = i;
-                    }
-                    _setted = true;
-
-                    if (_setted && _clientInfoStringBuilder[i + 1] != '_')
-                    {
-                        _tempRange.StartPosition = _index;
-                        _tempRange.Length = i;
-                        _textLayout?.SetDrawingEffect(_mapObjectsColors[16], _tempRange);
-                        _tempRange.StartPosition = i + 1;
-                        _tempRange.Length = i + 1;
-                        _textLayout?.SetDrawingEffect(_mapObjectsColors[14], _tempRange);
-                        _setted = false;
-                    }
-                }
-            }
-
 #if COLORED_DEAD_1
-            for (int i = 0; i < _clientInfoTableEffects.Count; i++)
-            {
-                _textLayout.SetDrawingEffect(_mapObjectsColors[6], _clientInfoTableEffects[i]);
-            }
+            
 #endif
-
-            //Draw
-            _textLayout.Draw(_textRenderer, _cleintInfo.X, _cleintInfo.Y);
-            _textLayout.Dispose();
-
+            _renderTarget2D.DrawText(_clientInfoStringBuilder.ToString(),
+                    _clientInfoTextFormat, _clientInfoTextRect, _mapObjectsColors[14]);
             _clientInfoStringBuilder.Clear();
+            //Draw
+            
             _clientInfoTanks.Clear();
         }
         
