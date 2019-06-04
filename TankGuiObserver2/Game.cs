@@ -50,14 +50,6 @@ namespace TankGuiObserver2
         //Logger
         static NLog.Logger _logger;
 
-        [System.Runtime.CompilerServices.MethodImpl(256)]
-        private void LogInfo(string log)
-        {
-#if Log_Game_1
-            _logger.Info(log);
-#endif
-        }
-
         public Game(string windowName,
             int windowWidth, int windowHeight,
             bool isFullscreen = false)
@@ -152,10 +144,11 @@ namespace TankGuiObserver2
 
             #region Logger
             _logger = NLog.LogManager.GetCurrentClassLogger();
-            LogInfo("Ctor is working fine. [Game]");
+            _logger.Debug("Ctor is working fine. [Game]");
             #endregion
 
             _gameRender = new GameRender(_serverString, _renderForm, _factory2D, _renderTarget2D);
+            _gameRender.Map = new TankCommon.Objects.Map();
         }
 
         public void RunGame()
@@ -166,7 +159,7 @@ namespace TankGuiObserver2
         public void Draw()
         {
             _renderTarget2D.BeginDraw();
-            LogInfo("Frame draw: begin");
+            _logger.Debug("Frame draw: begin");
 
             System.Collections.Generic.List<Key> pressedKeys = 
                 _keyboard.GetCurrentState().PressedKeys;//_keyboard.Poll();
@@ -360,53 +353,67 @@ namespace TankGuiObserver2
                 Reset();
             }
 
-            if (_isEnterPressed && _isWebSocketOpen)
+            if (_guiObserverCore.WasUpdate)
             {
-                LogInfo("flag: _isEnterPressed");
-                LogInfo("flag: _isWebSocketOpen");
-
-                if (!_gameRender.UIIsVisible && !_isTabPressed)
+                if (_guiObserverCore.Map.Cells != null)
                 {
-                    _gameRender.UIIsVisible = true;
-                    LogInfo("flag: !UIIsVisible");
-                    LogInfo("flag: !_isTabPressed");
+                    _gameRender.Map = _guiObserverCore.Map;
                 }
-                
-                _gameRender.DrawClientInfo();
-                LogInfo("call: DrawClientInfo()");
-
-                if (!_isTabPressed)
+                else if (_guiObserverCore.Map != null)
                 {
-                    LogInfo("flag: _isTabPressed");
-                    if (!_onlyTankRendering)
-                    {
-                        _gameRender.DrawMap();
-                        LogInfo("call: DrawMap()");
-                        _gameRender.DrawTanks(_guiObserverCore.Map.InteractObjects);
-                        LogInfo("call: DrawTanks()");
-                        _gameRender.DrawGrass();
-                        LogInfo("call: DrawGrass()");
-                        _gameRender.DrawInteractiveObjects(_guiObserverCore.Map.InteractObjects);
-                        LogInfo("call: DrawInteractiveObjects()");
-                    }
-                    else
-                    {
-                        _gameRender.DrawTanks(_guiObserverCore.Map.InteractObjects);
-                        LogInfo("call: DrawTanks() [only/lonely]");
-                    }
-
+                    _gameRender.Map.InteractObjects = _guiObserverCore.Map.InteractObjects;
                 }
             }
-            else if (_guiObserverCore?.Map != null && _isWebSocketOpen)
+
+            //Draw a game
+            if (_gameRender.Map != null &&
+                _guiObserverCore.IsWebSocketOpen)
             {
-                _gameRender.DrawLogo();
-                LogInfo("call: DrawLogo()");
+                if (_isEnterPressed)
+                {
+                    _logger.Debug("Drawing a game");
+
+                    if (!_gameRender.UIIsVisible && !_isTabPressed)
+                    {
+                        _logger.Debug("Drawing ui");
+                        _gameRender.UIIsVisible = true;
+                    }
+
+                    _logger.Debug("call: DrawClientInfo()");
+                    _gameRender.DrawClientInfo();
+
+                    if (!_isTabPressed)
+                    {
+                        if (!_onlyTankRendering)
+                        {
+                            _gameRender.DrawMap();
+                            _logger.Debug("call: DrawMap()");
+                            _gameRender.DrawTanks(_gameRender.Map.InteractObjects);
+                            _logger.Debug("call: DrawTanks()");
+                            _gameRender.DrawGrass();
+                            _logger.Debug("call: DrawGrass()");
+                            _gameRender.DrawInteractiveObjects(_gameRender.Map.InteractObjects);
+                            _logger.Debug("call: DrawInteractiveObjects()");
+                        }
+                        else
+                        {
+                            _gameRender.DrawTanks(_guiObserverCore.Map.InteractObjects);
+                            _logger.Debug("call: DrawTanks()");
+                        }
+
+                    }
+                }
+                else if (_guiObserverCore.WasUpdate)
+                {
+                    _gameRender.DrawLogo();
+                    _logger.Debug("call: DrawLogo()");
+                }
             }
 
             if (_isFPressed)
             {
                 _gameRender.DrawFPS();
-                LogInfo("Press F to pay respect.");
+                _logger.Debug("Press F to pay respect.");
             }
 
             try
@@ -415,66 +422,24 @@ namespace TankGuiObserver2
             }
             catch
             {
-                LogInfo("Catch exception from: _renderTarget2D.EndDraw()");
+                _logger.Debug("Catch exception from: _renderTarget2D.EndDraw()");
             }
 
             _swapChain.Present(_verticalSyncOn, PresentFlags.None);
-            LogInfo("Frame draw: end");
+            _logger.Debug("Frame draw: end");
         }
 
         [System.Runtime.CompilerServices.MethodImpl(256)]
         private void Reset()
         {
-            LogInfo("flag: !_isWebSocketOpen()");
+            _logger.Debug("flag: !_isWebSocketOpen()");
             _isEnterPressed = false;
             _gameRender.UIIsVisible = false;
-
-            if (!_connector.Server.Equals(_serverString))
-            {
-                _tokenSource.Cancel();
-                _tokenSource?.Dispose();
-                _tokenSource = new System.Threading.CancellationTokenSource();
-                _connector?.Dispose();
-                _connector = new Connector(_serverString);
-                //_guiObserverCore.Restart(_serverString);
-            }
-
+            _gameRender.GameSetDefault();
+            _guiObserverCore.Restart(_serverString);
+            _gameRender.Settings = _guiObserverCore.Settings;
             _gameRender.DrawWaitingLogo();
-
-            _connector.IsServerRunning();
-            LogInfo("call: _connector.IsServerRunning()");
-            if (_connector.ServerRunning)
-            {
-                LogInfo("flag: _isClientThreadRunning()");
-                ++_serverStartupIndex;
-                _gameRender.GameSetDefault();
-                _gameRender.Settings = _guiObserverCore.Settings;
-
-                try
-                {
-                    _clientThread?.Interrupt();
-                    _clientThread = null;
-                }
-                catch (System.Security.SecurityException ex)
-                {
-                    LogInfo("exception: _clientThread.Interrupt()");
-                    LogInfo($"exception: {ex.Message}");
-                }
-                //_guiObserverCore.Run(_tokenSource.Token);
-            }
-            else
-            {
-                try
-                {
-                    _clientThread?.Interrupt();
-                    _clientThread = null;
-                }
-                catch (System.Security.SecurityException ex)
-                {
-                    LogInfo("exception: _clientThread.Interrupt()");
-                    LogInfo($"exception: {ex.Message}");
-                }
-            }
+            ++_serverStartupIndex;
         }
 
         public void Dispose()
@@ -485,7 +450,7 @@ namespace TankGuiObserver2
             }
             catch (System.Exception ex)
             {
-                LogInfo($"exception: catched in Game.Dispose() [{ex.Message}]");
+                _logger.Debug($"exception: catched in Game.Dispose() [{ex.Message}]");
             }
 
             _notifyVerticalSyncOn.Dispose();

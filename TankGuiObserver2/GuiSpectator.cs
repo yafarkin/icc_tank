@@ -1,12 +1,4 @@
-﻿/*
- TODO: WebSocketServer изменяем WebSocket
- */
-
-//#define LOGGED_CONNECTOR
-#define LOGGED_GUI_SPECTATOR
-#define LOGGED_GUI_OBSERVER_CORE
-
-using System;
+﻿using System;
 using TankCommon;
 using TankCommon.Enum;
 using TankCommon.Objects;
@@ -16,6 +8,9 @@ using System.Threading;
 using WebSocket4Net;
 using Fleck;
 using SuperSocket.ClientEngine;
+//to delete
+using System.Reflection;
+using System.Linq;
 
 namespace TankGuiObserver2
 {
@@ -26,14 +21,6 @@ namespace TankGuiObserver2
         public TankSettings Settings { get; set; }
         private WebSocketProxy _webSocketProxy;
         static NLog.Logger _logger;
-
-        [System.Runtime.CompilerServices.MethodImpl(256)]
-        private void LogInfo(string info)
-        {
-#if LOGGED_CONNECTOR
-            _logger.Info(info);
-#endif
-        }
 
         public Connector(string server)
         {
@@ -70,7 +57,7 @@ namespace TankGuiObserver2
                 }
                 catch (Exception e)
                 {
-                    LogInfo($"Исключение во время выполнения: {e}");
+                    _logger.Debug($"Исключение во время выполнения: {e}");
                 }
 
             }
@@ -173,8 +160,9 @@ namespace TankGuiObserver2
     {
         public bool IsWebSocketOpen => _isWebSocketOpen;
         private bool _isWebSocketOpen;
-        protected readonly string _nickName;
-        protected readonly string _server;
+        protected string _nickName;
+        protected string _server;
+        public string Server => _server;
         private WebSocketServer _webSocket;
         static NLog.Logger _logger;
         WebSocket web;
@@ -183,49 +171,49 @@ namespace TankGuiObserver2
         */
         public TankSettings Settings { get; set; }
         public Map Map { get; set; }
-        private object _syncObject = new object();
         protected DateTime _lastMapUpdate;
-        protected readonly CancellationToken _cancellationToken;
-        protected int _msgCount;
-        protected bool _wasUpdate;
-
-
-        [System.Runtime.CompilerServices.MethodImpl(256)]
-        private void LogInfo(string info)
-        {
-#if LOGGED_GUI_OBSERVER_CORE
-            _logger.Debug(info);
-#endif
-        }
+        public bool WasUpdate { get; private set; }
 
         public GuiObserverCore(string server, string nickname)
         {
             _nickName = nickname;
-            _server = server;
             _logger = NLog.LogManager.GetCurrentClassLogger();
+            _logger.Debug("Ctor is working fiine. [GuiObserverCore]");
             Restart(server);
-            LogInfo("Ctor is working fiine. [GuiObserverCore]");
-            //_webSocketProxy = new WebSocketProxy(_serverUri);
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(256)]
+        public void Restart(string server)
+        {
+            _server = server;
+            web?.Close();
+            web?.Dispose();
             web = new WebSocket(server);
-            web.Open();
             web.Opened += (object sender, EventArgs eventArgs) =>
             {
                 _isWebSocketOpen = true;
-                LogInfo($"Подсоединение к серверу { _server} как { _nickName}...");
+                _logger.Debug($"Подсоединение к серверу { _server} как { _nickName}...");
                 ServerResponse loginResponse = new ServerResponse
                 {
                     CommandParameter = _nickName,
                     ClientCommand = ClientCommandType.Login
                 };
-                LogInfo($"Логин на сервер как {_nickName}");
+                _logger.Debug($"Логин на сервер как {_nickName}");
                 web.Send(loginResponse.ToJson());
-                LogInfo("Логин успешно выполнен.");
+                _logger.Debug("Логин успешно выполнен.");
             };
             web.MessageReceived += (object sender, MessageReceivedEventArgs messageReceivedEventArgs) =>
             {
                 ServerRequest serverRequest = messageReceivedEventArgs.Message.FromJson<ServerRequest>();
-                string outputData = serverRequest != null ? Client(serverRequest).ToJson() : "";
-                web.Send(outputData);
+                WasUpdate = false;
+                if (serverRequest != null)
+                {
+                    ServerResponse response = Client(serverRequest);
+                    if (response != null)
+                    {
+                        web.Send(response.ToJson());
+                    }
+                }
             };
             web.Error += (object sender, ErrorEventArgs error) =>
             {
@@ -234,48 +222,44 @@ namespace TankGuiObserver2
 
             web.Closed += (object sender, EventArgs eventArgs) =>
             {
+                _isWebSocketOpen = false;
                 _logger.Info("Socket closed");
             };
-
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(256)]
-        public void Restart(string server)
-        {
-            //_webSocket?.Close();
-            _webSocket?.Dispose();
-            _webSocket = new WebSocketServer(server);
+            web.Open();
         }
 
 
         public ServerResponse Client(ServerRequest request)
         {
+            if (request.Settings != null)
+            {
+                _logger.Debug("flag: request.Settings != null");
+                Settings = request.Settings;
+            }
+
             if (request.Map.Cells != null)
             {
-                LogInfo("flag: request.Map.Cells != null");
+                _logger.Debug("flag: request.Map.Cells != null");
                 Map = request.Map;
                 _lastMapUpdate = DateTime.Now;
             }
             else if (Map == null)
             {
-                LogInfo("flag: Map == null");
+                _logger.Debug("flag: Map == null");
                 return new ServerResponse { ClientCommand = ClientCommandType.UpdateMap };
             }
-            if (request.Settings != null)
-            {
-                LogInfo("flag: request.Settings != null");
-                Settings = request.Settings;
-            }
 
-            LogInfo("set: Map.InteractObjects");
-            Map.InteractObjects = request.Map.InteractObjects;
-            LogInfo("set: _wasUpdate");
-            _wasUpdate = true;
+            _logger.Debug("set: Map.InteractObjects");
+            if (request.Map.InteractObjects != null)
+            {
+                Map.InteractObjects = request.Map.InteractObjects;
+            }
+            _logger.Debug("set: _wasUpdate");
+            WasUpdate = true;
 
             return new ServerResponse { ClientCommand = ClientCommandType.None };
-            
-        }
 
+        }
     }
 
 }
