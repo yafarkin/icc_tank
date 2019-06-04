@@ -482,6 +482,7 @@ namespace TankGuiObserver2
             _clientInfoSessionServer.ForeColor = System.Drawing.Color.White;
             _clientInfoSessionServer.Location = new System.Drawing.Point(_renderForm.Height + 20, 40);
             _clientInfoSessionServer.AutoSize = true;
+            _clientInfoSessionServer.Visible = false;
 
             _ipResetIpTextBox = new TextBox();
             _ipResetIpTextBox.Font = new System.Drawing.Font("Cambria", 16);
@@ -489,6 +490,7 @@ namespace TankGuiObserver2
             _ipResetIpTextBox.Width = 250;
             _ipResetIpTextBox.Location = new System.Drawing.Point(300, 0);
             _ipResetIpTextBox.Visible = true;
+            _ipResetIpTextBox.AcceptsReturn = true;
             _resetIpBtn = new Button();
             _resetIpBtn.Font = new System.Drawing.Font("Cambria", 16);
             _resetIpBtn.Name = "btnReset";
@@ -496,7 +498,7 @@ namespace TankGuiObserver2
             _resetIpBtn.Width = 250;
             _resetIpBtn.Location = new System.Drawing.Point(300, 35);
             _resetIpBtn.Click += ResetIPButton_Click;
-            
+
             IpReconnectUIVisible = false;
 
 
@@ -688,159 +690,6 @@ namespace TankGuiObserver2
                     }
                 }
 
-                if (!_isDestructiveObjectsInitialized && Map.Cells != null)
-                {
-                    _isDestructiveObjectsInitialized = true;
-                    int i, j, index = 0,
-                        blocksInARow = _mapWidth / 5,
-                        blocksInACol = _mapHeight / 5;
-                    for (int r = 0; r < blocksInACol; r++)
-                    {
-                        for (int c = 0; c < blocksInARow; c++)
-                        {
-                            for (i = (5 * r); i < (5 * r + 5); i++)
-                            {
-                                for (j = (5 * c); j < (5 * c + 5); j++)
-                                {
-                                    if (Map[i, j] == CellMapType.DestructiveWall)
-                                    {
-                                        _rawRectangleTemp.Left = j * _zoomWidth;
-                                        _rawRectangleTemp.Top = i * _zoomHeight;
-                                        _rawRectangleTemp.Right = j * _zoomWidth + _zoomWidth;
-                                        _rawRectangleTemp.Bottom = i * _zoomHeight + _zoomHeight;
-                                        _destuctiveWallsObjects.Add(new DestuctiveWalls((char)1, i, j,
-                                            (index % 25), _rawRectangleTemp));
-                                        _renderTarget2D.DrawBitmap(_bricksBitmaps[index % 25], _rawRectangleTemp,
-                                            1.0f, BitmapInterpolationMode.Linear);
-                                        ++index;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                else if (Map.Cells != null)
-                {
-                    foreach (var obj in _destuctiveWallsObjects)
-                    {
-                        if (Map[obj.RowIndex, obj.ColumnIndex] == CellMapType.DestructiveWall)
-                        {
-                            _renderTarget2D.DrawBitmap(
-                                _bricksBitmaps[obj.BitmapIndex], obj.Rectangle,
-                                1.0f, BitmapInterpolationMode.Linear);
-                        }
-                    }
-                }
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(256)]
-        public void DrawMapImmutableObjects()
-        {
-            if (Map != null)
-            {
-                // рисуем всю карту
-                if (!_isMapSet &&
-                    Map.MapWidth > 0 &&
-                    Map.MapHeight > 0)
-                {
-                    _isMapSet = true;
-
-                    _mapWidth = Map.MapWidth;
-                    _mapHeight = Map.MapHeight;
-                    _zoomWidth = _renderTarget2D.Size.Height / _mapWidth;
-                    _zoomHeight = _renderTarget2D.Size.Height / _mapHeight;
-                }
-
-                //неизменяемые
-                if (!_isImmutableObjectsInitialized && Map.Cells != null)
-                {
-                    _isImmutableObjectsInitialized = true;
-
-                    //#### ################ ###########
-                    //#### текстуры блоками 5 на 5 ####
-                    //#### ################ ###########
-                    int i, j;
-                    int blocksInARow = _mapWidth / 5;
-                    int blocksInACol = _mapHeight / 5;
-                    List<SharpDX.Point> walls = new List<SharpDX.Point>();
-                    List<SharpDX.Point> water = new List<SharpDX.Point>();
-                    List<SharpDX.Point> grass = new List<SharpDX.Point>();
-                    for (int r = 0; r < blocksInACol; r++)
-                    {
-                        for (int c = 0; c < blocksInARow; c++)
-                        {
-                            for (i = (5 * r); i < (5 * r + 5); i++)
-                            {
-                                for (j = (5 * c); j < (5 * c + 5); j++)
-                                {
-                                    if (Map[i, j] == CellMapType.Wall)
-                                    {
-                                        walls.Add(new SharpDX.Point(i, j));
-                                    }
-                                    else if (Map[i, j] == CellMapType.Water)
-                                    {
-                                        water.Add(new SharpDX.Point(i, j));
-                                    }
-                                    if (Map[i, j] == CellMapType.Grass)
-                                    {
-                                        grass.Add(new SharpDX.Point(i, j));
-                                    }
-                                }
-                            }
-                            if (walls.Count == 25)
-                            {
-                                _rawRectangleTemp.Left = 5 * c * _zoomWidth;
-                                _rawRectangleTemp.Top = 5 * r * _zoomHeight;
-                                _rawRectangleTemp.Right = (5 * c + 5) * _zoomWidth;
-                                _rawRectangleTemp.Bottom = (5 * r + 5) * _zoomHeight;
-                                _immutableMapObjects.Add(new ImmutableObject((char)0, _rawRectangleTemp));
-                                walls.Clear();
-                            }
-                            if (water.Count == 25)
-                            {
-                                _rawRectangleTemp.Left = 5 * c * _zoomWidth;
-                                _rawRectangleTemp.Top = 5 * r * _zoomHeight;
-                                _rawRectangleTemp.Right = (5 * c + 5) * _zoomWidth;
-                                _rawRectangleTemp.Bottom = (5 * r + 5) * _zoomHeight;
-                                _immutableMapObjects.Add(new ImmutableObject((char)1, _rawRectangleTemp));
-                                water.Clear();
-                            }
-                            if (grass.Count == 25)
-                            {
-                                _rawRectangleTemp.Left = 5 * c * _zoomWidth;
-                                _rawRectangleTemp.Top = 5 * r * _zoomHeight;
-                                _rawRectangleTemp.Right = (5 * c + 5) * _zoomWidth;
-                                _rawRectangleTemp.Bottom = (5 * r + 5) * _zoomHeight;
-                                _immutableGrass.Add(new ImmutableObject((char)2, _rawRectangleTemp));
-                                grass.Clear();
-                            }
-                        }
-                    }
-
-#pragma warning disable IDE0059 // Value assigned to symbol is never used
-                    walls = null;
-                    water = null;
-                    grass = null;
-#pragma warning restore IDE0059 // Value assigned to symbol is never used
-
-                }
-                else if (Map.Cells != null)
-                {
-                    foreach (var obj in _immutableMapObjects)
-                    {
-                        _renderTarget2D.DrawBitmap(_bitmaps[obj.BitmapIndex], obj.Rectangle,
-                            1.0f, BitmapInterpolationMode.Linear);
-                    }
-                }
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(256)]
-        public void DrawMapMutableObjects()
-        {
-            if (Map != null)
-            {
                 if (!_isDestructiveObjectsInitialized && Map.Cells != null)
                 {
                     _isDestructiveObjectsInitialized = true;

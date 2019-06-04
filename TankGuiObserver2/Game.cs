@@ -165,11 +165,11 @@ namespace TankGuiObserver2
             _renderTarget2D.BeginDraw();
             _logger.Debug("Frame draw: begin");
 
-            System.Collections.Generic.List<Key> pressedKeys =
-                _keyboard.GetCurrentState().PressedKeys;//_keyboard.Poll();
-
             if (_isRenderNeaded)
             {
+                System.Collections.Generic.List<Key> pressedKeys =
+                    _keyboard.GetCurrentState().PressedKeys;//_keyboard.Poll();
+
                 if (pressedKeys.Count > 0)
                 {
                     foreach (Key pressedKey in pressedKeys)
