@@ -12,7 +12,7 @@ namespace TankGuiObserver2
     using Device = SharpDX.Direct3D11.Device;
     using Factory = SharpDX.DXGI.Factory;
 
-    class Game : System.IDisposable
+    public class Game : System.IDisposable
     {
         RenderForm _renderForm;
         RenderTarget _renderTarget2D;
@@ -23,7 +23,7 @@ namespace TankGuiObserver2
 
         int _serverStartupIndex;
         string _serverString;
-        GuiObserverCore _guiObserverCore;
+        GuiObserverNet _guiObserverNet;
 
         bool _isFPressed;
         bool _isEnterPressed;
@@ -44,6 +44,9 @@ namespace TankGuiObserver2
         //Logger
         static NLog.Logger _logger;
 
+        /// <summary>
+        /// Это класс игры, здесь создается оконный контект, связь с сервером и рендер игры.
+        /// </summary>
         public Game(string windowName,
             int windowWidth, int windowHeight,
             bool isFullscreen = false)
@@ -122,7 +125,7 @@ namespace TankGuiObserver2
             #endregion
 
             #region Connection
-            _guiObserverCore = new GuiObserverCore(_serverString, string.Empty);
+            _guiObserverNet = new GuiObserverNet(_serverString, string.Empty);
             #endregion
 
             #region Keyboard
@@ -144,21 +147,34 @@ namespace TankGuiObserver2
             _gameRender = new GameRender(_serverString, _renderForm, _factory2D, _renderTarget2D);
             _gameRender.Map = new TankCommon.Objects.Map();
         }
+
+        /// <summary>
+        /// Метод на event активации окна, чтобы в render loop'е обрабатывался ввод клавиш.
+        /// </summary>
         public void ActivatedMethod(object sender, System.EventArgs e)
         {
             _isRenderNeaded = true;
         }
 
+        /// <summary>
+        /// Метод на event деактивации окна, чтобы в render loop'е не обрабатывался ввод клавиш.
+        /// </summary>
         public void DeactivateMethod(object sender, System.EventArgs e)
         {
             _isRenderNeaded = false;
         }
 
+        /// <summary>
+        /// Данный метод стартует игру.
+        /// </summary>
         public void RunGame()
         {
             RenderLoop.Run(_renderForm, Draw);
         }
 
+        /// <summary>
+        /// Данный метод запускается в render loop'е. Здесь происходит: обработка ввода с клавиатуры, отрисовка игры, реконект.
+        /// </summary>
         public void Draw()
         {
             _renderTarget2D.BeginDraw();
@@ -245,7 +261,7 @@ namespace TankGuiObserver2
                                 break;
                             case Key.Return:
                                 {
-                                    if (_guiObserverCore?.Map != null) _isEnterPressed = true;
+                                    if (_guiObserverNet?.Map != null) _isEnterPressed = true;
                                 }
                                 break;
                             case Key.Escape:
@@ -346,27 +362,26 @@ namespace TankGuiObserver2
                 Reset();
             }
 
-            //Drawing a game
-            if (!_guiObserverCore.IsWebSocketOpen)
+            if (!_guiObserverNet.IsWebSocketOpen)
             {
                 Reset();
             }
 
-            if (_guiObserverCore.WasMapUpdated)
+            if (_guiObserverNet.WasMapUpdated)
             {
-                if (_guiObserverCore.Map.Cells != null)
+                if (_guiObserverNet.Map.Cells != null)
                 {
-                    _gameRender.Map = _guiObserverCore.Map;
+                    _gameRender.Map = _guiObserverNet.Map;
                 }
-                else if (_guiObserverCore.Map != null)
+                else if (_guiObserverNet.Map != null)
                 {
-                    _gameRender.Map.InteractObjects = _guiObserverCore.Map.InteractObjects;
+                    _gameRender.Map.InteractObjects = _guiObserverNet.Map.InteractObjects;
                 }
             }
 
-            //Draw a game
+            /* Drawing a game */
             if (_gameRender.Map != null &&
-                _guiObserverCore.IsWebSocketOpen)
+                _guiObserverNet.IsWebSocketOpen)
             {
                 if (_isEnterPressed)
                 {
@@ -396,13 +411,13 @@ namespace TankGuiObserver2
                         }
                         else
                         {
-                            _gameRender.DrawTanks(_guiObserverCore.Map.InteractObjects);
+                            _gameRender.DrawTanks(_guiObserverNet.Map.InteractObjects);
                             _logger.Debug("call: DrawTanks()");
                         }
 
                     }
                 }
-                else if (_guiObserverCore.WasMapUpdated)
+                else if (_guiObserverNet.WasMapUpdated)
                 {
                     _gameRender.DrawLogo();
                     _logger.Debug("call: DrawLogo()");
@@ -429,6 +444,9 @@ namespace TankGuiObserver2
             
         }
 
+        /// <summary>
+        /// Данный метод обновляет флаги, сбрасывает состояние GameRender и GuiObserverCore. 
+        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         private void Reset()
         {
@@ -436,12 +454,15 @@ namespace TankGuiObserver2
             _isEnterPressed = false;
             _gameRender.UIIsVisible = false;
             _gameRender.GameSetDefault();
-            _guiObserverCore.Restart(_serverString);
-            _gameRender.Settings = _guiObserverCore.Settings;
+            _guiObserverNet.Initialize(_serverString);
+            _gameRender.Settings = _guiObserverNet.Settings;
             _gameRender.DrawWaitingLogo();
             ++_serverStartupIndex;
         }
 
+        /// <summary>
+        /// Удаляем мусор в среде с GC и managed memory :) [данный метод не вызывается явно -> using]
+        /// </summary>
         public void Dispose()
         {
             _notifyVerticalSyncOn.Dispose();

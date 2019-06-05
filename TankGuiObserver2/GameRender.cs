@@ -17,6 +17,9 @@ namespace TankGuiObserver2
     using TankCommon.Objects;
     using AlphaMode = SharpDX.Direct2D1.AlphaMode;
 
+    /// <summary>
+    /// Структура неизменяемых объектов
+    /// </summary>
     struct ImmutableObject
     {
         public char BitmapIndex;
@@ -30,6 +33,9 @@ namespace TankGuiObserver2
         }
     }
 
+    /// <summary>
+    /// Структура разрушаемых объектов
+    /// </summary>
     struct DestuctiveWalls
     {
         public char ColorBrushIndex;
@@ -51,6 +57,9 @@ namespace TankGuiObserver2
         }
     }
 
+    /// <summary>
+    /// Класс для анимации текста (изменяет строку)
+    /// </summary>
     public class TextAnimation
     {
         private Stopwatch _textTimer;
@@ -87,6 +96,9 @@ namespace TankGuiObserver2
         }
     }
 
+    /// <summary>
+    /// Класс для анимации цвета текста (уменьшает/увеличивает прозрачность)
+    /// </summary>
     public class TextColorAnimation
     {
         private float _incriment;
@@ -120,6 +132,9 @@ namespace TankGuiObserver2
         }
     }
 
+    /// <summary>
+    /// Класс для счетчика fps
+    /// </summary>
     class FpsCounter
     {
         private int fps;
@@ -150,51 +165,21 @@ namespace TankGuiObserver2
         }
     }
 
-    public class CustomColorRenderer : SharpDX.DirectWrite.TextRendererBase
-    {
-        private RenderTarget _renderTarget;
-        private SolidColorBrush _defaultBrush;
-
-        public void AssignResources(RenderTarget renderTarget, SolidColorBrush defaultBrush)
-        {
-            _renderTarget = renderTarget;
-            _defaultBrush = defaultBrush;
-        }
-
-        public override Result DrawGlyphRun(object clientDrawingContext, float baselineOriginX, float baselineOriginY, MeasuringMode measuringMode, GlyphRun glyphRun, GlyphRunDescription glyphRunDescription, ComObject clientDrawingEffect)
-        {
-            SolidColorBrush sb = _defaultBrush;
-            if (clientDrawingEffect != null && clientDrawingEffect is SolidColorBrush)
-            {
-                sb = (SolidColorBrush)clientDrawingEffect;
-            }
-
-            try
-            {
-                _renderTarget.DrawGlyphRun(new Vector2(baselineOriginX, baselineOriginY), glyphRun, sb, measuringMode);
-                return Result.Ok;
-            }
-            catch
-            {
-                return Result.Fail;
-            }
-        }
-    }
-
     class GameRender : System.IDisposable
     {
-        //Game
+        /* Game */
         string _serverString;
         RenderForm _renderForm;
         RenderTarget _renderTarget2D;
         SharpDX.Direct2D1.Factory _factory2D;
         SharpDX.DirectWrite.Factory _directFactory;
 
+        /* Public variables*/
         public Map Map { get; set; }
         public TankCommon.TankSettings Settings { get; set; }
         public int FPS => _fpsmsCounter.FPSCounter;
 
-        //DrawMap
+        /* DrawMap */
         bool _isMapSet;
         bool _isImmutableObjectsInitialized;
         bool _isDestructiveObjectsInitialized;
@@ -208,7 +193,7 @@ namespace TankGuiObserver2
         List<ImmutableObject> _immutableGrass;
         List<DestuctiveWalls> _destuctiveWallsObjects;
 
-        //ClientInfo
+        /* ClientInfo */
         bool _centeredCI;
         bool _isStringResseted;
         int _index;
@@ -228,8 +213,6 @@ namespace TankGuiObserver2
         TextBox _ipResetIpTextBox;
         Button _resetIpBtn;
         TextFormat _clientInfoTextFormat;
-        TextLayout _textLayout;
-        CustomColorRenderer _textRenderer;
         List<TextRange> _clientInfoTableEffects;
         List<string> _paddingStrings;
         List<TankObject> _clientInfoTanks;
@@ -284,6 +267,7 @@ namespace TankGuiObserver2
         Bitmap[] _bitmaps;
         Bitmap[] _bricksBitmaps;
 
+        /*Flags is set in a game class*/
         public bool UIIsVisible
         {
             get => (_clientInfoSessionServer.Visible && _clientInfoLabel.Visible && _clientInfoSessionTime.Visible);
@@ -311,18 +295,6 @@ namespace TankGuiObserver2
             }
         }
 
-        public void GameSetDefault()
-        {
-            _isMapSet = false;
-            _isImmutableObjectsInitialized = false;
-            _isDestructiveObjectsInitialized = false;
-            Map = null;
-
-            _immutableMapObjects.Clear();
-            _immutableGrass.Clear();
-            _destuctiveWallsObjects.Clear();
-        }
-
         public bool IsNickRendered
         {
             get => _isNickRendered;
@@ -332,6 +304,9 @@ namespace TankGuiObserver2
             }
         }
 
+        /// <summary>
+        /// Это класс отрисовки игры.
+        /// </summary>
         public GameRender(
             string server,
             RenderForm renderForm,
@@ -429,9 +404,6 @@ namespace TankGuiObserver2
             _clientInfoTextFormat = new TextFormat(_directFactory, "Consolas", 
                 FontWeight.Normal, FontStyle.Normal, 24.0f);
 
-            //advanced text renderer
-            _textRenderer = new CustomColorRenderer();
-            _textRenderer.AssignResources(_renderTarget2D, _mapObjectsColors[14]);
             _centeredCI = true;
 
             #endregion
@@ -545,18 +517,39 @@ namespace TankGuiObserver2
 
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(256)]
-        public long GetElapsedMs()
+        /// <summary>
+        /// Устанавливаем игру в значение по умолчанию состояние
+        /// </summary>
+        public void GameSetDefault()
         {
-            return _fpsmsCounter.FPSTimer.ElapsedMilliseconds;
+            _isMapSet = false;
+            _isImmutableObjectsInitialized = false;
+            _isDestructiveObjectsInitialized = false;
+            Map = null;
+
+            _immutableMapObjects.Clear();
+            _immutableGrass.Clear();
+            _destuctiveWallsObjects.Clear();
         }
 
+        /// <summary>
+        /// Заполняет rectangle каким-то цветом
+        /// </summary>
+        /// <param name="rectangle">
+        /// Прямоугольник
+        /// </param>
+        /// <param name="brush">
+        /// COM-объект, хранящий в себе цвет
+        /// </param>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         protected void FillBlock(RawRectangleF rectangle, SolidColorBrush brush)
         {
             _renderTarget2D.FillRectangle(rectangle, brush);
         }
-        
+
+        /// <summary>
+        /// Метод отрисовки fps
+        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawFPS()
         {
@@ -569,6 +562,9 @@ namespace TankGuiObserver2
             _renderTarget2D.DrawText(_fpsmsCounter.ToString(), _fpsmsTextFormat, _fpsmsTextRect, _mapObjectsColors[12]);
         }
         
+        /// <summary>
+        /// Метод отрисовки начального экрана (готовый к работе)
+        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawLogo()
         {
@@ -580,6 +576,9 @@ namespace TankGuiObserver2
                 _statusTextFormat, _enterTextRect, _mapObjectsColors[11]);
         }
 
+        /// <summary>
+        ///  Метод отрисовки начального экрана (ожидающий успешного соединения)
+        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawWaitingLogo()
         {
@@ -591,6 +590,9 @@ namespace TankGuiObserver2
                 _statusTextFormat, _statusTextRect, _mapObjectsColors[14]);
         }
 
+        /// <summary>
+        /// Метод отрисовки карты
+        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawMap()
         {
@@ -736,6 +738,9 @@ namespace TankGuiObserver2
             }
         }
 
+        /// <summary>
+        /// Метод отрисовки кустов
+        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawGrass()
         {
@@ -748,6 +753,12 @@ namespace TankGuiObserver2
             }
         }
 
+        /// <summary>
+        /// Метод отрисовки интерактивных объектов
+        /// </summary>
+        /// <param name="baseInteractObjects">
+        /// Список интерактивных объектов
+        /// </param>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawInteractiveObjects(List<BaseInteractObject> baseInteractObjects)
         {
@@ -859,6 +870,12 @@ namespace TankGuiObserver2
             }
         }
 
+        /// <summary>
+        /// Метод отрисовки танков
+        /// </summary>
+        /// <param name="baseInteractObjects">
+        /// Список интерактивных объектов
+        /// </param>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawTanks(List<BaseInteractObject> baseInteractObjects)
         {
@@ -928,7 +945,10 @@ namespace TankGuiObserver2
                 }
             }
         }
-        
+
+        /// <summary>
+        /// Метод центрирования клиентского ui (используется по нажатию Tab)
+        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void CenterClientInfo()
         {
@@ -968,6 +988,9 @@ namespace TankGuiObserver2
             }
         }
 
+        /// <summary>
+        /// Метод отрисовки клиентского ui
+        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawClientInfo()
         {
@@ -1019,12 +1042,20 @@ namespace TankGuiObserver2
                 _renderTarget2D.DrawText(_clientInfoStringBuilder.ToString(),
                         _clientInfoTextFormat, _clientInfoTextRect, _mapObjectsColors[14]);
                 _clientInfoStringBuilder.Clear();
-                //Draw
 
                 _clientInfoTanks.Clear();
             }
         }
-        
+
+        /// <summary>
+        /// Метод загрузки битмапа из файла
+        /// </summary>
+        /// <param name="renderTarget">
+        /// RenderTarget (сюда мы рендерим картинку)
+        /// </param>
+        /// <param name="file">
+        /// Файл, из которого мы загружаем битмап
+        /// </param>
         public static Bitmap LoadFromFile(RenderTarget renderTarget, string file)
         {
             // Loads from file using System.Drawing.Image
@@ -1068,12 +1099,18 @@ namespace TankGuiObserver2
             }
         }
 
+        /// <summary>
+        /// Метод по нажатию на кнопку _resetIpBtn
+        /// </summary>
         public void ResetIPButton_Click(
             object sender, EventArgs e)
         {
             _isStringResseted = true;
         }
 
+        /// <summary>
+        /// Метод, который используется в ResetIPButton_Click()
+        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public bool ResetIp(ref string serverString)
         {
@@ -1090,6 +1127,9 @@ namespace TankGuiObserver2
             return false;
         }
 
+        /// <summary>
+        /// Метод сохранения конфига
+        /// </summary>
         private void SaveConfig(string newServer)
         {
             string filename = "TankGuiObserver2.exe.config";
@@ -1118,6 +1158,9 @@ namespace TankGuiObserver2
             xDoc.Save(filename);
         }
 
+        /// <summary>
+        /// Удаляем весь мусор
+        /// </summary>
         public void Dispose()
         {
             for (int mapIndex = 0; mapIndex < _mapObjectsColors.Length; mapIndex++)
@@ -1135,7 +1178,6 @@ namespace TankGuiObserver2
                 _bricksBitmaps[i]?.Dispose();
             }
 
-            _textLayout?.Dispose();
             _tankUpBitmap?.Dispose();
             _tankDownBitmap?.Dispose();
             _tankLeftBitmap?.Dispose();

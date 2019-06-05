@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28010.2050
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28822.285
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ICC_Tank", "ICC_Tank.csproj", "{BEBE2B15-AA08-4B4F-A033-A0EFB4E1F9B3}"
 EndProject
@@ -16,6 +16,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AdminPanel", "AdminPanel\AdminPanel.csproj", "{7999FA90-8D97-4CD9-A577-826D7A520367}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTestProject", "UnitTestProject\UnitTestProject.csproj", "{498E3EFE-5D98-4A35-94FA-B49A89376621}"
+	ProjectSection(ProjectDependencies) = postProject
+		{FA9472AB-7718-4A70-B209-4C459AEE2B18} = {FA9472AB-7718-4A70-B209-4C459AEE2B18}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TankGuiObserver2", "TankGuiObserver2\TankGuiObserver2.csproj", "{FA9472AB-7718-4A70-B209-4C459AEE2B18}"
 EndProject

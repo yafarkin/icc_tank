@@ -8,35 +8,49 @@ using SuperSocket.ClientEngine;
 
 namespace TankGuiObserver2
 {
-    public class GuiObserverCore
+    /// <summary>
+    /// Класс для соединения с сервером
+    /// </summary>
+    public class GuiObserverNet
     {
-        public bool IsWebSocketOpen => _isWebSocketOpen;
-        private bool _isWebSocketOpen;
-        protected string _nickName;
-        protected string _server;
         public string Server => _server;
-        static NLog.Logger _logger;
-        WebSocket web;
-
-        /*
-        GuiSpectator members        
-        */
+        public bool IsWebSocketOpen => _isWebSocketOpen;
         public bool WasMapCellsUpdated { get; set; }
         public bool WasMapUpdated { get; private set; }
         public TankSettings Settings { get; set; }
         public Map Map { get; set; }
+        protected string _nickName;
+        protected string _server;
         protected DateTime _lastMapUpdate;
+        private bool _isWebSocketOpen;
+        private NLog.Logger _logger;
+        private WebSocket web;
 
-        public GuiObserverCore(string server, string nickname)
+        /// <summary>
+        /// Конструктор класса
+        /// </summary>
+        /// <param name="server">
+        /// IP сервера, к которому хотим подключиться
+        /// </param>
+        /// <param name="nickname">
+        /// Наше имя на сервере, для Spectator'а всегда string.Empty ("") 
+        /// </param>
+        public GuiObserverNet(string server, string nickname)
         {
             _nickName = nickname;
             _logger = NLog.LogManager.GetCurrentClassLogger();
             _logger.Debug("Ctor is working fiine. [GuiObserverCore]");
-            Restart(server);
+            Initialize(server);
         }
 
+        /// <summary>
+        /// Инициализация GuiObserverNet
+        /// </summary>
+        /// <param name="server">
+        /// IP сервера, к которому хотим подключиться
+        /// </param>
         [System.Runtime.CompilerServices.MethodImpl(256)]
-        public void Restart(string server)
+        public void Initialize(string server)
         {
             _server = server;
             web?.Close();
@@ -81,6 +95,13 @@ namespace TankGuiObserver2
             web.Open();
         }
 
+        /// <summary>
+        /// Клиентский метод. Наш ответ серверу(ServerResponse) на его ответ нам(ServerRequest)
+        /// </summary>
+        /// <param name="request">
+        /// Ответ полученный на запрос
+        /// </param>
+        /// <returns>Ответ серверу в виде запроса</returns>
         public ServerResponse Client(ServerRequest request)
         {
             if (request.Settings != null)

@@ -1,15 +1,44 @@
 ﻿#define Sandbox_0
 
-using System;
-using System.Xml;
-
 namespace TankGuiObserver2
 {
+    /*
+        **********************
+        ** HOW IT ALL WORKS **
+        **********************
+
+        EntryPointClass 
+        -> Создаем Game instance в using блоке (чтобы по выходу из блока {} был вызван game.Dispose() 
+           -> call: .ctor [Game]
+              .ctor [Game]
+              -> Инициализирует поля для render'а, соединения с сервером и блабла 
+           -> call: RunGame()
+              RunGame()
+              -> call: RenderTarget.Begin()
+              -> Смотрит было ли совершено нажатие на кнопку
+                 -> Обрабатывает нажатие
+              -> Смотрит требуется ли повторно подключиться к серверу
+                 -> повторно подключается к серверу
+              -> If Map обновлена
+                 -> обновить Map в GameRender
+              -> If EnterIsPressed и Map not null
+                 -> call: DrawGame()
+              -> Else
+                 -> call: DrawWaitingSreen();
+              -> call: RenderTarget.End()
+    */
+
+    /// <summary>
+    /// Entry point class
+    /// </summary>
     class Program
     {
-        /*
-         ws://10.22.2.132:2000
-             */
+        /// <summary>
+        /// Entry point
+        /// </summary>
+        /// <param name="args">
+        /// Аргументы командной строки, мы это не используем (пока что)
+        /// </param>
         static void Main(string[] args)
         {
 #if Sandbox_0
