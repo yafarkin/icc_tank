@@ -21,36 +21,31 @@ namespace TankGuiObserver2
                 game.RunGame();
             }
 #else
-            string neadedValue = "";
+            string filename = "TankGuiObserver2.exe.config";
             XmlDocument xDoc = new XmlDocument();
-            xDoc.Load("TankGuiObserver2.exe.config");
-            // получим корневой элемент
+            xDoc.Load(filename);
             XmlElement xRoot = xDoc.DocumentElement;
-            // обход всех узлов в корневом элементе
+            
             foreach (XmlNode xnode in xRoot)
             {
                 foreach (XmlNode childnode in xnode.ChildNodes)
                 {
                     if (childnode.Name == "add")
                     {
-                        xDoc.WriteTo(null);
-                        string data_to_parse = childnode.OuterXml;
-                        if (childnode.OuterXml.Contains("ws"))
+                        foreach (XmlAttribute attribute in childnode.Attributes)
                         {
-                            string[] splitted = data_to_parse.Split('"');
-                            foreach (var s in splitted)
+                            string attributeToString = attribute.ToString();
+                            if (attribute.Name.Equals("value") && 
+                                attribute.Value.Contains("ws://"))
                             {
-                                if (s.Contains("ws"))
-                                {
-                                    neadedValue = s;
-                                }
+                                attribute.Value = "ws://10.22.2.123:2000";
                             }
                         }
                     }
                 }
-                Console.WriteLine();
             }
-            Console.WriteLine("BLALA: ", neadedValue.Equals("ws://10.22.2.120:2000"));
+            xDoc.Save(filename);
+
             Console.Read();
 #endif
         }

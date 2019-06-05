@@ -2,7 +2,6 @@
 
 namespace TankGuiObserver2
 {
-    using SharpDX;
     using SharpDX.DXGI;
     using SharpDX.Windows;
     using SharpDX.Direct2D1;
@@ -168,7 +167,7 @@ namespace TankGuiObserver2
             if (_isRenderNeaded)
             {
                 System.Collections.Generic.List<Key> pressedKeys =
-                    _keyboard.GetCurrentState().PressedKeys;//_keyboard.Poll();
+                    _keyboard.GetCurrentState().PressedKeys;
 
                 if (pressedKeys.Count > 0)
                 {

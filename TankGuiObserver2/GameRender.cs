@@ -1082,11 +1082,40 @@ namespace TankGuiObserver2
                 _isStringResseted = false;
                 serverString = _ipResetIpTextBox.Text;
                 _serverString = serverString;
+                SaveConfig(serverString);
                 _textAnimation.SetAnimatedString($"Waiting for connection to {_serverString}");
                 _clientInfoSessionServer.Text = _serverString;
                 return true;
             }
             return false;
+        }
+
+        private void SaveConfig(string newServer)
+        {
+            string filename = "TankGuiObserver2.exe.config";
+            System.Xml.XmlDocument xDoc = new System.Xml.XmlDocument();
+            xDoc.Load(filename);
+            System.Xml.XmlElement xRoot = xDoc.DocumentElement;
+
+            foreach (System.Xml.XmlNode xnode in xRoot)
+            {
+                foreach (System.Xml.XmlNode childnode in xnode.ChildNodes)
+                {
+                    if (childnode.Name == "add")
+                    {
+                        foreach (System.Xml.XmlAttribute attribute in childnode.Attributes)
+                        {
+                            string attributeToString = attribute.ToString();
+                            if (attribute.Name.Equals("value") &&
+                                attribute.Value.Contains("ws://"))
+                            {
+                                attribute.Value = newServer;
+                            }
+                        }
+                    }
+                }
+            }
+            xDoc.Save(filename);
         }
 
         public void Dispose()
