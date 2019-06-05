@@ -17,6 +17,9 @@ namespace TankGuiObserver2
     using TankCommon.Objects;
     using AlphaMode = SharpDX.Direct2D1.AlphaMode;
 
+    /// <summary>
+    /// Структура неизменяемых объектов
+    /// </summary>
     struct ImmutableObject
     {
         public char BitmapIndex;
@@ -30,6 +33,9 @@ namespace TankGuiObserver2
         }
     }
 
+    /// <summary>
+    /// Структура разрушаемых объектов
+    /// </summary>
     struct DestuctiveWalls
     {
         public char ColorBrushIndex;
@@ -51,6 +57,9 @@ namespace TankGuiObserver2
         }
     }
 
+    /// <summary>
+    /// Класс для анимации текста (изменяет строку)
+    /// </summary>
     public class TextAnimation
     {
         private Stopwatch _textTimer;
@@ -87,6 +96,9 @@ namespace TankGuiObserver2
         }
     }
 
+    /// <summary>
+    /// Класс для анимации цвета текста (уменьшает/увеличивает прозрачность)
+    /// </summary>
     public class TextColorAnimation
     {
         private float _incriment;
@@ -120,6 +132,9 @@ namespace TankGuiObserver2
         }
     }
 
+    /// <summary>
+    /// Класс для счетчика fps
+    /// </summary>
     class FpsCounter
     {
         private int fps;
@@ -150,51 +165,21 @@ namespace TankGuiObserver2
         }
     }
 
-    public class CustomColorRenderer : SharpDX.DirectWrite.TextRendererBase
-    {
-        private RenderTarget _renderTarget;
-        private SolidColorBrush _defaultBrush;
-
-        public void AssignResources(RenderTarget renderTarget, SolidColorBrush defaultBrush)
-        {
-            _renderTarget = renderTarget;
-            _defaultBrush = defaultBrush;
-        }
-
-        public override Result DrawGlyphRun(object clientDrawingContext, float baselineOriginX, float baselineOriginY, MeasuringMode measuringMode, GlyphRun glyphRun, GlyphRunDescription glyphRunDescription, ComObject clientDrawingEffect)
-        {
-            SolidColorBrush sb = _defaultBrush;
-            if (clientDrawingEffect != null && clientDrawingEffect is SolidColorBrush)
-            {
-                sb = (SolidColorBrush)clientDrawingEffect;
-            }
-
-            try
-            {
-                _renderTarget.DrawGlyphRun(new Vector2(baselineOriginX, baselineOriginY), glyphRun, sb, measuringMode);
-                return Result.Ok;
-            }
-            catch
-            {
-                return Result.Fail;
-            }
-        }
-    }
-
     class GameRender : System.IDisposable
     {
-        //Game
+        /* Game */
         string _serverString;
         RenderForm _renderForm;
         RenderTarget _renderTarget2D;
         SharpDX.Direct2D1.Factory _factory2D;
         SharpDX.DirectWrite.Factory _directFactory;
 
+        /* Public variables*/
         public Map Map { get; set; }
         public TankCommon.TankSettings Settings { get; set; }
         public int FPS => _fpsmsCounter.FPSCounter;
 
-        //DrawMap
+        /* DrawMap */
         bool _isMapSet;
         bool _isImmutableObjectsInitialized;
         bool _isDestructiveObjectsInitialized;
@@ -208,7 +193,7 @@ namespace TankGuiObserver2
         List<ImmutableObject> _immutableGrass;
         List<DestuctiveWalls> _destuctiveWallsObjects;
 
-        //ClientInfo
+        /* ClientInfo */
         bool _centeredCI;
         bool _isStringResseted;
         int _index;
@@ -228,8 +213,6 @@ namespace TankGuiObserver2
         TextBox _ipResetIpTextBox;
         Button _resetIpBtn;
         TextFormat _clientInfoTextFormat;
-        TextLayout _textLayout;
-        CustomColorRenderer _textRenderer;
         List<TextRange> _clientInfoTableEffects;
         List<string> _paddingStrings;
         List<TankObject> _clientInfoTanks;
@@ -284,6 +267,7 @@ namespace TankGuiObserver2
         Bitmap[] _bitmaps;
         Bitmap[] _bricksBitmaps;
 
+        /*Flags is set in a game class*/
         public bool UIIsVisible
         {
             get => (_clientInfoSessionServer.Visible && _clientInfoLabel.Visible && _clientInfoSessionTime.Visible);
@@ -311,18 +295,6 @@ namespace TankGuiObserver2
             }
         }
 
-        public void GameSetDefault()
-        {
-            _isMapSet = false;
-            _isImmutableObjectsInitialized = false;
-            _isDestructiveObjectsInitialized = false;
-            Map = null;
-
-            _immutableMapObjects.Clear();
-            _immutableGrass.Clear();
-            _destuctiveWallsObjects.Clear();
-        }
-
         public bool IsNickRendered
         {
             get => _isNickRendered;
@@ -332,6 +304,9 @@ namespace TankGuiObserver2
             }
         }
 
+        /// <summary>
+        /// Это класс отрисовки игры.
+        /// </summary>
         public GameRender(
             string server,
             RenderForm renderForm,
@@ -429,9 +404,6 @@ namespace TankGuiObserver2
             _clientInfoTextFormat = new TextFormat(_directFactory, "Consolas", 
                 FontWeight.Normal, FontStyle.Normal, 24.0f);
 
-            //advanced text renderer
-            _textRenderer = new CustomColorRenderer();
-            _textRenderer.AssignResources(_renderTarget2D, _mapObjectsColors[14]);
             _centeredCI = true;
 
             #endregion
@@ -482,6 +454,7 @@ namespace TankGuiObserver2
             _clientInfoSessionServer.ForeColor = System.Drawing.Color.White;
             _clientInfoSessionServer.Location = new System.Drawing.Point(_renderForm.Height + 20, 40);
             _clientInfoSessionServer.AutoSize = true;
+            _clientInfoSessionServer.Visible = false;
 
             _ipResetIpTextBox = new TextBox();
             _ipResetIpTextBox.Font = new System.Drawing.Font("Cambria", 16);
@@ -489,6 +462,7 @@ namespace TankGuiObserver2
             _ipResetIpTextBox.Width = 250;
             _ipResetIpTextBox.Location = new System.Drawing.Point(300, 0);
             _ipResetIpTextBox.Visible = true;
+            _ipResetIpTextBox.AcceptsReturn = true;
             _resetIpBtn = new Button();
             _resetIpBtn.Font = new System.Drawing.Font("Cambria", 16);
             _resetIpBtn.Name = "btnReset";
@@ -496,7 +470,7 @@ namespace TankGuiObserver2
             _resetIpBtn.Width = 250;
             _resetIpBtn.Location = new System.Drawing.Point(300, 35);
             _resetIpBtn.Click += ResetIPButton_Click;
-            
+
             IpReconnectUIVisible = false;
 
 
@@ -543,18 +517,39 @@ namespace TankGuiObserver2
 
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(256)]
-        public long GetElapsedMs()
+        /// <summary>
+        /// Устанавливаем игру в значение по умолчанию состояние
+        /// </summary>
+        public void GameSetDefault()
         {
-            return _fpsmsCounter.FPSTimer.ElapsedMilliseconds;
+            _isMapSet = false;
+            _isImmutableObjectsInitialized = false;
+            _isDestructiveObjectsInitialized = false;
+            Map = null;
+
+            _immutableMapObjects.Clear();
+            _immutableGrass.Clear();
+            _destuctiveWallsObjects.Clear();
         }
 
+        /// <summary>
+        /// Заполняет rectangle каким-то цветом
+        /// </summary>
+        /// <param name="rectangle">
+        /// Прямоугольник
+        /// </param>
+        /// <param name="brush">
+        /// COM-объект, хранящий в себе цвет
+        /// </param>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         protected void FillBlock(RawRectangleF rectangle, SolidColorBrush brush)
         {
             _renderTarget2D.FillRectangle(rectangle, brush);
         }
-        
+
+        /// <summary>
+        /// Метод отрисовки fps
+        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawFPS()
         {
@@ -567,6 +562,9 @@ namespace TankGuiObserver2
             _renderTarget2D.DrawText(_fpsmsCounter.ToString(), _fpsmsTextFormat, _fpsmsTextRect, _mapObjectsColors[12]);
         }
         
+        /// <summary>
+        /// Метод отрисовки начального экрана (готовый к работе)
+        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawLogo()
         {
@@ -578,6 +576,9 @@ namespace TankGuiObserver2
                 _statusTextFormat, _enterTextRect, _mapObjectsColors[11]);
         }
 
+        /// <summary>
+        ///  Метод отрисовки начального экрана (ожидающий успешного соединения)
+        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawWaitingLogo()
         {
@@ -589,149 +590,157 @@ namespace TankGuiObserver2
                 _statusTextFormat, _statusTextRect, _mapObjectsColors[14]);
         }
 
+        /// <summary>
+        /// Метод отрисовки карты
+        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawMap()
         {
-            // рисуем всю карту
-            if (!_isMapSet && 
-                Map != null &&
-                Map.MapWidth > 0 &&
-                Map.MapHeight > 0)
+            if (Map != null)
             {
-                _isMapSet = true;
-                
-                _mapWidth  = Map.MapWidth /*Map.Cells.GetLength(0)*/;
-                _mapHeight = Map.MapHeight/*Map.Cells.GetLength(1)*/;
-                _zoomWidth = _renderTarget2D.Size.Height / _mapWidth;
-                _zoomHeight = _renderTarget2D.Size.Height / _mapHeight;
-            }
-
-            //неизменяемые
-            if (!_isImmutableObjectsInitialized)
-            {
-                _isImmutableObjectsInitialized = true;
-
-                //#### ################ ###########
-                //#### текстуры блоками 5 на 5 ####
-                //#### ################ ###########
-                int i, j;
-                int blocksInARow = _mapWidth / 5;
-                int blocksInACol = _mapHeight / 5;
-                List<SharpDX.Point> walls = new List<SharpDX.Point>();
-                List<SharpDX.Point> water = new List<SharpDX.Point>();
-                List<SharpDX.Point> grass = new List<SharpDX.Point>();
-                for (int r = 0; r < blocksInACol; r++)
+                // рисуем всю карту
+                if (!_isMapSet &&
+                    Map.MapWidth > 0 &&
+                    Map.MapHeight > 0)
                 {
-                    for (int c = 0; c < blocksInARow; c++)
+                    _isMapSet = true;
+
+                    _mapWidth = Map.MapWidth;
+                    _mapHeight = Map.MapHeight;
+                    _zoomWidth = _renderTarget2D.Size.Height / _mapWidth;
+                    _zoomHeight = _renderTarget2D.Size.Height / _mapHeight;
+                }
+
+                //неизменяемые
+                if (!_isImmutableObjectsInitialized && Map.Cells != null)
+                {
+                    _isImmutableObjectsInitialized = true;
+
+                    //#### ################ ###########
+                    //#### текстуры блоками 5 на 5 ####
+                    //#### ################ ###########
+                    int i, j;
+                    int blocksInARow = _mapWidth / 5;
+                    int blocksInACol = _mapHeight / 5;
+                    List<SharpDX.Point> walls = new List<SharpDX.Point>();
+                    List<SharpDX.Point> water = new List<SharpDX.Point>();
+                    List<SharpDX.Point> grass = new List<SharpDX.Point>();
+                    for (int r = 0; r < blocksInACol; r++)
                     {
-                        for (i = (5 * r); i < (5 * r + 5); i++)
+                        for (int c = 0; c < blocksInARow; c++)
                         {
-                            for (j = (5 * c); j < (5 * c + 5); j++)
+                            for (i = (5 * r); i < (5 * r + 5); i++)
                             {
-                                if (Map[i, j] == CellMapType.Wall)
+                                for (j = (5 * c); j < (5 * c + 5); j++)
                                 {
-                                    walls.Add(new SharpDX.Point(i, j));
-                                }
-                                else if (Map[i, j] == CellMapType.Water)
-                                {
-                                    water.Add(new SharpDX.Point(i, j));
-                                }
-                                if (Map[i, j] == CellMapType.Grass)
-                                {
-                                    grass.Add(new SharpDX.Point(i, j));
+                                    if (Map[i, j] == CellMapType.Wall)
+                                    {
+                                        walls.Add(new SharpDX.Point(i, j));
+                                    }
+                                    else if (Map[i, j] == CellMapType.Water)
+                                    {
+                                        water.Add(new SharpDX.Point(i, j));
+                                    }
+                                    if (Map[i, j] == CellMapType.Grass)
+                                    {
+                                        grass.Add(new SharpDX.Point(i, j));
+                                    }
                                 }
                             }
-                        }
-                        if (walls.Count == 25)
-                        {
-                            _rawRectangleTemp.Left = 5 * c * _zoomWidth;
-                            _rawRectangleTemp.Top = 5 * r * _zoomHeight;
-                            _rawRectangleTemp.Right = (5 * c + 5) * _zoomWidth;
-                            _rawRectangleTemp.Bottom = (5 * r + 5) * _zoomHeight;
-                            _immutableMapObjects.Add(new ImmutableObject((char)0, _rawRectangleTemp));
-                            walls.Clear();
-                        }
-                        if (water.Count == 25)
-                        {
-                            _rawRectangleTemp.Left = 5 * c * _zoomWidth;
-                            _rawRectangleTemp.Top = 5 * r * _zoomHeight;
-                            _rawRectangleTemp.Right = (5 * c + 5) * _zoomWidth;
-                            _rawRectangleTemp.Bottom = (5 * r + 5) * _zoomHeight;
-                            _immutableMapObjects.Add(new ImmutableObject((char)1, _rawRectangleTemp));
-                            water.Clear();
-                        }
-                        if (grass.Count == 25)
-                        {
-                            _rawRectangleTemp.Left = 5 * c * _zoomWidth;
-                            _rawRectangleTemp.Top = 5 * r * _zoomHeight;
-                            _rawRectangleTemp.Right = (5 * c + 5) * _zoomWidth;
-                            _rawRectangleTemp.Bottom = (5 * r + 5) * _zoomHeight;
-                            _immutableGrass.Add(new ImmutableObject((char)2, _rawRectangleTemp));
-                            grass.Clear();
+                            if (walls.Count == 25)
+                            {
+                                _rawRectangleTemp.Left = 5 * c * _zoomWidth;
+                                _rawRectangleTemp.Top = 5 * r * _zoomHeight;
+                                _rawRectangleTemp.Right = (5 * c + 5) * _zoomWidth;
+                                _rawRectangleTemp.Bottom = (5 * r + 5) * _zoomHeight;
+                                _immutableMapObjects.Add(new ImmutableObject((char)0, _rawRectangleTemp));
+                                walls.Clear();
+                            }
+                            if (water.Count == 25)
+                            {
+                                _rawRectangleTemp.Left = 5 * c * _zoomWidth;
+                                _rawRectangleTemp.Top = 5 * r * _zoomHeight;
+                                _rawRectangleTemp.Right = (5 * c + 5) * _zoomWidth;
+                                _rawRectangleTemp.Bottom = (5 * r + 5) * _zoomHeight;
+                                _immutableMapObjects.Add(new ImmutableObject((char)1, _rawRectangleTemp));
+                                water.Clear();
+                            }
+                            if (grass.Count == 25)
+                            {
+                                _rawRectangleTemp.Left = 5 * c * _zoomWidth;
+                                _rawRectangleTemp.Top = 5 * r * _zoomHeight;
+                                _rawRectangleTemp.Right = (5 * c + 5) * _zoomWidth;
+                                _rawRectangleTemp.Bottom = (5 * r + 5) * _zoomHeight;
+                                _immutableGrass.Add(new ImmutableObject((char)2, _rawRectangleTemp));
+                                grass.Clear();
+                            }
                         }
                     }
-                }
 
 #pragma warning disable IDE0059 // Value assigned to symbol is never used
-                walls = null;
-                water = null;
-                grass = null;
+                    walls = null;
+                    water = null;
+                    grass = null;
 #pragma warning restore IDE0059 // Value assigned to symbol is never used
-            }
-            else
-            {
-                foreach (var obj in _immutableMapObjects)
-                {
-                    _renderTarget2D.DrawBitmap(_bitmaps[obj.BitmapIndex], obj.Rectangle, 
-                        1.0f, BitmapInterpolationMode.Linear);
                 }
-            }
-
-            if (!_isDestructiveObjectsInitialized)
-            {
-                _isDestructiveObjectsInitialized = true;
-                int i, j, index = 0,
-                    blocksInARow = _mapWidth / 5,
-                    blocksInACol = _mapHeight / 5;
-                for (int r = 0; r < blocksInACol; r++)
+                else if (Map.Cells != null)
                 {
-                    for (int c = 0; c < blocksInARow; c++)
+                    foreach (var obj in _immutableMapObjects)
                     {
-                        for (i = (5 * r); i < (5 * r + 5); i++)
+                        _renderTarget2D.DrawBitmap(_bitmaps[obj.BitmapIndex], obj.Rectangle,
+                            1.0f, BitmapInterpolationMode.Linear);
+                    }
+                }
+
+                if (!_isDestructiveObjectsInitialized && Map.Cells != null)
+                {
+                    _isDestructiveObjectsInitialized = true;
+                    int i, j, index = 0,
+                        blocksInARow = _mapWidth / 5,
+                        blocksInACol = _mapHeight / 5;
+                    for (int r = 0; r < blocksInACol; r++)
+                    {
+                        for (int c = 0; c < blocksInARow; c++)
                         {
-                            for (j = (5 * c); j < (5 * c + 5); j++)
+                            for (i = (5 * r); i < (5 * r + 5); i++)
                             {
-                                if (Map[i, j] == CellMapType.DestructiveWall)
+                                for (j = (5 * c); j < (5 * c + 5); j++)
                                 {
-                                    _rawRectangleTemp.Left = j * _zoomWidth;
-                                    _rawRectangleTemp.Top = i * _zoomHeight;
-                                    _rawRectangleTemp.Right = j * _zoomWidth + _zoomWidth;
-                                    _rawRectangleTemp.Bottom = i * _zoomHeight + _zoomHeight;
-                                    _destuctiveWallsObjects.Add(new DestuctiveWalls((char)1, i, j, 
-                                        (index % 25), _rawRectangleTemp));
-                                    _renderTarget2D.DrawBitmap(_bricksBitmaps[index % 25], _rawRectangleTemp,
-                                        1.0f, BitmapInterpolationMode.Linear);
-                                    ++index;
+                                    if (Map[i, j] == CellMapType.DestructiveWall)
+                                    {
+                                        _rawRectangleTemp.Left = j * _zoomWidth;
+                                        _rawRectangleTemp.Top = i * _zoomHeight;
+                                        _rawRectangleTemp.Right = j * _zoomWidth + _zoomWidth;
+                                        _rawRectangleTemp.Bottom = i * _zoomHeight + _zoomHeight;
+                                        _destuctiveWallsObjects.Add(new DestuctiveWalls((char)1, i, j,
+                                            (index % 25), _rawRectangleTemp));
+                                        _renderTarget2D.DrawBitmap(_bricksBitmaps[index % 25], _rawRectangleTemp,
+                                            1.0f, BitmapInterpolationMode.Linear);
+                                        ++index;
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-            else
-            {
-                foreach (var obj in _destuctiveWallsObjects)
+                else if (Map.Cells != null)
                 {
-                    if (Map[obj.RowIndex, obj.ColumnIndex] == CellMapType.DestructiveWall)
+                    foreach (var obj in _destuctiveWallsObjects)
                     {
-                        _renderTarget2D.DrawBitmap(
-                            _bricksBitmaps[obj.BitmapIndex], obj.Rectangle, 
-                            1.0f, BitmapInterpolationMode.Linear);
+                        if (Map[obj.RowIndex, obj.ColumnIndex] == CellMapType.DestructiveWall)
+                        {
+                            _renderTarget2D.DrawBitmap(
+                                _bricksBitmaps[obj.BitmapIndex], obj.Rectangle,
+                                1.0f, BitmapInterpolationMode.Linear);
+                        }
                     }
                 }
             }
         }
 
+        /// <summary>
+        /// Метод отрисовки кустов
+        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawGrass()
         {
@@ -744,6 +753,12 @@ namespace TankGuiObserver2
             }
         }
 
+        /// <summary>
+        /// Метод отрисовки интерактивных объектов
+        /// </summary>
+        /// <param name="baseInteractObjects">
+        /// Список интерактивных объектов
+        /// </param>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawInteractiveObjects(List<BaseInteractObject> baseInteractObjects)
         {
@@ -855,6 +870,12 @@ namespace TankGuiObserver2
             }
         }
 
+        /// <summary>
+        /// Метод отрисовки танков
+        /// </summary>
+        /// <param name="baseInteractObjects">
+        /// Список интерактивных объектов
+        /// </param>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawTanks(List<BaseInteractObject> baseInteractObjects)
         {
@@ -924,7 +945,10 @@ namespace TankGuiObserver2
                 }
             }
         }
-        
+
+        /// <summary>
+        /// Метод центрирования клиентского ui (используется по нажатию Tab)
+        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void CenterClientInfo()
         {
@@ -964,60 +988,74 @@ namespace TankGuiObserver2
             }
         }
 
+        /// <summary>
+        /// Метод отрисовки клиентского ui
+        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public void DrawClientInfo()
         {
-            _renderTarget2D.Clear(_blackScreen);
-            _renderTarget2D.FillRectangle(_clientInfoAreaRect, _mapObjectsColors[13]);
-            _renderTarget2D.DrawLine(_clientInfoLeftPoint, _clientInfoRightPoint, _mapObjectsColors[12], 10);
-            _clientInfoSessionTime.Text = $"Session time: {Settings?.SessionTime.ToString()}";
-            _clientInfoTanks.AddRange(
-                Map?.InteractObjects.OfType<TankObject>().OrderByDescending(t => t.Score).ToList());
-            
-            _index = 1;
-            _nickDifLen = 0;
-            _scoreDifLen = 0;
-            _hpDifLen = 0;
-            _clientInfoStringBuilder.Append("Id  Nickname        Score     Hp    Lives\n");
-            foreach (var tank in _clientInfoTanks)
+            if (Map?.InteractObjects != null)
             {
-                int cisbLength = _clientInfoStringBuilder.Length;
-                string score = tank.Score.ToString();
-                string hp = tank.Hp.ToString();
-                string index = _index.ToString();
-                _nickDifLen = 15 - tank.Nickname.Length;
-                _scoreDifLen = 7 - score.Length;
-                _hpDifLen = 7 - hp.Length;
-                _clientInfoStringBuilder.AppendFormat("{0} {1}  {2} {3} {4}\n",
-                    _index < 10 ? index + " " : index, 
-                    (_nickDifLen <= 0) ? tank.Nickname : tank.Nickname + _paddingStrings[_nickDifLen],
-                    (_scoreDifLen <= 0) ? score : score + _paddingStrings[_scoreDifLen],
-                    (_hpDifLen <= 0) ? hp : hp + _paddingStrings[_hpDifLen],
-                    tank.Lives.ToString());
-                if (tank.IsDead)
+                _renderTarget2D.Clear(_blackScreen);
+                _renderTarget2D.FillRectangle(_clientInfoAreaRect, _mapObjectsColors[13]);
+                _renderTarget2D.DrawLine(_clientInfoLeftPoint, _clientInfoRightPoint, _mapObjectsColors[12], 10);
+                _clientInfoSessionTime.Text = $"Session time: {Settings?.SessionTime.ToString()}";
+                _clientInfoTanks.AddRange(
+                    Map.InteractObjects.OfType<TankObject>().OrderByDescending(t => t.Score).ToList());
+
+                _index = 1;
+                _nickDifLen = 0;
+                _scoreDifLen = 0;
+                _hpDifLen = 0;
+                _clientInfoStringBuilder.Append("Id  Nickname        Score     Hp    Lives\n");
+                foreach (var tank in _clientInfoTanks)
                 {
+                    int cisbLength = _clientInfoStringBuilder.Length;
+                    string score = tank.Score.ToString();
+                    string hp = tank.Hp.ToString();
+                    string index = _index.ToString();
+                    _nickDifLen = 15 - tank.Nickname.Length;
+                    _scoreDifLen = 7 - score.Length;
+                    _hpDifLen = 7 - hp.Length;
+                    _clientInfoStringBuilder.AppendFormat("{0} {1}  {2} {3} {4}\n",
+                        _index < 10 ? index + " " : index,
+                        (_nickDifLen <= 0) ? tank.Nickname : tank.Nickname + _paddingStrings[_nickDifLen],
+                        (_scoreDifLen <= 0) ? score : score + _paddingStrings[_scoreDifLen],
+                        (_hpDifLen <= 0) ? hp : hp + _paddingStrings[_hpDifLen],
+                        tank.Lives.ToString());
+                    if (tank.IsDead)
+                    {
 #if COLORED_DEAD_1
-                    _renderTarget2D.DrawText(_clientInfoStringBuilder.ToString(),
-                        _clientInfoTextFormat, _clientInfoTextRect, _mapObjectsColors[17]);
+                        _renderTarget2D.DrawText(_clientInfoStringBuilder.ToString(),
+                            _clientInfoTextFormat, _clientInfoTextRect, _mapObjectsColors[17]);
 #endif
+                    }
+                    else
+                    {
+                    }
+                    ++_index;
                 }
-                else
-                {
-                }
-                ++_index;
+
+#if COLORED_DEAD_1
+
+#endif
+                _renderTarget2D.DrawText(_clientInfoStringBuilder.ToString(),
+                        _clientInfoTextFormat, _clientInfoTextRect, _mapObjectsColors[14]);
+                _clientInfoStringBuilder.Clear();
+
+                _clientInfoTanks.Clear();
             }
-            
-#if COLORED_DEAD_1
-            
-#endif
-            _renderTarget2D.DrawText(_clientInfoStringBuilder.ToString(),
-                    _clientInfoTextFormat, _clientInfoTextRect, _mapObjectsColors[14]);
-            _clientInfoStringBuilder.Clear();
-            //Draw
-            
-            _clientInfoTanks.Clear();
         }
-        
+
+        /// <summary>
+        /// Метод загрузки битмапа из файла
+        /// </summary>
+        /// <param name="renderTarget">
+        /// RenderTarget (сюда мы рендерим картинку)
+        /// </param>
+        /// <param name="file">
+        /// Файл, из которого мы загружаем битмап
+        /// </param>
         public static Bitmap LoadFromFile(RenderTarget renderTarget, string file)
         {
             // Loads from file using System.Drawing.Image
@@ -1061,12 +1099,18 @@ namespace TankGuiObserver2
             }
         }
 
+        /// <summary>
+        /// Метод по нажатию на кнопку _resetIpBtn
+        /// </summary>
         public void ResetIPButton_Click(
             object sender, EventArgs e)
         {
             _isStringResseted = true;
         }
 
+        /// <summary>
+        /// Метод, который используется в ResetIPButton_Click()
+        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(256)]
         public bool ResetIp(ref string serverString)
         {
@@ -1075,6 +1119,7 @@ namespace TankGuiObserver2
                 _isStringResseted = false;
                 serverString = _ipResetIpTextBox.Text;
                 _serverString = serverString;
+                SaveConfig(serverString);
                 _textAnimation.SetAnimatedString($"Waiting for connection to {_serverString}");
                 _clientInfoSessionServer.Text = _serverString;
                 return true;
@@ -1082,6 +1127,40 @@ namespace TankGuiObserver2
             return false;
         }
 
+        /// <summary>
+        /// Метод сохранения конфига
+        /// </summary>
+        private void SaveConfig(string newServer)
+        {
+            string filename = "TankGuiObserver2.exe.config";
+            System.Xml.XmlDocument xDoc = new System.Xml.XmlDocument();
+            xDoc.Load(filename);
+            System.Xml.XmlElement xRoot = xDoc.DocumentElement;
+
+            foreach (System.Xml.XmlNode xnode in xRoot)
+            {
+                foreach (System.Xml.XmlNode childnode in xnode.ChildNodes)
+                {
+                    if (childnode.Name == "add")
+                    {
+                        foreach (System.Xml.XmlAttribute attribute in childnode.Attributes)
+                        {
+                            string attributeToString = attribute.ToString();
+                            if (attribute.Name.Equals("value") &&
+                                attribute.Value.Contains("ws://"))
+                            {
+                                attribute.Value = newServer;
+                            }
+                        }
+                    }
+                }
+            }
+            xDoc.Save(filename);
+        }
+
+        /// <summary>
+        /// Удаляем весь мусор
+        /// </summary>
         public void Dispose()
         {
             for (int mapIndex = 0; mapIndex < _mapObjectsColors.Length; mapIndex++)
@@ -1099,7 +1178,6 @@ namespace TankGuiObserver2
                 _bricksBitmaps[i]?.Dispose();
             }
 
-            _textLayout?.Dispose();
             _tankUpBitmap?.Dispose();
             _tankDownBitmap?.Dispose();
             _tankLeftBitmap?.Dispose();
