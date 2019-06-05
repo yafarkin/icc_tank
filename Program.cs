@@ -40,7 +40,7 @@ namespace ICC_Tank
                 Height = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["height"], 20),
                 Width = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["width"], 20),
                 CountOfLifes = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["countOfLifes"], 5),
-                MapType = MapType.Base,
+                MapType = MapType.Default_map,
                 MaxClientCount = ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["maxClientsCount"], 1000),
                 MaxCountOfUpgrade = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["maxCountOfUpgrade"], 3),
                 PlayerTickRate = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["playerTickRate"], 1000),
