@@ -10,7 +10,7 @@ namespace AdminPanel
     {
         public static object Sync = new object();
         public static List<Entity.ServerEntity> Servers = new List<Entity.ServerEntity>();
-        public static Logger Logger = LogManager.GetCurrentClassLogger();
+        public static Logger Logger = NLog.Web.NLogBuilder.ConfigureNLog("NLog.config").GetCurrentClassLogger();
 
         public static void Main(string[] args)
         {

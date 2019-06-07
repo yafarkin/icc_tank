@@ -8,6 +8,6 @@
         Info,
         Log,
         Trace,
-        Warn,
+        Warn
     }
 }
