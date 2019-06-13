@@ -1189,25 +1189,25 @@ namespace TankServer
             switch (loggerType)
             {
                 case LoggerType.Debug:
-                    LoggerDelegates += _logger.Debug;
+                    LoggerDelegates = _logger.Debug;
                     break;
                 case LoggerType.Error:
-                    LoggerDelegates += _logger.Error;
+                    LoggerDelegates = _logger.Error;
                     break;
                 case LoggerType.Fatal:
-                    LoggerDelegates += _logger.Fatal;
+                    LoggerDelegates = _logger.Fatal;
                     break;
                 case LoggerType.Info:
-                    LoggerDelegates += _logger.Info;
+                    LoggerDelegates = _logger.Info;
                     break;
                 case LoggerType.Trace:
-                    LoggerDelegates += _logger.Trace;
+                    LoggerDelegates = _logger.Trace;
                     break;
                 case LoggerType.Warn:
-                    LoggerDelegates += _logger.Warn;
+                    LoggerDelegates = _logger.Warn;
                     break;
                 default:
-                    LoggerDelegates += _logger.Debug;
+                    LoggerDelegates = _logger.Debug;
                     break;
             }
         }
