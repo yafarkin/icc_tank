@@ -24,10 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TankClient\TankClient.csproj" />
     <ProjectReference Include="..\TankCommon\TankCommon.csproj" />
-    <ProjectReference Include="..\TankGuiObserver2\TankGuiObserver2.csproj" />
-    <ProjectReference Include="..\TankGuiObserver\TankGuiObserver.csproj" />
     <ProjectReference Include="..\TankServer\TankServer.csproj" />
   </ItemGroup>
 
