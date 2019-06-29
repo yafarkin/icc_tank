@@ -4,6 +4,8 @@ using System.Net;
 using System.Threading;
 using TankCommon;
 using TankServer;
+using TankCommon.Enum;
+using TankCommon.Objects;
 
 namespace ICC_Tank
 {
@@ -28,62 +30,47 @@ namespace ICC_Tank
 
         static void Main(string[] args)
         {
-            var mapList = MapManager.GetMapList();
-            if (mapList.Count == 0)
+            // 50 на 50 ... Идеальный баланс... эталон гармонии
+
+            var map = MapManager.LoadMap(20, 20, CellMapType.Wall, 30, 30);
+            Console.WriteLine($"Сгенерирована карта");
+
+            var serverSetting = new ServerSettings()
             {
-                Console.WriteLine("Нет ни одной карты в списке.");
-                return;
-            }
-
-            var idx = 1;
-            if (mapList.Count > 1)
-            {
-                Console.WriteLine("Введите номер карты для старта:");
-                foreach (var m in mapList)
-                {
-                    Console.WriteLine($"{idx++}. {m}");
-                }
-
-                while (true)
-                {
-                    Console.Write("> ");
-                    var n = Console.ReadLine();
-                    if (!int.TryParse(n, out idx) || (idx < 1 || idx > mapList.Count))
-                    {
-                        Console.WriteLine($"Введите число от 1 до {mapList.Count}");
-                        continue;
-                    }
-
-                    break;
-                }
-            }
-
-            var map = MapManager.LoadMap(mapList[idx-1]);
-            Console.WriteLine($"Используется карта: {mapList[idx - 1]}");
-
-            var port = ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["port"], 2000);
-            var maxBotsCount = ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["maxBotsCount"], 1000);
-            var coreUpdateMs = ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["coreUpdateMs"], 100);
-            var spectatorUpdateMs = ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["spectatorUpdateMs"], 100);
-            var botUpdateMs = ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["botUpdateMs"], 250);
-
+                Height = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["height"], 20),
+                Width = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["width"], 20),
+                CountOfLifes = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["countOfLifes"], 5),
+                MapType = MapType.Default_map,
+                MaxClientCount = ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["maxClientsCount"], 1000),
+                MaxCountOfUpgrade = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["maxCountOfUpgrade"], 3),
+                PlayerTickRate = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["playerTickRate"], 1000),
+                Port = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["port"], 2000),
+                ServerTickRate = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["serverTickRate"], 50),
+                ServerType = ServerType.BattleCity,
+                SessionName = "ICC_TANK",
+                TimeOfInvulnerabilityAfterRespawn = 5000,
+                SpectatorTickRate = (int)ParseOrDefault(System.Configuration.ConfigurationManager.AppSettings["spectatorTickRate"], 150),
+                TankSettings = new TankSettings()
+            };
+            
             var strHostName = Dns.GetHostName();
             var ipEntry = Dns.GetHostEntry(strHostName);
-            var ipAddresses = ipEntry.AddressList;
+            var ipAddresses = /*ipEntry.AddressList*/"ws://10.22.2.120:2000";
 
-            Console.WriteLine($"Соединение по имени: ws://{strHostName}:{port}");
+            Console.WriteLine($"Соединение по имени: ws://{strHostName}:{serverSetting.Port}");
             Console.WriteLine("Или по IP адресу(ам):");
             foreach (var ipAddress in ipAddresses)
             {
-                Console.WriteLine($"\tws://{ipAddress}:{port}");
+                Console.WriteLine($"\tws://{ipAddress}:{serverSetting.Port}");
             }
             
             Console.WriteLine("Нажмите Escape для выхода");
 
             var tokenSource = new CancellationTokenSource();
-            var server = new Server(map, port, maxBotsCount, coreUpdateMs, spectatorUpdateMs, botUpdateMs);
-            var serverTask = server.Run(tokenSource.Token);
 
+            var server = new Server(serverSetting, NLog.LogManager.GetCurrentClassLogger());
+            var serverTask = server.Run(tokenSource.Token);
+            
             try
             {
                 while (!serverTask.IsCompleted)

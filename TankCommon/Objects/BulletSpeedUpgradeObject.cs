@@ -4,15 +4,15 @@ namespace TankCommon.Objects
 {
     public class BulletSpeedUpgradeObject : UpgradeInteractObject
     {
-        public int IncreaseBulletSpeed { get; }
+        public int IncreaseBulletSpeed { get; set; }
 
         public BulletSpeedUpgradeObject()
         {
         }
 
-        public BulletSpeedUpgradeObject(Guid id, Rectangle rectangle) : base(id, rectangle)
+        public BulletSpeedUpgradeObject(Guid id, Rectangle rectangle, int increaseBulletSpeed, int secondsToDespawn) : base(id, rectangle, secondsToDespawn)
         {
-            IncreaseBulletSpeed = 1;
+            IncreaseBulletSpeed = increaseBulletSpeed;
             Type = UpgradeType.BulletSpeed;
         }
     }

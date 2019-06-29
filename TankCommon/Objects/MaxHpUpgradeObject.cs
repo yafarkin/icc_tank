@@ -4,15 +4,15 @@ namespace TankCommon.Objects
 {
     public class MaxHpUpgradeObject : UpgradeInteractObject
     {
-        public decimal IncreaseHP { get; }
+        public decimal IncreaseHP { get; set; }
 
         public MaxHpUpgradeObject()
         {
         }
 
-        public MaxHpUpgradeObject(Guid id, Rectangle rectangle) : base(id, rectangle)
+        public MaxHpUpgradeObject(Guid id, Rectangle rectangle, int increaseHP, int secondsToDespawn) : base(id, rectangle, secondsToDespawn)
         {
-            IncreaseHP = 25;
+            IncreaseHP = increaseHP;
             Type = UpgradeType.MaxHp;
         }
     }

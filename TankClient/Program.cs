@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 
 namespace TankClient
@@ -12,37 +15,21 @@ namespace TankClient
         static void Main(string[] args)
         {
             var server = ConfigurationManager.AppSettings["server"];
+            if (server.Contains("0.0.0.0") || server.Contains("localhost"))
+            {
+                server = $"ws://{Dns.GetHostEntry(Dns.GetHostName()).AddressList.First(z => z.AddressFamily == AddressFamily.InterNetwork)}:{server.Split(':').Last()}";
+            }
             var nickname = ConfigurationManager.AppSettings["nickname"];
 
             Console.WriteLine("Запуск клиента");
 
             var isSpectator = false;
 
-            Console.WriteLine($"Нажмите 1, что бы подключиться как {nickname}");
-            Console.WriteLine("Нажмите 2, что бы подключиться как наблюдатель");
             Console.WriteLine("Нажмите 'Esc', что бы выйти");
-            while (true)
-            {
-                var key = Console.ReadKey(true);
-                switch (key.Key)
-                {
-                    case ConsoleKey.Escape:
-                        return;
-                    case ConsoleKey.D1:
-                        break;
-                    case ConsoleKey.D2:
-                        isSpectator = true;
-                        break;
-                    default:
-                        continue;
-                }
-
-                break;
-            }
 
             var tokenSource = new CancellationTokenSource();
             var clientCore = new ClientCore(server, isSpectator ? string.Empty : nickname);
-            var botClass = isSpectator ? new Spectator(tokenSource.Token) as IClientBot : new ManualClient() as IClientBot;
+            var botClass = isSpectator ? new Spectator(tokenSource.Token) as IClientBot : new ManualClient();
 
             var clientThread = new Thread(() => { clientCore.Run(!isSpectator, botClass.Client, tokenSource.Token); });
             clientThread.Start();
